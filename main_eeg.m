@@ -22,17 +22,16 @@ lags_meter_unrel = [0.6, 1.0];
 
 prec = 1e6; 
 
-cols = []; 
-cols.col_time = repmat(0, 1, 3); 
-cols.col_acf = repmat(0, 1, 3);  
-cols.col_ap = [224, 117, 29]/255;  
-cols.col_meter_rel = [214, 52, 24]/255; 
-cols.col_meter_unrel = [45, 114, 224]/255; 
+col_time = repmat(0, 1, 3); 
+col_acf = repmat(0, 1, 3);  
+col_ap = [224, 117, 29]/255;  
+col_meter_rel = [214, 52, 24]/255; 
+col_meter_unrel = [45, 114, 224]/255; 
 
 
 chans = {'F1', 'Fz', 'F2', 'FC1', 'FCz', 'FC2'}; 
 
-
+%%
 
 i_rhythm = 2; 
 i_tone = 1; 
@@ -93,28 +92,39 @@ for i_rhythm=1:length(rhythms)
         
         x = squeeze(mean(mean(acf_raw(:, :, 1, 1, 1, :), 1), 2)); 
         
+        f = figure('color','white', 'position', [668 62 257 900], ...
+                   'name', sprintf('%s-%s', rhythms{i_rhythm}, tones{i_tone})); 
+        pnl = panel(f); 
+        pnl.pack('v', 14); 
         for sub2plot=1:14
-        figure
-        plot_acf(squeeze(acf_raw(sub2plot,1,1,1,1,:))', ...
-                 squeeze(ap(sub2plot,1,1,1,1,:))', ...
-                 lags_time, ...
-                 lags_meter_rel, ...
-                 lags_meter_unrel, ...
-                 0, ...
-                 0, ...
-                 0, ...
-                 prec, ...
-                 cols);         
+            ax = pnl(sub2plot).select(); 
+            plot_acf(ax, ...
+                     squeeze(acf_raw(sub2plot,1,1,1,1,:))', ...
+                     lags_time, ...
+                     'ap', squeeze(ap(sub2plot,1,1,1,1,:))', ...
+                     'lags_meter_rel', lags_meter_rel, ...
+                     'lags_meter_unrel', lags_meter_unrel, ...
+                     'prec', prec, ...
+                     'col_acf', col_acf, ...
+                     'col_ap', col_ap, ...
+                     'col_meter_rel', col_meter_rel, ...
+                     'col_meter_unrel', col_meter_unrel ...
+                     );                  
         end
         
-%         % sanity check ERP
-%         [header_chunk, data_chunk] = RLW_segmentation_chunk(header, data, ...
-%             'chunk_onset', 0, 'chunk_duration', 2.4, 'chunk_interval', 2.4); 
-%         x = squeeze(mean(mean(data_chunk(:, :, 1, 1, 1, :), 1), 2)); 
-%         t = [0:length(x)-1]/fs; 
-%         plot(t, x, 'linew', 2)
+        pnl.de.margin = [1,1,1,1]; 
+        pnl.margin = [15, 6, 10, 5]; 
+        
+        % sanity check ERP
+        figure; 
+        [header_chunk, data_chunk] = RLW_segmentation_chunk(header, data, ...
+            'chunk_onset', 0, 'chunk_duration', 2.4, 'chunk_interval', 2.4); 
+        x = squeeze(mean(mean(data_chunk(:, :, 1, 1, 1, :), 1), 2)); 
+        t = [0:length(x)-1]/fs; 
+        plot(t, x, 'linew', 2)
         
     end
+    
 end
 
 

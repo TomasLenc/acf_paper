@@ -1,42 +1,18 @@
-function plot_time(t, x, cols)
+function plot_time(ax, x, t, varargin)
 
-col_time = cols.col_time; 
+parser = inputParser; 
 
-plot(t, x, 'linew', 2, 'color', col_time)
-box off
+addParameter(parser, 'col', [120, 20, 166]/255, @isnumeric); 
+addParameter(parser, 'xlim', [0, 4.8], @isnumeric); 
 
-xLims = [0, 4.8]; 
+parse(parser, varargin{:});
 
-ax = gca; 
+col = parser.Results.col; 
+xLims = parser.Results.xlim; 
+
+plot(ax, t, x, 'linew', 2, 'color', col)
+
 ax.XTick = xLims; 
 ax.XLim = xLims; 
 ax.YTick = ax.YLim; 
-
-% if strcmp(res.irParams.type,'square')
-%     
-%     title(sprintf('[%s]  jitter=%.3fs\n duty=%.3fs | rampon=%.3fs | rampoff=%.3fs',...
-%                     num2str(res.pattern,'%g '), ...
-%                     res.jitter, ...
-%                     res.irParams.eventDur, ...
-%                     res.irParams.rampon, ...
-%                     res.irParams.rampoff)); 
-% 
-% elseif strcmp(res.irParams.type,'erp')
-%     
-%     title(sprintf('[%s]  jitter=%.3fs\n  Dur=%.3fs  |  F0 = %s Hz   |   A = %s',...
-%                     num2str(res.pattern,'%g '), ...
-%                     res.jitter, ...
-%                     res.irParams.Dur, ...
-%                     num2str(res.irParams.F0), ...
-%                     num2str(res.irParams.A))); 
-% 
-%     
-% elseif strcmp(res.irParams.type,'click')
-%     
-%     title(sprintf('[%s]   jitter=%.3fs\n duration=%.3fs ',...
-%                     num2str(res.pattern,'%g '), ...
-%                     res.jitter, ...
-%                     res.irParams.eventDur)); 
-%     
-%     
-% end
+ax.TickDir = 'out'; 

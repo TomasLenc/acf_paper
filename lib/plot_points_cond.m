@@ -7,11 +7,12 @@ cols = {col1, col2};
 hold(ax, 'on')
 
 for i_cond=1:length(x)
-    plot(ax, i_cond, x{i_cond}, 'o', 'color', cols{i_cond})
-    mu = mean(x{i_cond});
-    ci = std(x{i_cond}) / sqrt(length(x{i_cond})) * norminv(0.95); 
-    plot(ax, i_cond, mu, 'o', 'color', 'k', 'MarkerFaceColor', 'k')
-    plot(ax, [i_cond, i_cond], [mu-ci, mu+ci], 'color', 'k', 'linew', 1)
+%     plot(ax, i_cond, x{i_cond}, 'o', 'color', cols{i_cond})
+%     mu = mean(x{i_cond});
+%     ci = std(x{i_cond}) / sqrt(length(x{i_cond})) * norminv(0.95); 
+%     plot(ax, i_cond, mu, 'o', 'color', 'k', 'MarkerFaceColor', 'k')
+%     plot(ax, [i_cond, i_cond], [mu-ci, mu+ci], 'color', 'k', 'linew', 1)
+     plot_points(ax, i_cond, x{i_cond}, 'col', cols{i_cond})
 end
 
 ax.XLim = [0.5, 2.5]; 

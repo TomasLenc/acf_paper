@@ -3,12 +3,18 @@ clear all
 
 addpath('lib')
 
+plot_fft = false; 
+
 
 %% set signal parameters
 % each parameter is set for both signals that will be compared
 
-track_name = {'stim1'}; 
+track_name = {'stim1', 'stim2'}; 
    
+
+cols = {[152, 63, 212]/255, 
+        [17, 120, 48]/255};
+
 % set rhythmic patterns  
 pattern = {[1 0 1 1 1 1 0 1 1 1 0 0]
            [1 0 1 1 1 1 0 1 1 1 0 0]};
@@ -20,7 +26,7 @@ fs = 1000;
 grid_ioi = 0.2; 
 
 % how many times the rhythmic pattern repeats in each trial
-n_cycles = 32; % 40.8 sec is 17 cycles (for 2.4s cycle)
+n_cycles = 16; % 40.8 sec is 17 cycles (for 2.4s cycle)
 
 emph_magn = [0, 0]; 
 
@@ -30,9 +36,36 @@ jitter = [0, 0] * grid_ioi;
 
 snr = [Inf, Inf]; % Inf, 0.7
 
-noise_exp = [2, 2]; 
+noise_exp = [-2, -2]; 
 
-   
+
+
+% number of simulated repetitions 
+n_rep = 1; 
+
+% whether to save continuous waveforms (s, acf, ...) for plotting 
+% set to false if simulating too many repetitions
+save_continuous = true; 
+
+% whether to subtract the estimated aperiodic component from the acf before
+% calculating indices of meter periodicities
+subtract_ap = false; 
+
+% whether to fit the apeirodic component with a knee
+fit_knee = false; 
+
+% autocorrelation lags (in seconds) that are considered meter-related and
+% meter-unrelated
+lags_meter_rel = [0.8]; 
+lags_meter_unrel = [0.6, 1.0]; 
+
+% you can separately set meter-unrelated lags on the left and right (this is
+% used when checking for spurious results)
+lags_meter_unrel_left = [0.6]; 
+lags_meter_unrel_right = [1.0]; 
+
+max_lag = 1.2; 
+
 % =========================================================================
 %%%%% set impulse response parameters
 ir_par = {}; 
@@ -71,11 +104,11 @@ tmp = [];
 % type of impulse response (provide parameters accordingly)
 tmp.type = 'square'; 
 % duration of sound event
-tmp.eventDur = 0.200; % 4 ms for click, 100ms for tone
+tmp.eventDur = 0.050; % 4 ms for click, 100ms for tone
 % duration of linear onset ramp for the sound event
-tmp.rampon = 0.100;
+tmp.rampon = 0.0;
 % duration of linear offset ramp for the sound event
-tmp.rampoff = 0.100; 
+tmp.rampoff = 0.0; 
 
 ir_par{1} = tmp; 
 
@@ -86,42 +119,17 @@ tmp = [];
 % type of impulse response (provide parameters accordingly)
 tmp.type = 'square'; 
 % duration of sound event
-tmp.eventDur = 0.200; % 4 ms for click, 100ms for tone
+tmp.eventDur = 0.180; % 4 ms for click, 100ms for tone
 % duration of linear onset ramp for the sound event
-tmp.rampon = 0.100;
+tmp.rampon = 0.0;
 % duration of linear offset ramp for the sound event
-tmp.rampoff = 0.100; 
+tmp.rampoff = 0.0; 
 
 ir_par{2} = tmp; 
 
 
 
 %% synthesis + analysis 
-
-% number of simulated repetitions 
-n_rep = 1; 
-
-% whether to save continuous waveforms (s, acf, ...) for plotting 
-% set to false if simulating too many repetitions
-save_continuous = true; 
-
-% whether to subtract the estimated aperiodic component from the acf before
-% calculating indices of meter periodicities
-subtract_ap = false; 
-
-% whether to fit the apeirodic component with a knee
-knee = true; 
-
-% autocorrelation lags (in seconds) that are considered meter-related and
-% meter-unrelated
-lags_meter_rel = [0.8]; 
-lags_meter_unrel = [0.6, 1.0]; 
-
-% you can separately set meter-unrelated lags on the left and right (this is
-% used when checking for spurious results)
-lags_meter_unrel_left = [0.6]; 
-lags_meter_unrel_right = [1.0]; 
-
 
 res = []; 
 % go over tracks
@@ -154,17 +162,13 @@ for i_cond=1:length(track_name)
     res(i_cond).t           = t;
     
     cycle_dur = length(res(i_cond).pattern) * res(i_cond).grid_ioi; 
-    % starting index of acf to keep (note we remove the lag 0)
-    min_idx = 2; 
-    % last index of acf to keep
-    max_idx = round(cycle_dur/2 * res(i_cond).fs); 
 
     if save_continuous
         res(i_cond).s           = nan(n_rep, length(s_clean));
-        res(i_cond).acf_raw_    = nan(n_rep, max_idx - min_idx + 1);
-        res(i_cond).acf_        = nan(n_rep, max_idx - min_idx + 1); 
-        res(i_cond).lags_time_  = nan(n_rep, max_idx - min_idx + 1); 
-        res(i_cond).ap_         = nan(n_rep, max_idx - min_idx + 1); 
+        res(i_cond).acf_raw_    = nan(n_rep, length(s_clean) / 2);
+        res(i_cond).acf_        = nan(n_rep, length(s_clean) / 2); 
+        res(i_cond).lags_time_  = nan(n_rep, length(s_clean) / 2); 
+        res(i_cond).ap_         = nan(n_rep, length(s_clean) / 2); 
     end
     res(i_cond).ap_par_                     = cell(1, n_rep); 
     res(i_cond).z_meter_rel_                = nan(1, n_rep); 
@@ -180,23 +184,10 @@ for i_cond=1:length(track_name)
         s = add_scaled_noise(s_clean, snr(i_cond), fs, noise_exp(i_cond)); 
         
         [acf_raw, lags_time] = get_acf(s, res(i_cond).fs);
-
-        % take only range of interest
-        acf_raw = acf_raw(min_idx:max_idx); 
-        lags_time = lags_time(min_idx:max_idx); 
-
-        % estiamte parameters of the aperiodic component
-        ap_par = fit_aperiodic(lags_time, acf_raw, knee); 
-
-        % generate continuous waveform for estimated aperiodic component
-        ap = aperiodic(ap_par, lags_time, knee);    
         
-        % subtract ap
-        if subtract_ap
-            acf = acf_raw - ap; 
-        else
-            acf = acf_raw; 
-        end
+        [acf, ~, ap, ~, ~, ap_par] = get_acf(s, res(i_cond).fs, ...
+                               'rm_ap', true, ...
+                               'f0_to_ignore', 1/2.4);
 
         % get indices for lags of interest
         lags_meter_rel_idx = dsearchn(lags_time', lags_meter_rel'); 
@@ -231,7 +222,7 @@ for i_cond=1:length(track_name)
             res(i_cond).ap_(i_rep, :)       = ap; 
         end
         
-        res(i_cond).ap_par_(i_rep)                  = {ap_par}; 
+        res(i_cond).ap_par_(i_rep)                  = ap_par; 
         res(i_cond).z_meter_rel_(i_rep)             = z_meter_rel; 
         res(i_cond).ratio_meter_rel_(i_rep)         = ratio_meter_rel; 
         res(i_cond).ratio_meter_rel_left_(i_rep)    = ratio_meter_rel_left; 
@@ -244,26 +235,61 @@ for i_cond=1:length(track_name)
     
 end
 
+%% 
+
+if plot_fft
+
+    f = figure('color', 'white', 'name', 'FFT'); 
+    pnl = panel(f); 
+    pnl.pack('v', 2); 
+
+    for i_cond=1:length(track_name)
+
+        powX = pwelch(res(1).s(1, :)); 
+        powX = powX .* 0; 
+        for i_rep=1:n_rep
+            [powX_tmp, freq_norm] = pwelch(res(i_cond).s(i_rep, :)); 
+            powX = [powX + powX_tmp]; 
+        end
+        powX = powX ./ n_rep; 
+
+        mX = sqrt(powX); 
+        freq = freq_norm / (2*pi) * res(i_cond).fs; 
+
+        pnl(1).select(); 
+        plot(freq, mX, 'linew', 2, 'color', cols{i_cond})
+        hold on
+        title('magnitude')
+        xlim([0.3, 30])
+
+        pnl(2).select(); 
+        plot(freq, powX, 'linew', 2, 'color', cols{i_cond})
+        hold on
+        title('power')
+        xlim([0.3, 30])
+
+    end
+    
+end
+
+
+
 
 %% plot ratios
 
-if length(res) == 2
+if length(res) == 2 && n_rep > 1
     
-    f = figure('color', 'white', 'position', [945 545 430 199]); 
+    f = figure('color', 'white', 'position', [945 545 430 199], 'name', 'faetures'); 
     pnl = panel(f); 
 
     pnl.pack('h', 3); 
-
-    col1 = [152, 63, 212]/255;
-    col2 = [17, 120, 48]/255;
-
 
     ax = pnl(1).select(); 
     plot_points_cond(ax, ...
                      res(1).ratio_meter_rel_, ...
                      res(2).ratio_meter_rel_, ...
-                     col1, ...
-                     col2)
+                     cols{1}, ...
+                     cols{2})
     ylabel(ax, 'ratio_meter_rel', 'Interpreter', 'none'); 
 
 
@@ -272,8 +298,8 @@ if length(res) == 2
     plot_points_cond(ax, ...
                      res(1).ratio_meter_rel_left_, ...
                      res(2).ratio_meter_rel_left_, ...
-                     col1, ...
-                     col2)
+                     cols{1}, ...
+                     cols{2})
     ylabel(ax, 'ratio_meter_rel_left', 'Interpreter', 'none'); 
 
 
@@ -281,8 +307,8 @@ if length(res) == 2
     plot_points_cond(ax, ...
                      res(1).ratio_meter_rel_right_, ...
                      res(2).ratio_meter_rel_right_, ...
-                     col1, ...
-                     col2)
+                     cols{1}, ...
+                     cols{2})
     ylabel(ax, 'ratio_meter_rel_right', 'Interpreter', 'none'); 
 
 
@@ -298,14 +324,13 @@ end
 % set some parameters 
 prec = 1e6; 
 
-cols = []; 
-cols.col_time = repmat(0, 1, 3); 
-cols.col_acf = repmat(0, 1, 3);  
-cols.col_ap = [224, 117, 29]/255;  
-cols.col_meter_rel = [214, 52, 24]/255; 
-cols.col_meter_unrel = [45, 114, 224]/255; 
+col_acf = repmat(0, 1, 3);  
+col_ap = [224, 117, 29]/255;  
+col_meter_rel = [214, 52, 24]/255; 
+col_meter_unrel = [45, 114, 224]/255; 
 
-f = figure('color','white', 'position', [673, 525, 1062, 200 * length(res)]); 
+f = figure('color','white', 'position', [673, 525, 1062, 200 * length(res)], ...
+           'name', 'acf'); 
 pnl = panel(f); 
 
 pnl.pack('h', 3)
@@ -316,39 +341,49 @@ pnl(3).pack('v', length(res))
 for i_cond=1:length(res)
 
     % plot time-domain 
-    pnl(1, i_cond).select(); 
-    plot_time(res(i_cond).t, res(i_cond).s(1, :), cols); 
-    axis off
+    ax = pnl(1, i_cond).select(); 
+    plot_time(ax, res(i_cond).s(1, :), res(i_cond).t, 'col', cols{i_cond}); 
+    ax.XAxis.Visible = 'off'; 
+    ax.YAxis.Visible = 'off'; 
 
     % plot autocorrelation function
-    pnl(2, i_cond).select(); 
-    plot_acf(res(i_cond).acf_raw_(1, :), ...
-             res(i_cond).ap_(1, :), ...
+    ax = pnl(2, i_cond).select(); 
+    plot_acf(ax, ...
+             res(i_cond).acf_raw_(1, :), ...
              res(i_cond).lags_time_, ...
-             lags_meter_rel, ...
-             lags_meter_unrel, ...
-             [], ...
-             [], ...
-             [], ...
-             prec, ...
-             cols); 
-    axis off
+             'ap', res(i_cond).ap_(1, :), ...
+             'lags_meter_rel', lags_meter_rel, ...
+             'lags_meter_unrel', lags_meter_unrel, ...
+             'max_lag', max_lag, ...
+             'col_acf', col_acf, ...
+             'col_ap', col_ap, ...
+             'col_meter_rel', col_meter_rel, ...
+             'col_meter_unrel', col_meter_unrel, ...
+             'prec', prec); 
+    ax.XAxis.Visible = 'off'; 
+    ax.YAxis.Visible = 'off'; 
 
     % plot corrected autocorrelation function
-    pnl(3, i_cond).select(); 
-    plot_acf(res(i_cond).acf_(1, :), ...
-             [], ...
+    ax = pnl(3, i_cond).select(); 
+    features = []; 
+    features.z = res(i_cond).z_meter_rel_(1); 
+    features.ratio = res(i_cond).ratio_meter_rel_(1); 
+    features.contr = res(i_cond).contrast_meter_rel_(1); 
+    plot_acf(ax, ...
+             res(i_cond).acf_(1, :), ...
              res(i_cond).lags_time_, ...
-             lags_meter_rel, ...
-             lags_meter_unrel, ...
-             res(i_cond).z_meter_rel_(1), ...
-             res(i_cond).ratio_meter_rel_(1), ...
-             res(i_cond).contrast_meter_rel_(1), ...
-             prec, ...
-             cols); 
-    axis off
-    
-    
+             'features', features, ...
+             'lags_meter_rel', lags_meter_rel, ...
+             'lags_meter_unrel', lags_meter_unrel, ...
+             'max_lag', max_lag, ...
+             'col_acf', col_acf, ...
+             'col_ap', col_ap, ...
+             'col_meter_rel', col_meter_rel, ...
+             'col_meter_unrel', col_meter_unrel, ...
+             'prec', prec); 
+    ax.XAxis.Visible = 'off'; 
+    ax.YAxis.Visible = 'off'; 
+      
 end
 
 pnl(1).xlabel('time (s)')
