@@ -38,12 +38,12 @@ noise_bins = [2, 5];
 
 %% 
 
-ir_par = []; 
-ir_par.type = 'square'; 
-ir_par.eventDur = 0.200; % 4 ms for click, 100ms for tone
-ir_par.rampon = 0.0;
-ir_par.rampoff = 0.100; 
-ir = get_ir(ir_par, fs); 
+ir = get_square_kernel(fs, ...
+    'duration', 0.100, ...
+    'rampon', 0, ...
+    'rampoff', 0 ...
+    ); 
+
 
 % make whole signal 
 [x_clean, t] = get_s(...

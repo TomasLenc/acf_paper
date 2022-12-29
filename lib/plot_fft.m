@@ -73,9 +73,11 @@ end
 x_lims = [0, max_freq]; 
 ax.XTick = x_lims; 
 ax.XLim = x_lims; 
-ax.YTick = y_lims; 
-ax.YLim = [floor(y_lims(1)*prec)/prec, ...
-           ceil(y_lims(2)*prec)/prec]; 
+if y_lims(1) < y_lims(2)
+    ax.YTick = y_lims; 
+    ax.YLim = [floor(y_lims(1)*prec)/prec, ...
+               ceil(y_lims(2)*prec)/prec]; 
+end
 ax.TickDir = 'out'; 
 
 if ~isempty(features)

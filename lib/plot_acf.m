@@ -3,10 +3,11 @@ function plot_acf(ax, acf, lags, varargin)
 parser = inputParser; 
 addRequired(parser, 'ax'); 
 addRequired(parser, 'acf', @isnumeric); 
-addRequired(parser, 'lags_time', @(x) isnumeric(x)); 
+addRequired(parser, 'lags', @(x) isnumeric(x)); 
 
 addParameter(parser, 'ap', [], @isnumeric); 
 
+addParameter(parser, 'min_lag', min(lags), @isnumeric); 
 addParameter(parser, 'max_lag', max(lags), @isnumeric); 
 addParameter(parser, 'lags_meter_rel', [], @isnumeric); 
 addParameter(parser, 'lags_meter_unrel', [], @isnumeric); 
@@ -27,6 +28,7 @@ parse(parser, ax, acf, lags, varargin{:});
 
 ap = parser.Results.ap; 
 
+min_lag                 = parser.Results.min_lag; 
 max_lag                 = parser.Results.max_lag; 
 lags_meter_rel          = parser.Results.lags_meter_rel; 
 lags_meter_unrel        = parser.Results.lags_meter_unrel; 
@@ -48,12 +50,14 @@ opacity_lagz = parser.Results.opacity_lagz;
 
 %%
 if isrow(lags)
+    min_lag_idx = dsearchn(lags', min_lag);
     max_lag_idx = dsearchn(lags', max_lag);
 else
+    min_lag_idx = dsearchn(lags, min_lag);
     max_lag_idx = dsearchn(lags, max_lag);
 end
-y_lims = [min(floor(acf(1:max_lag_idx)*prec)/prec), ...
-          max(ceil(acf(1:max_lag_idx)*prec)/prec)]; 
+y_lims = [min(floor(acf(min_lag_idx:max_lag_idx)*prec)/prec), ...
+          max(ceil(acf(min_lag_idx:max_lag_idx)*prec)/prec)]; 
       
 hold(ax, 'on');
 

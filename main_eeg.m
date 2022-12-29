@@ -1,8 +1,8 @@
 clear 
 
-addpath('lib')
-
-importLetswave()
+restoredefaultpath
+addpath(genpath('lib'))
+addpath(genpath('../acf_tools/src'))
 
 preproc_path = '/datadisk/Dropbox/Tomas_PhD/XP1/XP1_main/matlab/data/EEG/avgRef_timeAvg_mergedParticipants/preprocessed'; 
 
