@@ -1,5 +1,12 @@
+
 clear 
-fprintf('\n');
+
+par = get_par(); 
+
+addpath(genpath(par.acf_tools_path)); 
+addpath(genpath(par.rnb_tools_path)); 
+addpath(genpath('lib'))
+
 
 do_fft = true; 
 
@@ -9,16 +16,16 @@ fs = 128;
 dur = 500; 
 N = round(dur * fs); 
 
-exp_1 = -2; 
-exp_2 = -2; 
+exp_1 = 0; 
+exp_2 = -1.6; 
 
 x_1 = get_colored_noise(N, fs, exp_1, 'f_rotation', 1)'; 
 
-x_2 = get_colored_noise(N, fs, exp_1, 'f_rotation', 1)'; 
+x_2 = get_colored_noise(N, fs, exp_2, 'f_rotation', 1)'; 
 
-% test if the multidimensional generator works
-x_2 = get_colored_noise2([2, 3, N], fs, exp_1); 
-x_2 = squeeze(x_2(1, 1, :))'; 
+% % test if the multidimensional generator works
+% x_2 = get_colored_noise2([2, 3, N], fs, exp_1); 
+% x_2 = squeeze(x_2(1, 1, :))'; 
 
 
 %% analyse spectra

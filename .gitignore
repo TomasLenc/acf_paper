@@ -1,6 +1,11 @@
-output/*
-IRASA/*
-_archive/*
+output
+ClickSnr
+lib_external
+data
+figures*
+
+# bak files
+~*
 
 # Windows default autosave extension
 *.asv
@@ -33,3 +38,5 @@ codegen/
 
 # Octave session info
 octave-workspace
+
+

@@ -6,8 +6,8 @@ addParameter(parser, 'ax',  []);
 addParameter(parser, 'plot_legend',  true); 
 addParameter(parser, 'ylim_quantile_cutoff',  0); % between 0 and 1
 
-addParameter(parser, 'feat',  [], @isstruct); 
-addParameter(parser, 'feat_orig',  [], @(x) length(x)==1 | isstruct(x)); 
+addParameter(parser, 'feat',  []); 
+addParameter(parser, 'feat_orig',  []); 
 
 parse(parser, varargin{:});
 
@@ -58,25 +58,29 @@ elseif length(feat_orig) == length(feat)
 end
 
 h = []; 
-for i_cond=1:n_cond
-    h(i_cond) = plot_points(ax, i_cond, feat(i_cond).data, ...
-                            'opacity', 0.4, ...
-                            'col', feat(i_cond).color); 
-                        
-    ylims(1) = min(quantile(feat(i_cond).data, ylim_quantile_cutoff), ylims(1)); 
-    ylims(2) = max(quantile(feat(i_cond).data, 1-ylim_quantile_cutoff), ylims(2)); 
-    
-end
+if ~isempty(feat)
+    for i_cond=1:n_cond
+        h(i_cond) = plot_points(ax, i_cond, feat(i_cond).data, ...
+                                'opacity', 0.4, ...
+                                'col', feat(i_cond).color); 
 
-ax.XLim = [0.5, n_cond+0.5]; 
-ax.YLim = ylims; 
-ax.XAxis.Visible = 'off';  
-ax.TickDir = 'out'; 
-ax.YTick = [ax.YTick(1), ax.YTick(end)];
+        ylims(1) = min(quantile(feat(i_cond).data, ylim_quantile_cutoff), ylims(1)); 
+        ylims(2) = max(quantile(feat(i_cond).data, 1-ylim_quantile_cutoff), ylims(2)); 
 
-if plot_legend
-    leg = legend(h, {feat.name}); 
-    leg.Box = 'off'; 
-    leg.Position(1) = 0; 
-    leg.Position(2) = 0.8; 
+    end
+
+    ax.XLim = [0.5, n_cond+0.5]; 
+    if ylims(1) < ylims(2)
+        ax.YLim = ylims; 
+    end
+    ax.XAxis.Visible = 'off';  
+    ax.TickDir = 'out'; 
+    ax.YTick = [ax.YTick(1), ax.YTick(end)];
+
+    if plot_legend
+        leg = legend(h, {feat.name}); 
+        leg.Box = 'off'; 
+        leg.Position(1) = 0; 
+        leg.Position(2) = 0.8; 
+    end
 end

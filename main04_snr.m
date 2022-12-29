@@ -12,21 +12,25 @@ addpath(genpath('lib'))
 
 fs = 200; 
 
-pat = [1 0 1 1 1 1 0 1 1 1 0 0]; %  [1 1 1 0 1 1 1 0 1 1 0 0]  [1 0 1 1 1 1 0 1 1 1 0 0]
-
+pat = [1 0 1 1 1 1 0 1 1 1 0 0]; % [1 0 1 1 1 1 0 1 1 1 0 0]  [1 1 1 0 1 1 1 0 1 1 0 0]
+    
 n_cycles = 16; 
 
 grid_ioi = 0.2; 
 
 noise_exponent = -1.5; 
 
-snr = Inf; 
+fit_knee = false; 
+
+ir_type = 'square'; 
 
 % number of simulated repetitions 
-n_rep = 1; 
+n_rep = 100; 
 
-
-fit_knee = false; 
+% Set true and the signal will be epoched into 1-cycle long chunks and
+% averaged. 
+do_chunk = true; 
+chunk_duration = length(pat) * grid_ioi; 
 
 % make x mean 0 var 1
 normalize_x = false; 
@@ -48,59 +52,68 @@ normalize_acf_vals = false;
 get_acf_feat_from_x = false; 
 
 % percent extreme values omitted for plotting
-ylim_quantile_cutoff = 0.05; 
+ylim_quantile_cutoff = 0.04; 
 
 % plot an example figure for each condition?
 plot_example_fig = true; 
 
 % ------------------------------------------------
-% cond_type = 'duty cycle';
-% ir_type = 'square'; 
-% duty_cycles = linspace(0.050, 0.180, 6); 
+cond_type = 'SNR'; 
 
-cond_type = 'IR freq'; 
-ir_type = 'erp'; 
-duty_cycles = linspace(10, 4, 6); 
+% snrs = logspace(log10(10), log10(0.2), 6); 
+snrs = linspace(1, 0.2, 6); 
+% snrs = [0.6, 0.3]; 
 % ------------------------------------------------
+min_lag = 0; 
+max_lag = (grid_ioi * length(pat) * n_cycles) / 2; 
+
 
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
-max_lag = (grid_ioi * length(pat) * n_cycles) / 2; 
-
-% meter-related lags 
-% ------------------
-
-% Make sure there's no overlap with muiltiples of meter-unrelated lags, and 
-% also the pattern repetition period. 
-lags_meter_rel = get_lag_harmonics(...
-                            0.8, ...
-                            max_lag,...
-                            'lag_harm_to_exclude', [0.6, 1.0, 2.4] ...
-                            ); 
-
-% meter-unrelated lags 
-% --------------------
-
-% Make sure there's no overlap with muiltiples of meter-related lags 
-% (even 0.4 seconds!), and also the pattern repetition period. 
-
-lags_meter_unrel_1 = get_lag_harmonics(...
-                            0.6, ...
-                            max_lag,...
-                            'lag_harm_to_exclude', [0.4, 2.4] ...
-                            ); 
-
-lags_meter_unrel_2 = get_lag_harmonics(...
-                            1.0, ...
-                            max_lag,...
-                            'lag_harm_to_exclude', [0.4, 2.4] ...
-                            ); 
-
-lags_meter_unrel = uniquetol([lags_meter_unrel_1, lags_meter_unrel_2], 1e-8); 
+max_lag = 1.21; 
+lags_meter_rel = [0.4, 0.8]; 
+lags_meter_unrel = [0.2, 0.6, 1.0]; 
 
 
-% make sure one more time that there's no overlap between meter-rel and -unrel !!! 
-assert(~any( min(abs(bsxfun(@minus, lags_meter_rel', lags_meter_unrel))) < 1e-9 ))
+
+% % meter-related lags 
+% % ------------------
+% 
+% % Make sure there's no overlap with muiltiples of meter-unrelated lags, and 
+% % also the pattern repetition period. 
+% lags_meter_rel = get_lag_harmonics(...
+%                             0.8, ...
+%                             max_lag,...
+%                             'lag_harm_to_exclude', [0.6, 1.0, 2.4] ...
+%                             ); 
+% 
+% % meter-unrelated lags 
+% % --------------------
+% 
+% % Make sure there's no overlap with muiltiples of meter-related lags 
+% % (even 0.4 seconds!), and also the pattern repetition period. 
+% 
+% lags_meter_unrel = get_lag_harmonics(...
+%                             0.2, ...
+%                             max_lag,...
+%                             'lag_harm_to_exclude', [0.4] ...
+%                             ); 
+% 
+% % now take the highest N of each (1/f noise should have little influence at
+% % high lags?)
+% n_lagz_choose = 2; 
+% 
+% lags_meter_rel = lags_meter_rel(end-n_lagz_choose+1 : end); 
+% 
+% [~, idx] = sort(min(abs(bsxfun(@minus, lags_meter_rel', lags_meter_unrel)), [], 1)); 
+% 
+% lags_meter_unrel = lags_meter_unrel(idx(1:n_lagz_choose)); 
+% 
+% min_lag = min([lags_meter_rel, lags_meter_unrel]) * 0.9; 
+% 
+% % make sure one more time that there's no overlap between meter-rel and -unrel !!! 
+% assert(~any( min(abs(bsxfun(@minus, lags_meter_rel', lags_meter_unrel))) < 1e-9 ))
+% 
 
 
 % you can separately set meter-unrelated lags on the left and right (this is
@@ -108,28 +121,72 @@ assert(~any( min(abs(bsxfun(@minus, lags_meter_rel', lags_meter_unrel))) < 1e-9 
 lags_meter_unrel_left = [0.6]; 
 lags_meter_unrel_right = [1.0]; 
 
-
 freq_meter_rel = [1.25 : 1.25 : 5]; 
 freq_meter_unrel = setdiff(1/2.4 * [1:12], freq_meter_rel); 
 
+frex = sort([freq_meter_rel, freq_meter_unrel]); 
 max_freq_plot = 5.5; 
+
+% noise bins for estimating and subtracting the 1/f component
 noise_bins = [2, 5]; 
 
+% noies bins for calculating the SNR of the raw spectra
+% (harmonic-snippet-zsocre method as used by Rossion)
+noise_bins_snr = [3, 13]; 
 
-n_cond = length(duty_cycles); 
+n_cond = length(snrs); 
 
 % colors
-cmap_name = '-RdPu'; 
+cmap_name = '-OrRd'; 
 colors = num2cell(brewermap(n_cond + n_cond, cmap_name), 2); 
 colors = colors(1:n_cond, :); 
 
 fontsize = 14; 
 
+
+fig_path = 'figures'; 
+
 save_figs = false; 
 
 
-%% test performance across duty cycles
+%% 
 
+
+if strcmp(ir_type, 'square')
+    ir = get_square_kernel(fs, ...
+        'duration', 0.100, ...
+        'rampon', 0, ...
+        'rampoff', 0 ...
+        ); 
+elseif strcmp(ir_type, 'erp')
+    ir = get_erp_kernel(fs,...
+        'amplitudes', 1,...
+        't0s', 0, ...
+        'taus', 0.050, ...
+        'f0s', 7, ...
+        'duration', 0.2 ...
+        ); 
+elseif strcmp(ir_type, 'erp2')
+    ir = get_erp_kernel(fs,...
+        'amplitudes', [0.4, 0.75],...
+        't0s', [0, 0], ...
+        'taus', [0.2, 0.050], ...
+        'f0s', [1, 7], ...
+        'duration', 0.5 ...
+        ); 
+end
+
+if do_chunk
+    % When operating on a chunked->averaged signal, the spectral resolution
+    % becomes very small... To prevent crashing, just set the noise bins to 0. 
+    noise_bins = [0, 0]; 
+    noise_bins_snr = [0, 0]; 
+    % Also adapt the maximum lag for plotting. 
+    max_lag = grid_ioi * length(pat) / 2; 
+end
+
+%% test performance across SNR levels
+                             
 
 % allocate
 if get_acf_feat_from_x
@@ -166,7 +223,7 @@ end
 
 feat_fft_orig = struct('z_meter_rel', []); 
 
-feat_fft = struct('z_meter_rel', []); 
+feat_fft = struct('z_meter_rel', [], 'z_snr', []); 
 
 feat_fft_subtracted = struct('z_meter_rel', []); 
 
@@ -174,32 +231,12 @@ cond_labels = {};
 
 for i_cond=1:n_cond
     
-    duty_cycle = duty_cycles(i_cond); 
-        
-    cond_labels{i_cond} = sprintf('%.2f', duty_cycle); 
+    snr = snrs(i_cond); 
+    cond_labels{i_cond} = sprintf('%.2g', snr); 
 
-    fprintf('calculating %d/%d\n', i_cond, n_cond)
+    fprintf('calculating snr %d/%d\n', i_cond, n_cond)
 
-    if strcmp(ir_type, 'erp')
-        ir = get_erp_kernel(fs,...
-            'amplitudes', 1,...
-            't0s', 0, ...
-            'taus', 0.050, ...
-            'f0s', duty_cycle, ...
-            'duration', 0.2 ...
-            ); 
-    elseif strcmp(ir_type, 'square')
-        ir = get_square_kernel(fs, ...
-            'duration', duty_cycle, ...
-            'rampon', 0, ...
-            'rampoff', 0 ...
-            ); 
-    else
-        error('ir kind not recognized'); 
-    end
-    
-    
-    % make whole signal 
+    % make clean signal for the whole trial 
     [x_clean, t] = get_s(...
                         pat, ...
                         grid_ioi, ...
@@ -207,7 +244,6 @@ for i_cond=1:n_cond
                         'n_cycles', n_cycles, ...
                         'ir', ir ...
                         );
-
     
     % generate noisy signal (simulataneously for all repetitions)
     noise = get_colored_noise2([n_rep, length(x_clean)], fs, noise_exponent); 
@@ -221,6 +257,16 @@ for i_cond=1:n_cond
     % add signal and noise
     x = x_clean + noise; 
     
+    if do_chunk
+        
+        x_clean_chunked = epoch_chunks(x_clean, fs, chunk_duration); 
+        x_chunked = epoch_chunks(x, fs, chunk_duration); 
+       
+        x_clean = mean(x_clean_chunked, 1); 
+        x = squeeze(mean(x_chunked, 1)); 
+        
+        t = t(1 : length(x_clean)); 
+    end
     
     % get acf
     % -------
@@ -245,14 +291,15 @@ for i_cond=1:n_cond
     
     % with aperiodic subtraction    
     [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, fs, ...
-                                      'rm_ap', true, ...
-                                      'f0_to_ignore', 1/2.4, ...
-                                      'get_x_norm', true, ...
-                                      'normalize_x', normalize_x, ...
-                                      'force_x_positive', force_x_positive, ...
-                                      'normalize_acf_to_1', normalize_acf_to_1, ...
-                                      'normalize_acf_z', normalize_acf_z ...
+                                       'rm_ap', true, ...
+                                       'f0_to_ignore', 1/2.4, ...
+                                       'get_x_norm', true, ...
+                                       'normalize_x', normalize_x, ...
+                                       'force_x_positive', force_x_positive, ...
+                                       'normalize_acf_to_1', normalize_acf_to_1, ...
+                                       'normalize_acf_z', normalize_acf_z ...
                                        );    
+                             
                                    
     % get features
     % ------------
@@ -288,41 +335,43 @@ for i_cond=1:n_cond
                                      'lags_meter_unrel_right', lags_meter_unrel_right, ...
                                      'normalize_acf', normalize_acf_vals); 
     end
-                                 
+            
+    % get features for the clean spectra
     feat_fft_orig(i_cond) = get_fft_features(mX_clean, freq,...
                                             freq_meter_rel, freq_meter_unrel); 
-                                 
-    feat_fft(i_cond) = get_fft_features(mX, freq, ...
-                                            freq_meter_rel, freq_meter_unrel); 
+    
+    % get features for the raw spectra                                    
+    tmp = get_fft_features(mX, freq, freq_meter_rel, freq_meter_unrel); 
+    feat_fft(i_cond).z_meter_rel = tmp.z_meter_rel; 
+                                        
+    feat_fft(i_cond).z_snr = get_z_snr(mX, freq, frex, ...
+                                       noise_bins_snr(1), ...
+                                       noise_bins_snr(2)); 
 
+    % get features for the 1/f-subtracted spectra                                    
     feat_fft_subtracted(i_cond) = get_fft_features(mX_subtracted, freq, ...
                                            freq_meter_rel, freq_meter_unrel);
     
-                             
     % plot example 
     % ------------
     
     if plot_example_fig      
         if i_cond==1
             f = figure('color','white', ...
-                       'position', [95 67 1062 240 * n_cond]); 
+                       'position', [95 67 1062 170 * n_cond]); 
             pnl_example = panel(f); 
             pnl_example.pack('v', n_cond); 
             pnl_example.margin = [5, 10, 25, 25]; 
         end
-        if snr == Inf
-            ap_to_plot = []; 
-        else
-            ap_to_plot = ap(rep_to_plot_idx, :); 
-        end
         rep_to_plot_idx = 1; 
         plot_example(x(rep_to_plot_idx, :), t, ...
                          acf(rep_to_plot_idx, :), lags, ...
-                         ap_to_plot, ...
+                         ap(rep_to_plot_idx, :), ...
                          mX(rep_to_plot_idx, :), freq, ...
                          lags_meter_rel, lags_meter_unrel, ...
                          freq_meter_rel, freq_meter_unrel, ...
                          'pnl', pnl_example(i_cond), ...
+                         'min_lag', min_lag, ...
                          'max_lag', max_lag, ...
                          'plot_time_xaxis', i_cond == n_cond, ...
                          'plot_xlabels', i_cond == n_cond, ...
@@ -340,10 +389,11 @@ for i_cond=1:n_cond
 end
 
 if save_figs
-   fname = sprintf('figures/03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_examples', ...
-                   ir_type, noise_exponent, snr, n_rep); 
-   print(fname, '-dsvg', '-painters', f);  
+   fname = sprintf('04_snr_irType-%s_exp-%.1f_nrep-%d_examples.svg', ...
+                   ir_type, noise_exponent, n_rep); 
+   print(fullfile(fig_path, fname), '-dsvg', '-painters', f);  
 end
+
 
 
 % assign labels
@@ -364,9 +414,9 @@ end
 % plot 
 % ----
 if get_acf_feat_from_x
-    cond_to_plot = [1, 2, 3, 4]; 
+    cond_to_plot = [1,  3, 4, 5]; 
 else
-    cond_to_plot = [2, 3, 4]; 
+    cond_to_plot = [3, 4, 5]; 
 end
 
 for i_cond=cond_to_plot
@@ -378,7 +428,7 @@ for i_cond=cond_to_plot
             feat_subtracted = feat_acf_subtracted; 
             feat_orig = feat_acf_orig; 
             feat_fieldname = 'mean_meter_rel'; 
-            feat_label = 'mean Pearson r'; 
+            feat_label = 'mean'; 
             tit = 'ACF'; 
         case 2
             feat_raw = feat_acf; 
@@ -400,6 +450,13 @@ for i_cond=cond_to_plot
             feat_orig = feat_fft_orig; 
             feat_fieldname = 'z_meter_rel'; 
             feat_label = 'zscore'; 
+            tit = 'FFT'; 
+        case 5
+            feat_raw = feat_fft; 
+            feat_subtracted = []; 
+            feat_orig = []; 
+            feat_fieldname = 'z_snr'; 
+            feat_label = 'zSNR'; 
             tit = 'FFT'; 
     end
     
@@ -467,17 +524,26 @@ for i_cond=cond_to_plot
         if ylims(1) < ylims(2)
             ax.YLim = ylims; 
             ax.YTick = ylims; 
-        else
-            warning('values dont differ across cond: cannot get ylims');
-            ax.YLim = [-1/prec, 1/prec]; 
-            ax.YTick = [-1/prec, 1/prec]; 
         end
     end
-
+    
     if save_figs
-       saveas(f, sprintf('figures/03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_%s_%s.svg', ...
-                         ir_type, noise_exponent, snr, n_rep, tit, feat_label));  
+        saveas(f, fullfile(fig_path, ...
+                           sprintf('04_snr_irType-%s_exp-%.1f_nrep-%d_%s_%s.svg', ...
+                                    ir_type, noise_exponent, n_rep, tit, feat_label)));  
     end
+   
+end
 
+%% t-test actoss first two conditions
+
+if n_cond == 2
+    
+    [h, p, ci, stats] = ttest(feat_fft_subtracted(1).z_meter_rel, feat_fft_subtracted(2).z_meter_rel); 
+    fprintf('\nFFTsubtr z: t(%d) = %.2f, p = %.3f\n', stats.df, stats.tstat, p); 
+
+    [h, p, ci, stats] = ttest(feat_acf_subtracted(1).z_meter_rel, feat_acf_subtracted(2).z_meter_rel); 
+    fprintf('\nACFsubtr z: t(%d) = %.2f, p = %.3f\n', stats.df, stats.tstat, p); 
+    
 end
 

@@ -2,10 +2,12 @@
 % gradually increasing periodic emphasis. 
 
 clear 
-fprintf('\n');
+
+par = get_par(); 
+
 addpath(genpath('lib'))
-addpath(genpath('/datadisk/projects_git_dl/acf_tools/src')); 
-addpath(genpath('/datadisk/projects_git_dl/rnb_tools/src'));
+addpath(genpath(par.acf_tools_path)); 
+addpath(genpath(par.rnb_tools_path)); 
 
 %% simulate
 

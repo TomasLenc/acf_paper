@@ -8,12 +8,13 @@ addpath(genpath(par.rnb_tools_path));
 addpath(genpath('lib'))
 
 
+
 %% simulate
 
 fs = 200; 
 
-pat = [1 0 1 1 1 1 0 1 1 1 0 0]; %  [1 1 1 0 1 1 1 0 1 1 0 0]  [1 0 1 1 1 1 0 1 1 1 0 0]
-
+pat = [1 0 1 1 1 1 0 1 1 1 0 0]; % [1 1 1 0 1 1 1 0 1 1 0 0], % [1 0 1 1 1 1 0 1 1 1 0 0]
+    
 n_cycles = 16; 
 
 grid_ioi = 0.2; 
@@ -22,9 +23,10 @@ noise_exponent = -1.5;
 
 snr = Inf; 
 
+ir_type = 'square'; 
+
 % number of simulated repetitions 
 n_rep = 1; 
-
 
 fit_knee = false; 
 
@@ -54,14 +56,11 @@ ylim_quantile_cutoff = 0.05;
 plot_example_fig = true; 
 
 % ------------------------------------------------
-% cond_type = 'duty cycle';
-% ir_type = 'square'; 
-% duty_cycles = linspace(0.050, 0.180, 6); 
+cond_type = 'emph. magn.'; 
 
-cond_type = 'IR freq'; 
-ir_type = 'erp'; 
-duty_cycles = linspace(10, 4, 6); 
+emph_levels = linspace(0, 1, 6); 
 % ------------------------------------------------
+
 
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
@@ -115,21 +114,21 @@ freq_meter_unrel = setdiff(1/2.4 * [1:12], freq_meter_rel);
 max_freq_plot = 5.5; 
 noise_bins = [2, 5]; 
 
-
-n_cond = length(duty_cycles); 
+n_cond = length(emph_levels); 
 
 % colors
-cmap_name = '-RdPu'; 
+cmap_name = '-YlGn'; 
 colors = num2cell(brewermap(n_cond + n_cond, cmap_name), 2); 
 colors = colors(1:n_cond, :); 
+
 
 fontsize = 14; 
 
 save_figs = false; 
 
 
-%% test performance across duty cycles
 
+%% test performance across dudy cycles
 
 % allocate
 if get_acf_feat_from_x
@@ -172,32 +171,37 @@ feat_fft_subtracted = struct('z_meter_rel', []);
 
 cond_labels = {}; 
 
+if strcmp(ir_type, 'square')
+    ir = get_square_kernel(fs, ...
+        'duration', 0.100, ...
+        'rampon', 0, ...
+        'rampoff', 0 ...
+        ); 
+elseif strcmp(ir_type, 'erp')
+    ir = get_erp_kernel(fs,...
+        'amplitudes', 1,...
+        't0s', 0, ...
+        'taus', 0.050, ...
+        'f0s', 7, ...
+        'duration', grid_ioi ...
+        ); 
+elseif strcmp(ir_type, 'erp2')
+    ir = get_erp_kernel(fs,...
+        'amplitudes', [0.4, 0.75],...
+        't0s', [0, 0], ...
+        'taus', [0.2, 0.050], ...
+        'f0s', [1, 7], ...
+        'duration', 0.5 ...
+        ); 
+end
+
 for i_cond=1:n_cond
     
-    duty_cycle = duty_cycles(i_cond); 
+    emph = emph_levels(i_cond); 
         
-    cond_labels{i_cond} = sprintf('%.2f', duty_cycle); 
+    cond_labels{i_cond} = sprintf('%g', emph); 
 
     fprintf('calculating %d/%d\n', i_cond, n_cond)
-
-    if strcmp(ir_type, 'erp')
-        ir = get_erp_kernel(fs,...
-            'amplitudes', 1,...
-            't0s', 0, ...
-            'taus', 0.050, ...
-            'f0s', duty_cycle, ...
-            'duration', 0.2 ...
-            ); 
-    elseif strcmp(ir_type, 'square')
-        ir = get_square_kernel(fs, ...
-            'duration', duty_cycle, ...
-            'rampon', 0, ...
-            'rampoff', 0 ...
-            ); 
-    else
-        error('ir kind not recognized'); 
-    end
-    
     
     % make whole signal 
     [x_clean, t] = get_s(...
@@ -205,10 +209,11 @@ for i_cond=1:n_cond
                         grid_ioi, ...
                         fs, ...
                         'n_cycles', n_cycles, ...
-                        'ir', ir ...
+                        'ir', ir, ...
+                        'emph_magn', emph, ...
+                        'emph_period', 4 ...
                         );
-
-    
+        
     % generate noisy signal (simulataneously for all repetitions)
     noise = get_colored_noise2([n_rep, length(x_clean)], fs, noise_exponent); 
 
@@ -220,8 +225,7 @@ for i_cond=1:n_cond
     
     % add signal and noise
     x = x_clean + noise; 
-    
-    
+        
     % get acf
     % -------
     
@@ -245,14 +249,14 @@ for i_cond=1:n_cond
     
     % with aperiodic subtraction    
     [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, fs, ...
-                                      'rm_ap', true, ...
-                                      'f0_to_ignore', 1/2.4, ...
-                                      'get_x_norm', true, ...
-                                      'normalize_x', normalize_x, ...
-                                      'force_x_positive', force_x_positive, ...
-                                      'normalize_acf_to_1', normalize_acf_to_1, ...
-                                      'normalize_acf_z', normalize_acf_z ...
-                                       );    
+                                       'rm_ap', true, ...
+                                       'f0_to_ignore', 1/2.4, ...
+                                       'get_x_norm', true, ...
+                                       'normalize_x', normalize_x, ...
+                                       'force_x_positive', force_x_positive, ...
+                                       'normalize_acf_to_1', normalize_acf_to_1, ...
+                                       'normalize_acf_z', normalize_acf_z ...
+                                       );                                 
                                    
     % get features
     % ------------
@@ -310,12 +314,12 @@ for i_cond=1:n_cond
             pnl_example.pack('v', n_cond); 
             pnl_example.margin = [5, 10, 25, 25]; 
         end
+        rep_to_plot_idx = 1; 
         if snr == Inf
             ap_to_plot = []; 
         else
             ap_to_plot = ap(rep_to_plot_idx, :); 
         end
-        rep_to_plot_idx = 1; 
         plot_example(x(rep_to_plot_idx, :), t, ...
                          acf(rep_to_plot_idx, :), lags, ...
                          ap_to_plot, ...
@@ -334,16 +338,17 @@ for i_cond=1:n_cond
                          'fontsize', fontsize, ...
                          'normalize_acf_for_plotting', false);                                        
         f.Name = cond_labels{i_cond};     
-        pnl_example(i_cond).margintop = 25; 
+        pnl_example(i_cond).margintop = 28; 
     end
 
 end
 
 if save_figs
-   fname = sprintf('figures/03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_examples', ...
+   fname = sprintf('figures/05_emph_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_examples.svg', ...
                    ir_type, noise_exponent, snr, n_rep); 
    print(fname, '-dsvg', '-painters', f);  
 end
+
 
 
 % assign labels
@@ -378,7 +383,7 @@ for i_cond=cond_to_plot
             feat_subtracted = feat_acf_subtracted; 
             feat_orig = feat_acf_orig; 
             feat_fieldname = 'mean_meter_rel'; 
-            feat_label = 'mean Pearson r'; 
+            feat_label = 'mean'; 
             tit = 'ACF'; 
         case 2
             feat_raw = feat_acf; 
@@ -467,17 +472,12 @@ for i_cond=cond_to_plot
         if ylims(1) < ylims(2)
             ax.YLim = ylims; 
             ax.YTick = ylims; 
-        else
-            warning('values dont differ across cond: cannot get ylims');
-            ax.YLim = [-1/prec, 1/prec]; 
-            ax.YTick = [-1/prec, 1/prec]; 
         end
     end
 
-    if save_figs
-       saveas(f, sprintf('figures/03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_%s_%s.svg', ...
+     if save_figs
+       saveas(f, sprintf('figures/05_emph_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_%s_%s.svg', ...
                          ir_type, noise_exponent, snr, n_rep, tit, feat_label));  
     end
-
+   
 end
-

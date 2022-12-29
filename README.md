@@ -1,0 +1,1 @@
+The signal in the time domain must be strictly **positive**!!!
