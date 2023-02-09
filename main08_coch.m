@@ -172,7 +172,7 @@ for i_cond=1:n_cond
 end
 
 if save_figs
-   fname = sprintf('07_coch_track-%s_examples.svg', track); 
+   fname = sprintf('08_coch_track-%s_examples.svg', track); 
    print(fullfile(par.fig_path, fname), '-dsvg', '-painters', f);  
 end
 

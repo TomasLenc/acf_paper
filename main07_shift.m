@@ -5,40 +5,21 @@ par = get_par();
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 
-addpath(genpath(par.lw_path)); 
 addpath(genpath('lib'))
 
 
-%% load data
+%% simulate
 
-data_path = './data'; 
+save_figs = true; 
 
-[header, data] = CLW_load(fullfile(...
-    data_path, ...
-    'icfilt(2,8) ep but ds butLP64 sub-005_task-ComplexToneSnr_date-202106171802'...
-    )); 
-%     'icfilt(2) ep but ds butLP64 sub-004_task-ComplexToneSnr_date-202106171458'...
+exponent = -1.5; 
 
-[header, data] = RLW_rereference(header, data, ...
-                        'apply_list', {header.chanlocs.labels}, ...
-                        'reference_list',{'TP9', 'TP10'}); 
+snr = Inf; 
 
-[header, data] = RLW_arrange_channels(header, data,  ...
-                        {'F1','Fz','F2','FC1','FCz','FC2','C1','Cz','C2',}); 
+ir_type = 'erp2'; 
 
-[header, data] = RLW_butterworth_filter(header, data, ...
-                                        'filter_type', 'lowpass', ...
-                                        'high_cutoff', 20, ...
-                                        'filter_order', 2); 
-                                    
-[header, data] = RLW_segmentation(header, data, {'1'}, 'x_start', 0, 'x_duration', 60); 
-
-fs = 1/header.xstep; 
-
-t = [0 : header.datasize(end)-1]/fs; 
-
-
-%%
+% number of simulated repetitions 
+n_rep = 1; 
 
 fit_knee = false; 
 
@@ -68,47 +49,47 @@ ylim_quantile_cutoff = 0.05;
 plot_example_fig = true; 
 
 % ------------------------------------------------
-cond_type = 'n trials'; 
+cond_type = 'shift'; 
 
-n_trials = [10, 15, 20, 25, 30]; 
-
-with_replacement = false; 
+shift_amounts = linspace(0.01, 5, 6); 
 % ------------------------------------------------
 
-n_cond = length(n_trials); 
 
-% number of repetitions 
-n_rep = 50; 
+%% 
+
 
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
-lags_meter_rel = [0.4, 0.8]; 
-lags_meter_unrel = [0.2, 0.6, 1.0]; 
+max_lag = par.max_lag;
+
+% meter-related lags 
+lags_meter_rel = par.lags_meter_rel;
+% meter-unrelated lags 
+lags_meter_unrel = par.lags_meter_unrel;
 
 % you can separately set meter-unrelated lags on the left and right (this is
 % used when checking for spurious results)
-lags_meter_unrel_left = [0.6]; 
-lags_meter_unrel_right = [1.0]; 
+lags_meter_unrel_left = par.lags_meter_unrel_left;
+lags_meter_unrel_right = par.lags_meter_unrel_right;
+
+freq_meter_rel = par.freq_meter_rel;
+freq_meter_unrel = par.freq_meter_unrel;
+
+noise_bins = par.noise_bins;
+
+%%
 
 
-freq_meter_rel = [1.25 : 1.25 : 5]; 
-freq_meter_unrel = setdiff(1/2.4 * [1:12], freq_meter_rel); 
-
-max_freq_plot = 5.5; 
-noise_bins = [2, 5]; 
-
+n_cond = length(shift_amounts); 
 
 % colors
-cmap_name = 'PuBu'; 
+cmap_name = 'Reds'; 
 colors = num2cell(brewermap(n_cond + n_cond, cmap_name), 2); 
 colors = colors(end-n_cond+1:end, :); 
 
 
-fontsize = 14; 
 
-save_figs = false; 
-
-%% 
+%% test performance across dudy cycles
 
 % allocate
 if get_acf_feat_from_x
@@ -151,23 +132,79 @@ feat_fft_subtracted = struct('z_meter_rel', []);
 
 cond_labels = {}; 
 
+
+
+if strcmp(ir_type, 'square')
+    ir = get_square_kernel(par.fs, ...
+        'duration', 0.100, ...
+        'rampon', 0, ...
+        'rampoff', 0 ...
+        ); 
+elseif strcmp(ir_type, 'erp')
+    ir = get_erp_kernel(par.fs,...
+        'amplitudes', 1,...
+        't0s', 0, ...
+        'taus', 0.050, ...
+        'f0s', 7, ...
+        'duration', 0.2 ...
+        ); 
+elseif strcmp(ir_type, 'erp2')
+    ir = get_erp_kernel(par.fs,...
+        'amplitudes', [0.4, 0.75],...
+        't0s', [0, 0], ...
+        'taus', [0.2, 0.050], ...
+        'f0s', [1, 7], ...
+        'duration', 0.5 ...
+        ); 
+end
+
+
 for i_cond=1:n_cond
     
-    x = nan(n_rep, header.datasize(end)); 
-    for i_rep=1:n_rep
-        trial_idx = randsample(header.datasize(1), n_trials(i_cond), with_replacement); 
-        x(i_rep, :) = squeeze(mean(mean(data(trial_idx, :, 1,1,1, :), 2), 1))'; 
-    end
-            
-    cond_labels{i_cond} = sprintf('%g', n_trials(i_cond)); 
+    shift = shift_amounts(i_cond); 
+        
+    cond_labels{i_cond} = sprintf('%g', shift); 
 
     fprintf('calculating %d/%d\n', i_cond, n_cond)
 
+    % make whole signal 
+    [x_clean, t] = get_s(...
+                        par.pat, ...
+                        0.2, ...
+                        par.fs, ...
+                        'n_cycles', par.n_cycles, ...
+                        'ir', ir ...
+                        );
+
+    % shift (offset) the signal
+    x_clean = (x_clean - mean(x_clean)) ./ std(x_clean); 
+    x_clean = shift + x_clean; 
+        
+    % generate noisy signal (simulataneously for all repetitions)
+    noise = get_colored_noise2([n_rep, length(x_clean)], par.fs, exponent); 
+
+    % scale the noise to the correct SNR 
+    x_clean_rms = rms(x_clean); 
+    noise_rms = rms(noise, ndims(noise)); 
+    noise_gain = (x_clean_rms ./ noise_rms) / snr; 
+    noise = noise .* noise_gain; 
+    
+    % add signal and noise
+    x = x_clean + noise; 
+            
     % get acf
     % -------
-                                       
+    
+    % clean signal
+    [acf_clean, lags, ~, mX_clean, freq] = get_acf(x_clean, par.fs, ...
+                                       'normalize_x', normalize_x, ...
+                                       'force_x_positive', force_x_positive, ...
+                                       'normalize_acf_to_1', normalize_acf_to_1, ...
+                                       'normalize_acf_z', normalize_acf_z ...
+                                       );    
+                                   
     % withuout aperiodic subtraction    
-    [acf, lags, ~, mX, freq] = get_acf(x, fs, ...
+    [acf, ~, ~, mX, ~] = get_acf(x, par.fs, ...
                                'normalize_x', normalize_x, ...
                                'force_x_positive', force_x_positive, ...
                                'normalize_acf_to_1', normalize_acf_to_1, ...
@@ -177,11 +214,9 @@ for i_cond=1:n_cond
     mX_subtracted = subtract_noise_bins(mX, noise_bins(1),  noise_bins(2)); 
     
     % with aperiodic subtraction    
-    [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, fs, ...
+    [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, par.fs, ...
                                        'rm_ap', true, ...
                                        'f0_to_ignore', 1/2.4, ...
-                                       'min_freq', 0.1, ...
-                                       'max_freq', 8, ...
                                        'get_x_norm', true, ...
                                        'normalize_x', normalize_x, ...
                                        'force_x_positive', force_x_positive, ...
@@ -193,15 +228,24 @@ for i_cond=1:n_cond
     % ------------
     
     if get_acf_feat_from_x
+        
+        feat_acf_orig(i_cond) = get_acf_features2(x_clean, par.fs, ...
+                                     lags_meter_rel, lags_meter_unrel);         
 
-        feat_acf(i_cond) = get_acf_features2(x, fs, ...
+        feat_acf(i_cond) = get_acf_features2(x, par.fs, ...
                                     lags_meter_rel, lags_meter_unrel);    
 
-        feat_acf_subtracted(i_cond) = get_acf_features2(x_subtr, fs, ...
+        feat_acf_subtracted(i_cond) = get_acf_features2(x_subtr, par.fs, ...
                                      lags_meter_rel, lags_meter_unrel); 
         
     else
-                
+        
+        feat_acf_orig(i_cond) = get_acf_features(acf_clean, lags, ...
+                                     lags_meter_rel, lags_meter_unrel, ...
+                                     'lags_meter_unrel_left', lags_meter_unrel_left, ...
+                                     'lags_meter_unrel_right', lags_meter_unrel_right, ...
+                                     'normalize_acf', normalize_acf_vals);         
+        
         feat_acf(i_cond) = get_acf_features(acf, lags, ...
                                     lags_meter_rel, lags_meter_unrel, ...
                                     'lags_meter_unrel_left', lags_meter_unrel_left, ...
@@ -214,6 +258,9 @@ for i_cond=1:n_cond
                                      'lags_meter_unrel_right', lags_meter_unrel_right, ...
                                      'normalize_acf', normalize_acf_vals); 
     end
+                                 
+    feat_fft_orig(i_cond) = get_fft_features(mX_clean, freq,...
+                                            freq_meter_rel, freq_meter_unrel); 
                                  
     feat_fft(i_cond) = get_fft_features(mX, freq, ...
                                             freq_meter_rel, freq_meter_unrel); 
@@ -228,28 +275,33 @@ for i_cond=1:n_cond
     if plot_example_fig      
         if i_cond==1
             f = figure('color','white', ...
-                       'position', [95, 67, 1062, 150 * n_cond]); 
+                       'position', [95 67 1062 240 * n_cond]); 
             pnl_example = panel(f); 
             pnl_example.pack('v', n_cond); 
             pnl_example.margin = [5, 10, 25, 25]; 
         end
         rep_to_plot_idx = 1; 
+        if snr == Inf
+            ap_to_plot = []; 
+        else
+            ap_to_plot = ap(rep_to_plot_idx, :); 
+        end
         plot_example(x(rep_to_plot_idx, :), t, ...
                          acf(rep_to_plot_idx, :), lags, ...
-                         ap(rep_to_plot_idx, :), ...
+                         ap_to_plot, ...
                          mX(rep_to_plot_idx, :), freq, ...
                          lags_meter_rel, lags_meter_unrel, ...
                          freq_meter_rel, freq_meter_unrel, ...
                          'pnl', pnl_example(i_cond), ...
+                         'max_lag', max_lag, ...
                          'plot_time_xaxis', i_cond == n_cond, ...
                          'plot_xlabels', i_cond == n_cond, ...
                          'plot_xticks', i_cond == n_cond, ...
-                         'min_lag', 0.2, ...
                          'mX_subtr', mX_subtracted(rep_to_plot_idx, :), ...
                          'acf_subtr', acf_subtracted(rep_to_plot_idx, :), ...
                          'time_col', colors{i_cond}, ...
                          'prec', 1e6, ...
-                         'fontsize', fontsize, ...
+                         'fontsize', par.fontsize, ...
                          'normalize_acf_for_plotting', false);                                        
         f.Name = cond_labels{i_cond};     
         pnl_example(i_cond).margintop = 25; 
@@ -258,9 +310,13 @@ for i_cond=1:n_cond
 end
 
 if save_figs
-   fname = sprintf('figures/08_eeg_nrep-%d_examples.svg', n_rep); 
-   print(fname, '-dsvg', '-painters', f);  
+   fname = sprintf('07_shift_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_examples', ...
+                   ir_type, exponent, snr, n_rep); 
+   print(fullfile(par.fig_path, fname), '-dsvg', '-painters', f);  
 end
+
+
+
 
 
 % assign labels
@@ -293,24 +349,28 @@ for i_cond=cond_to_plot
         case 1
             feat_raw = feat_acf; 
             feat_subtracted = feat_acf_subtracted; 
+            feat_orig = feat_acf_orig; 
             feat_fieldname = 'mean_meter_rel'; 
             feat_label = 'mean'; 
             tit = 'ACF'; 
         case 2
             feat_raw = feat_acf; 
             feat_subtracted = feat_acf_subtracted; 
+            feat_orig = feat_acf_orig; 
             feat_fieldname = 'ratio_meter_rel'; 
             feat_label = 'ratio'; 
             tit = 'ACF'; 
         case 3
             feat_raw = feat_acf; 
             feat_subtracted = feat_acf_subtracted; 
+            feat_orig = feat_acf_orig; 
             feat_fieldname = 'z_meter_rel'; 
             feat_label = 'zscore'; 
             tit = 'ACF'; 
         case 4
             feat_raw = feat_fft; 
             feat_subtracted = feat_fft_subtracted; 
+            feat_orig = feat_fft_orig; 
             feat_fieldname = 'z_meter_rel'; 
             feat_label = 'zscore'; 
             tit = 'FFT'; 
@@ -322,6 +382,7 @@ for i_cond=cond_to_plot
     pnl(1).pack({[0, 0, 1, 1]}); 
     pnl(2).pack({[0, 0, 1, 1]}); 
     
+    feat_orig = RenameField(feat_orig, feat_fieldname, 'data');
     
     % raw
     ax = pnl(1, 1).select(); 
@@ -331,6 +392,7 @@ for i_cond=cond_to_plot
     plot_multiple_cond('ax', ax, ...
                       'plot_legend', true, ...
                       'feat', feat, ...
+                      'feat_orig', feat_orig,...
                       'ylim_quantile_cutoff', ylim_quantile_cutoff); 
 
     pnl(1).ylabel(sprintf('%s raw', feat_label)); 
@@ -343,6 +405,7 @@ for i_cond=cond_to_plot
     plot_multiple_cond('ax', ax, ...
                       'plot_legend', false, ...
                       'feat', feat, ...
+                      'feat_orig', feat_orig,...
                       'ylim_quantile_cutoff', ylim_quantile_cutoff); 
 
     pnl(2).ylabel(sprintf('%s 1/f subtr', feat_label)); 
@@ -353,7 +416,7 @@ for i_cond=cond_to_plot
 
     pnl.title(tit); 
 
-    pnl.fontsize = fontsize; 
+    pnl.fontsize = par.fontsize; 
 
     % fix legend position
     for i=1:length(f.Children)
@@ -379,9 +442,11 @@ for i_cond=cond_to_plot
             ax.YTick = ylims; 
         end
     end
-    
     if save_figs
-        saveas(f, sprintf('figures/08_eeg_nrep-%d_%s_%s.svg', n_rep, tit, feat_label));  
+       fname = sprintf('07_shift_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_%s_%s.svg', ...
+                         ir_type, exponent, snr, n_rep, tit, feat_label);  
+       saveas(f, fullfile(par.fig_path, fname));  
     end
-       
+   
+
 end

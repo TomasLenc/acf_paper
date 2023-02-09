@@ -10,13 +10,7 @@ addpath(genpath('lib'))
 
 %% simulate
 
-fs = 200; 
-
-pat = [1 0 1 1 1 1 0 1 1 1 0 0]; %  [1 1 1 0 1 1 1 0 1 1 0 0]  [1 0 1 1 1 1 0 1 1 1 0 0]
-
-n_cycles = 16; 
-
-grid_ioi = 0.2; 
+save_figs = false; 
 
 noise_exponent = -1.5; 
 
@@ -63,58 +57,27 @@ ir_type = 'erp';
 duty_cycles = linspace(10, 4, 6); 
 % ------------------------------------------------
 
+%% 
+
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
-max_lag = (grid_ioi * length(pat) * n_cycles) / 2; 
+max_lag = par.max_lag;
 
 % meter-related lags 
-% ------------------
-
-% Make sure there's no overlap with muiltiples of meter-unrelated lags, and 
-% also the pattern repetition period. 
-lags_meter_rel = get_lag_harmonics(...
-                            0.8, ...
-                            max_lag,...
-                            'lag_harm_to_exclude', [0.6, 1.0, 2.4] ...
-                            ); 
-
+lags_meter_rel = par.lags_meter_rel;
 % meter-unrelated lags 
-% --------------------
-
-% Make sure there's no overlap with muiltiples of meter-related lags 
-% (even 0.4 seconds!), and also the pattern repetition period. 
-
-lags_meter_unrel_1 = get_lag_harmonics(...
-                            0.6, ...
-                            max_lag,...
-                            'lag_harm_to_exclude', [0.4, 2.4] ...
-                            ); 
-
-lags_meter_unrel_2 = get_lag_harmonics(...
-                            1.0, ...
-                            max_lag,...
-                            'lag_harm_to_exclude', [0.4, 2.4] ...
-                            ); 
-
-lags_meter_unrel = uniquetol([lags_meter_unrel_1, lags_meter_unrel_2], 1e-8); 
-
-
-% make sure one more time that there's no overlap between meter-rel and -unrel !!! 
-assert(~any( min(abs(bsxfun(@minus, lags_meter_rel', lags_meter_unrel))) < 1e-9 ))
-
+lags_meter_unrel = par.lags_meter_unrel;
 
 % you can separately set meter-unrelated lags on the left and right (this is
 % used when checking for spurious results)
-lags_meter_unrel_left = [0.6]; 
-lags_meter_unrel_right = [1.0]; 
+lags_meter_unrel_left = par.lags_meter_unrel_left;
+lags_meter_unrel_right = par.lags_meter_unrel_right;
+
+freq_meter_rel = par.freq_meter_rel;
+freq_meter_unrel = par.freq_meter_unrel;
 
 
-freq_meter_rel = [1.25 : 1.25 : 5]; 
-freq_meter_unrel = setdiff(1/2.4 * [1:12], freq_meter_rel); 
-
-max_freq_plot = 5.5; 
-noise_bins = [2, 5]; 
-
+%%
 
 n_cond = length(duty_cycles); 
 
@@ -122,10 +85,6 @@ n_cond = length(duty_cycles);
 cmap_name = '-RdPu'; 
 colors = num2cell(brewermap(n_cond + n_cond, cmap_name), 2); 
 colors = colors(1:n_cond, :); 
-
-fontsize = 14; 
-
-save_figs = false; 
 
 
 %% test performance across duty cycles
@@ -181,7 +140,7 @@ for i_cond=1:n_cond
     fprintf('calculating %d/%d\n', i_cond, n_cond)
 
     if strcmp(ir_type, 'erp')
-        ir = get_erp_kernel(fs,...
+        ir = get_erp_kernel(par.fs,...
             'amplitudes', 1,...
             't0s', 0, ...
             'taus', 0.050, ...
@@ -189,7 +148,7 @@ for i_cond=1:n_cond
             'duration', 0.2 ...
             ); 
     elseif strcmp(ir_type, 'square')
-        ir = get_square_kernel(fs, ...
+        ir = get_square_kernel(par.fs, ...
             'duration', duty_cycle, ...
             'rampon', 0, ...
             'rampoff', 0 ...
@@ -201,16 +160,16 @@ for i_cond=1:n_cond
     
     % make whole signal 
     [x_clean, t] = get_s(...
-                        pat, ...
-                        grid_ioi, ...
-                        fs, ...
-                        'n_cycles', n_cycles, ...
+                        par.pat, ...
+                        par.grid_ioi, ...
+                        par.fs, ...
+                        'n_cycles', par.n_cycles, ...
                         'ir', ir ...
                         );
 
     
     % generate noisy signal (simulataneously for all repetitions)
-    noise = get_colored_noise2([n_rep, length(x_clean)], fs, noise_exponent); 
+    noise = get_colored_noise2([n_rep, length(x_clean)], par.fs, noise_exponent); 
 
     % scale the noise to the correct SNR 
     x_clean_rms = rms(x_clean); 
@@ -226,7 +185,7 @@ for i_cond=1:n_cond
     % -------
     
     % clean signal
-    [acf_clean, lags, ~, mX_clean, freq] = get_acf(x_clean, fs, ...
+    [acf_clean, lags, ~, mX_clean, freq] = get_acf(x_clean, par.fs, ...
                                        'normalize_x', normalize_x, ...
                                        'force_x_positive', force_x_positive, ...
                                        'normalize_acf_to_1', normalize_acf_to_1, ...
@@ -234,17 +193,17 @@ for i_cond=1:n_cond
                                        );    
                                    
     % withuout aperiodic subtraction    
-    [acf, ~, ~, mX, ~] = get_acf(x, fs, ...
+    [acf, ~, ~, mX, ~] = get_acf(x, par.fs, ...
                                'normalize_x', normalize_x, ...
                                'force_x_positive', force_x_positive, ...
                                'normalize_acf_to_1', normalize_acf_to_1, ...
                                'normalize_acf_z', normalize_acf_z ...
                                );    
                                    
-    mX_subtracted = subtract_noise_bins(mX, noise_bins(1),  noise_bins(2)); 
+    mX_subtracted = subtract_noise_bins(mX, par.noise_bins(1),  par.noise_bins(2)); 
     
     % with aperiodic subtraction    
-    [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, fs, ...
+    [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, par.fs, ...
                                       'rm_ap', true, ...
                                       'f0_to_ignore', 1/2.4, ...
                                       'get_x_norm', true, ...
@@ -259,13 +218,13 @@ for i_cond=1:n_cond
     
     if get_acf_feat_from_x
         
-        feat_acf_orig(i_cond) = get_acf_features2(x_clean, fs, ...
+        feat_acf_orig(i_cond) = get_acf_features2(x_clean, par.fs, ...
                                      lags_meter_rel, lags_meter_unrel);         
 
-        feat_acf(i_cond) = get_acf_features2(x, fs, ...
+        feat_acf(i_cond) = get_acf_features2(x, par.fs, ...
                                     lags_meter_rel, lags_meter_unrel);    
 
-        feat_acf_subtracted(i_cond) = get_acf_features2(x_subtr, fs, ...
+        feat_acf_subtracted(i_cond) = get_acf_features2(x_subtr, par.fs, ...
                                      lags_meter_rel, lags_meter_unrel); 
         
     else
@@ -331,7 +290,7 @@ for i_cond=1:n_cond
                          'acf_subtr', acf_subtracted(rep_to_plot_idx, :), ...
                          'time_col', colors{i_cond}, ...
                          'prec', 1e6, ...
-                         'fontsize', fontsize, ...
+                         'fontsize', par.fontsize, ...
                          'normalize_acf_for_plotting', false);                                        
         f.Name = cond_labels{i_cond};     
         pnl_example(i_cond).margintop = 25; 
@@ -340,9 +299,9 @@ for i_cond=1:n_cond
 end
 
 if save_figs
-   fname = sprintf('figures/03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_examples', ...
+   fname = sprintf('03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_examples', ...
                    ir_type, noise_exponent, snr, n_rep); 
-   print(fname, '-dsvg', '-painters', f);  
+   print(fullfile(par.fig_path, fname), '-dsvg', '-painters', f);  
 end
 
 
@@ -443,7 +402,7 @@ for i_cond=cond_to_plot
 
     pnl.title(tit); 
 
-    pnl.fontsize = fontsize; 
+    pnl.fontsize = par.fontsize; 
 
     % fix legend position
     for i=1:length(f.Children)
@@ -475,8 +434,9 @@ for i_cond=cond_to_plot
     end
 
     if save_figs
-       saveas(f, sprintf('figures/03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_%s_%s.svg', ...
-                         ir_type, noise_exponent, snr, n_rep, tit, feat_label));  
+        fname = sprintf('03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_%s_%s.svg', ...
+                         ir_type, noise_exponent, snr, n_rep, tit, feat_label);
+        saveas(f, fullfile(par.fig_path, fname));  
     end
 
 end
