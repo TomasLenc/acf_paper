@@ -18,6 +18,7 @@ addParameter(parser, 'time_col', [0, 0, 0]);
 addParameter(parser, 'plot_time_xaxis', true); 
 addParameter(parser, 'plot_xticks', true); 
 addParameter(parser, 'plot_xlabels', true); 
+addParameter(parser, 'plot_features', true); 
 addParameter(parser, 'fontsize', 12); 
 addParameter(parser, 'prec', 1000); 
 
@@ -35,6 +36,7 @@ prec = parser.Results.prec;
 plot_time_xaxis = parser.Results.plot_time_xaxis; 
 plot_xticks = parser.Results.plot_xticks; 
 plot_xlabels = parser.Results.plot_xlabels; 
+plot_features = parser.Results.plot_features; 
 max_t = parser.Results.max_t; 
 min_lag = parser.Results.min_lag; 
 max_lag = parser.Results.max_lag; 
@@ -121,20 +123,21 @@ end
 
 
 % plot calculated feature values 
-features = []; 
-features.z = feat_fft.z_meter_rel; 
+if plot_features
+    features = []; 
+    features.z = feat_fft.z_meter_rel; 
 
-tit = ''; 
-keys = fieldnames(features); 
-for i_key=1:length(keys)
-    tit = [tit, sprintf('%s=%.2f   ', keys{i_key}, features.(keys{i_key}))];    
+    tit = ''; 
+    keys = fieldnames(features); 
+    for i_key=1:length(keys)
+        tit = [tit, sprintf('%s=%.2f   ', keys{i_key}, features.(keys{i_key}))];    
+    end
+    h_tit = title(ax, tit, 'Interpreter', 'none');
+    h_tit.HorizontalAlignment = 'left'; 
+    h_tit.Units = 'normalized'; 
+    h_tit.Position(1) = 0; 
+    h_tit.Position(2) = 1.1; 
 end
-h_tit = title(ax, tit, 'Interpreter', 'none');
-h_tit.HorizontalAlignment = 'left'; 
-h_tit.Units = 'normalized'; 
-h_tit.Position(1) = 0; 
-h_tit.Position(2) = 1.1; 
-
 
 % plot SNR-subtracted FFT
 if ~isempty(mX_subtr)
@@ -154,9 +157,11 @@ end
 % plot ACF
 ax = pnl(3, 1).select(); 
 
-features = []; 
-features.ratio = feat_acf.ratio_meter_rel; 
-features.z = feat_acf.z_meter_rel; 
+features = struct;
+if plot_features
+    features.ratio = feat_acf.ratio_meter_rel; 
+    features.z = feat_acf.z_meter_rel; 
+end
 
 if normalize_acf_for_plotting
     idx = dsearchn(lags', max_lag); 
@@ -181,9 +186,11 @@ end
 
 if ~isempty(acf_subtr)
     ax = pnl(3, 2).select(); 
-    features = []; 
-    features.ratio = feat_acf_subtr.ratio_meter_rel; 
-    features.z = feat_acf_subtr.z_meter_rel; 
+    features = struct; 
+    if plot_features
+        features.ratio = feat_acf_subtr.ratio_meter_rel; 
+        features.z = feat_acf_subtr.z_meter_rel; 
+    end
     if normalize_acf_for_plotting
         idx = dsearchn(lags', max_lag); 
         acf_to_plot = (acf_subtr - min(acf_subtr(1:idx))) ./ ...
