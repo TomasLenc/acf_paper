@@ -1,5 +1,13 @@
+function main05_emph(varargin)
 
-clear 
+parser = inputParser; 
+
+addParameter(parser, 'ir_type', 'square'); % square, erp, erp2
+
+parse(parser, varargin{:});
+
+ir_type = parser.Results.ir_type;
+
 
 par = get_par(); 
 
@@ -11,13 +19,9 @@ addpath(genpath('lib'))
 
 %% simulate
 
-save_figs = true; 
-
 noise_exponent = -1.5; 
 
 snr = Inf; 
-
-ir_type = 'square'; 
 
 % number of simulated repetitions 
 n_rep = 1; 
@@ -307,10 +311,10 @@ for i_cond=1:n_cond
 
 end
 
-if save_figs
+if par.save_figs
    fname = sprintf('05_emph_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_examples.svg', ...
                    ir_type, noise_exponent, snr, n_rep); 
-   print(fullfile(par.fig_path, fname), '-dsvg', '-painters', f);  
+   save_fig(f, fname)
 end
 
 
@@ -439,10 +443,10 @@ for i_cond=cond_to_plot
         end
     end
 
-     if save_figs
+     if par.save_figs
         fname = sprintf('05_emph_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_%s_%s.svg', ...
                          ir_type, noise_exponent, snr, n_rep, tit, feat_label);
-        saveas(f, fullfile(par.fig_path, fname));  
+        save_fig(f, fname)
     end
    
 end

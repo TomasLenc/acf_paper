@@ -1,5 +1,4 @@
-
-clear 
+function main09_eeg()
 
 par = get_par(); 
 
@@ -11,14 +10,12 @@ addpath(genpath('lib'))
 
 %% load data
 
-save_figs = true; 
-
-
 [header, data] = CLW_load(fullfile(...
-    par.data_path, ...
+    par.data_path, 'eeg', ...
     'icfilt(2,8) ep but ds butLP64 sub-005_task-ComplexToneSnr_date-202106171802'...
     )); 
 %     'icfilt(2) ep but ds butLP64 sub-004_task-ComplexToneSnr_date-202106171458'...
+%     'icfilt(2,8) ep but ds butLP64 sub-005_task-ComplexToneSnr_date-202106171802'...
 
 [header, data] = RLW_rereference(header, data, ...
                         'apply_list', {header.chanlocs.labels}, ...
@@ -32,11 +29,34 @@ save_figs = true;
                                         'high_cutoff', 20, ...
                                         'filter_order', 2); 
                                     
-[header, data] = RLW_segmentation(header, data, {'1'}, 'x_start', 0, 'x_duration', 60); 
+[header, data] = segment_safe(header, data, {'1'}, ...
+                              'x_start', 0, 'x_duration', 60, ...
+                              'ignore_out_of_range', true); 
 
 fs = 1/header.xstep; 
 
 t = [0 : header.datasize(end)-1]/fs; 
+
+
+%% sanity checks
+
+assert(size(data, 1) == 50);
+
+assert(header.xstart == 0);
+
+assert(size(data, 6) == round(fs * 60));
+
+%% load cochelar model 
+
+load(fullfile(par.data_path, 'eeg', 'urear', 'UREAR_AN_syncopated.mat')); 
+
+coch = sum(AN.an_sout, 1); 
+fs_coch = AN.fs;
+t_coch = [0 : length(coch)-1] / fs_coch;
+
+% figure
+% plot(t_coch, coch)
+% xlim([0, 4.8])
 
 
 %%
@@ -71,7 +91,7 @@ plot_example_fig = true;
 % ------------------------------------------------
 cond_type = 'n trials'; 
 
-n_trials = [10, 15, 20, 25, 30]; 
+n_trials = [2, 8, 15, 20, 30]; 
 
 with_replacement = false; 
 % ------------------------------------------------
@@ -103,18 +123,41 @@ freq_meter_rel = par.freq_meter_rel;
 freq_meter_unrel = par.freq_meter_unrel;
 
 noise_bins = par.noise_bins;
+noise_bins_snr = [3, 13]; 
 
 %%
-
 
 % colors
 cmap_name = 'PuBu'; 
 colors = num2cell(brewermap(n_cond + n_cond, cmap_name), 2); 
 colors = colors(end-n_cond+1:end, :); 
 
+%% process cochlear model
+
+% get ACF (withuout aperiodic subtraction)
+[acf_coch, lags_coch, ~, mX_coch, freq_coch] = get_acf(...
+                           coch, fs_coch, ...
+                           'normalize_x', normalize_x, ...
+                           'force_x_positive', force_x_positive, ...
+                           'normalize_acf_to_1', normalize_acf_to_1, ...
+                           'normalize_acf_z', normalize_acf_z ...
+                           );    
+                       
+% get ACF features
+feat_acf_coch = get_acf_features(...
+                            acf_coch, lags_coch, ...
+                            lags_meter_rel, lags_meter_unrel, ...
+                            'lags_meter_unrel_left', lags_meter_unrel_left, ...
+                            'lags_meter_unrel_right', lags_meter_unrel_right, ...
+                            'normalize_acf', normalize_acf_vals...
+                            );    
+
+% get features for the raw spectra                                    
+feat_fft_coch = get_fft_features(mX_coch, freq_coch, ...
+                                 freq_meter_rel, freq_meter_unrel); 
 
 
-%% 
+%% process EEG
 
 % allocate
 if get_acf_feat_from_x
@@ -155,7 +198,11 @@ feat_fft = struct('z_meter_rel', []);
 
 feat_fft_subtracted = struct('z_meter_rel', []); 
 
+feat_ap = struct('offset', [], 'exponent', []); 
+
 cond_labels = {}; 
+
+%%
 
 for i_cond=1:n_cond
     
@@ -163,6 +210,9 @@ for i_cond=1:n_cond
     for i_rep=1:n_rep
         trial_idx = randsample(header.datasize(1), n_trials(i_cond), with_replacement); 
         x(i_rep, :) = squeeze(mean(mean(data(trial_idx, :, 1,1,1, :), 2), 1))'; 
+        if any(isnan(x(i_rep, :)))
+           error(); 
+        end
     end
             
     cond_labels{i_cond} = sprintf('%g', n_trials(i_cond)); 
@@ -183,17 +233,24 @@ for i_cond=1:n_cond
     mX_subtracted = subtract_noise_bins(mX, noise_bins(1),  noise_bins(2)); 
     
     % with aperiodic subtraction    
-    [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, fs, ...
+    [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr, optim_exitflag] = ...
+                                get_acf(x, fs, ...
                                        'rm_ap', true, ...
-                                       'f0_to_ignore', 1/2.4, ...
+                                       'f0_to_ignore', 1 / 2.4, ...
                                        'min_freq', 0.1, ...
-                                       'max_freq', 8, ...
+                                       'max_freq', 9, ...
                                        'get_x_norm', true, ...
                                        'normalize_x', normalize_x, ...
                                        'force_x_positive', force_x_positive, ...
                                        'normalize_acf_to_1', normalize_acf_to_1, ...
                                        'normalize_acf_z', normalize_acf_z ...
-                                       );                                 
+                                       );      
+    if any(~optim_exitflag)
+        warning('ap-fit didnt converge %d/%d reps', sum(~optim_exitflag), n_rep); 
+    end
+    
+    feat_ap(i_cond).offset = cellfun(@(x) x(1), par_ap);            
+    feat_ap(i_cond).exponent = cellfun(@(x) x(2), par_ap);            
                                    
     % get features
     % ------------
@@ -221,9 +278,15 @@ for i_cond=1:n_cond
                                      'normalize_acf', normalize_acf_vals); 
     end
                                  
-    feat_fft(i_cond) = get_fft_features(mX, freq, ...
-                                            freq_meter_rel, freq_meter_unrel); 
+    % get features for the raw spectra                                    
+    tmp = get_fft_features(mX, freq, freq_meter_rel, freq_meter_unrel); 
+    feat_fft(i_cond).z_meter_rel = tmp.z_meter_rel; 
+                                        
+    feat_fft(i_cond).z_snr = get_z_snr(mX, freq, par.frex, ...
+                                       noise_bins_snr(1), ...
+                                       noise_bins_snr(2)); 
 
+    % get features for the 1/f-subtracted spectra                                    
     feat_fft_subtracted(i_cond) = get_fft_features(mX_subtracted, freq, ...
                                            freq_meter_rel, freq_meter_unrel);
     
@@ -251,6 +314,7 @@ for i_cond=1:n_cond
                          'plot_time_xaxis', i_cond == n_cond, ...
                          'plot_xlabels', i_cond == n_cond, ...
                          'plot_xticks', i_cond == n_cond, ...
+                         'plot_features', false, ...
                          'min_lag', 0.2, ...
                          'mX_subtr', mX_subtracted(rep_to_plot_idx, :), ...
                          'acf_subtr', acf_subtracted(rep_to_plot_idx, :), ...
@@ -259,14 +323,14 @@ for i_cond=1:n_cond
                          'fontsize', par.fontsize, ...
                          'normalize_acf_for_plotting', false);                                        
         f.Name = cond_labels{i_cond};     
-        pnl_example(i_cond).margintop = 25; 
+        pnl_example(i_cond).margintop = 28.5; 
     end
 
 end
 
-if save_figs
+if par.save_figs
    fname = sprintf('09_eeg_nrep-%d_examples.svg', n_rep); 
-   print(fullfile(par.fig_path, fname), '-dsvg', '-painters', f);  
+   save_fig(f, fname)
 end
 
 
@@ -275,12 +339,14 @@ end
 [feat_acf_subtracted.name] = deal(cond_labels{:}); 
 [feat_fft.name] = deal(cond_labels{:}); 
 [feat_fft_subtracted.name] = deal(cond_labels{:}); 
+[feat_ap.name] = deal(cond_labels{:}); 
 
 % assign colors
 [feat_acf.color] = deal(colors{:}); 
 [feat_acf_subtracted.color] = deal(colors{:}); 
 [feat_fft.color] = deal(colors{:}); 
 [feat_fft_subtracted.color] = deal(colors{:}); 
+[feat_ap.color] = deal(colors{:}); 
 
 
 %%
@@ -288,39 +354,82 @@ end
 % plot 
 % ----
 if get_acf_feat_from_x
-    cond_to_plot = [1, 2, 3, 4]; 
+    cond_to_plot = {
+        'acf-z_meter_rel'
+        'fft-z_meter_rel'
+        'fft-z_snr'
+        'ap-offset'
+        'ap-exponent'
+        }; 
 else
-    cond_to_plot = [2, 3, 4]; 
+    cond_to_plot = {
+        'acf-z_meter_rel'
+        'fft-z_meter_rel'
+        'fft-z_snr'
+        'ap-offset'
+        'ap-exponent'
+        }; 
 end
 
-for i_cond=cond_to_plot
+for i_cond=1:length(cond_to_plot)
     
-    switch i_cond
+    ytick_at_means = false;
+    yaxis_right = false;
+    
+    switch cond_to_plot{i_cond}
         
-        case 1
+        case 'acf-mean_meter_rel'
             feat_raw = feat_acf; 
             feat_subtracted = feat_acf_subtracted; 
+            feat_sound = feat_acf_coch; 
             feat_fieldname = 'mean_meter_rel'; 
             feat_label = 'mean'; 
             tit = 'ACF'; 
-        case 2
+        case 'acf-ratio_meter_rel'
             feat_raw = feat_acf; 
             feat_subtracted = feat_acf_subtracted; 
+            feat_sound = feat_acf_coch; 
             feat_fieldname = 'ratio_meter_rel'; 
             feat_label = 'ratio'; 
             tit = 'ACF'; 
-        case 3
+        case 'acf-z_meter_rel'
             feat_raw = feat_acf; 
             feat_subtracted = feat_acf_subtracted; 
+            feat_sound = feat_acf_coch; 
             feat_fieldname = 'z_meter_rel'; 
             feat_label = 'zscore'; 
             tit = 'ACF'; 
-        case 4
+        case 'fft-z_meter_rel'
             feat_raw = feat_fft; 
             feat_subtracted = feat_fft_subtracted; 
+            feat_sound = feat_fft_coch; 
             feat_fieldname = 'z_meter_rel'; 
             feat_label = 'zscore'; 
             tit = 'FFT'; 
+        case 'fft-z_snr'
+            feat_raw = feat_fft; 
+            feat_subtracted = []; 
+            feat_sound = [];
+            feat_orig = []; 
+            feat_fieldname = 'z_snr'; 
+            feat_label = 'zSNR'; 
+            tit = 'FFT'; 
+            ytick_at_means = true;
+            yaxis_right = true;
+        case 'ap-offset'
+            feat_raw = feat_ap; 
+            feat_subtracted = []; 
+            feat_orig = []; 
+            feat_fieldname = 'offset'; 
+            feat_label = 'offset'; 
+            tit = 'AP'; 
+        case 'ap-exponent'
+            feat_raw = feat_ap; 
+            feat_subtracted = []; 
+            feat_orig = []; 
+            feat_fieldname = 'exponent'; 
+            feat_label = 'exponent'; 
+            tit = 'AP'; 
     end
     
     f = figure('color', 'white', 'position', [1442 521 350 373]); 
@@ -334,26 +443,40 @@ for i_cond=cond_to_plot
     ax = pnl(1, 1).select(); 
 
     feat = RenameField(feat_raw, feat_fieldname, 'data');
+    feat_sound = RenameField(feat_sound, feat_fieldname, 'data');
 
     plot_multiple_cond('ax', ax, ...
                       'plot_legend', true, ...
                       'feat', feat, ...
+                      'feat_thr', feat_sound, ...
+                      'ytick_at_means', ytick_at_means, ...
+                      'prec', 3, ...
                       'ylim_quantile_cutoff', ylim_quantile_cutoff); 
 
     pnl(1).ylabel(sprintf('%s raw', feat_label)); 
-
+    
+    if yaxis_right
+        ax.YAxisLocation = 'right';
+    end
+    
     % subtracted
     ax = pnl(2, 1).select(); 
 
-    feat = RenameField(feat_subtracted, feat_fieldname, 'data');
-    
+    feat = RenameField(feat_subtracted, feat_fieldname, 'data');    
+        
     plot_multiple_cond('ax', ax, ...
                       'plot_legend', false, ...
                       'feat', feat, ...
+                      'feat_thr', feat_sound, ...
+                      'ytick_at_means', ytick_at_means, ...
+                      'prec', 3, ...
                       'ylim_quantile_cutoff', ylim_quantile_cutoff); 
 
     pnl(2).ylabel(sprintf('%s 1/f subtr', feat_label)); 
 
+    if yaxis_right
+        ax.YAxisLocation = 'right';
+    end
 
     % make the figure nice 
     pnl.margin = [19, 5, 5, 40]; 
@@ -374,22 +497,34 @@ for i_cond=cond_to_plot
     % get the same ylims across subplots
     prec = 1000; 
     ylims = [Inf, -Inf]; 
+    yticks = [];
+    c = 0;
     for i_ax=1:length(pnl.children)
         ax = pnl(i_ax, 1).select(); 
-        ylims(1) = min(ceil(ax.YLim(1)*prec)/prec, ylims(1)); 
-        ylims(2) = max(floor(ax.YLim(2)*prec)/prec, ylims(2)); 
+        if ~isempty(ax.Children)
+            ylims(1) = min(ceil(ax.YLim(1)*prec)/prec, ylims(1)); 
+            ylims(2) = max(floor(ax.YLim(2)*prec)/prec, ylims(2)); 
+            if isempty(yticks)
+                yticks = ax.YTick;
+            else
+                yticks = yticks + ax.YTick;
+            end
+            c = c+1;
+        end
     end
+    yticks = yticks ./ c;
+    
     for i_ax=1:length(pnl.children)
         ax = pnl(i_ax, 1).select(); 
         if ylims(1) < ylims(2)
             ax.YLim = ylims; 
-            ax.YTick = ylims; 
+            ax.YTick = yticks; 
         end
     end
     
-    if save_figs
+    if par.save_figs
        fname = sprintf('09_eeg_nrep-%d_%s_%s.svg', n_rep, tit, feat_label);  
-       saveas(f, fullfile(par.fig_path, fname));  
+       save_fig(f, fname)
     end
        
 end

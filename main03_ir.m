@@ -1,5 +1,13 @@
+function main03_ir(varargin)
 
-clear 
+parser = inputParser; 
+
+addParameter(parser, 'ir_type', 'square'); % square, erp, erp2
+
+parse(parser, varargin{:});
+
+ir_type = parser.Results.ir_type;
+
 
 par = get_par(); 
 
@@ -9,8 +17,6 @@ addpath(genpath('lib'))
 
 
 %% simulate
-
-save_figs = false; 
 
 noise_exponent = -1.5; 
 
@@ -48,13 +54,14 @@ ylim_quantile_cutoff = 0.05;
 plot_example_fig = true; 
 
 % ------------------------------------------------
-% cond_type = 'duty cycle';
-% ir_type = 'square'; 
-% duty_cycles = linspace(0.050, 0.180, 6); 
-
-cond_type = 'IR freq'; 
-ir_type = 'erp'; 
-duty_cycles = linspace(10, 4, 6); 
+if strcmp(ir_type, 'square')
+    cond_type = 'duty cycle';
+    duty_cycles = linspace(0.050, 0.180, 6); 
+end
+if strcmp(ir_type, 'erp')
+    cond_type = 'IR freq'; 
+    duty_cycles = linspace(10, 4, 6); 
+end
 % ------------------------------------------------
 
 %% 
@@ -298,10 +305,10 @@ for i_cond=1:n_cond
 
 end
 
-if save_figs
+if par.save_figs
    fname = sprintf('03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_examples', ...
                    ir_type, noise_exponent, snr, n_rep); 
-   print(fullfile(par.fig_path, fname), '-dsvg', '-painters', f);  
+   save_fig(f, fname); 
 end
 
 
@@ -433,10 +440,10 @@ for i_cond=cond_to_plot
         end
     end
 
-    if save_figs
+    if par.save_figs
         fname = sprintf('03_ir_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_%s_%s.svg', ...
                          ir_type, noise_exponent, snr, n_rep, tit, feat_label);
-        saveas(f, fullfile(par.fig_path, fname));  
+        save_fig(f, fname); 
     end
 
 end

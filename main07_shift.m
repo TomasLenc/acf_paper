@@ -1,5 +1,4 @@
-
-clear 
+function main07_shift()
 
 par = get_par(); 
 
@@ -9,8 +8,6 @@ addpath(genpath('lib'))
 
 
 %% simulate
-
-save_figs = true; 
 
 exponent = -1.5; 
 
@@ -309,10 +306,10 @@ for i_cond=1:n_cond
 
 end
 
-if save_figs
+if par.save_figs
    fname = sprintf('07_shift_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_examples', ...
                    ir_type, exponent, snr, n_rep); 
-   print(fullfile(par.fig_path, fname), '-dsvg', '-painters', f);  
+   save_fig(f, fname)
 end
 
 
@@ -442,10 +439,10 @@ for i_cond=cond_to_plot
             ax.YTick = ylims; 
         end
     end
-    if save_figs
+    if par.save_figs
        fname = sprintf('07_shift_irType-%s_exp-%.1f_snr-%.1f_nrep-%d_%s_%s.svg', ...
                          ir_type, exponent, snr, n_rep, tit, feat_label);  
-       saveas(f, fullfile(par.fig_path, fname));  
+       save_fig(f, fname)
     end
    
 

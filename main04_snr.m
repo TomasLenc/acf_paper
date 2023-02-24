@@ -1,5 +1,4 @@
-
-clear 
+function main04_snr()
 
 par = get_par(); 
 
@@ -10,11 +9,11 @@ addpath(genpath('lib'))
 
 %% simulate
 
-save_figs = true; 
-
 noise_exponent = -1.5; 
 
 fit_knee = false; 
+
+noise_type = 'eeg'; % eeg, fractal
 
 ir_type = 'square'; 
 
@@ -54,8 +53,8 @@ plot_example_fig = true;
 % ------------------------------------------------
 cond_type = 'SNR'; 
 
-% snrs = logspace(log10(10), log10(0.2), 6); 
-snrs = linspace(1, 0.2, 6); 
+snrs = logspace(log10(0.2), log10(2), 5); 
+% snrs = linspace(1, 0.2, 6); 
 % snrs = [0.6, 0.3]; 
 % ------------------------------------------------
 
@@ -87,9 +86,9 @@ noise_bins_snr = par.noise_bins_snr;
 n_cond = length(snrs); 
 
 % colors
-cmap_name = '-OrRd'; 
+cmap_name = 'OrRd'; 
 colors = num2cell(brewermap(n_cond + n_cond, cmap_name), 2); 
-colors = colors(1:n_cond, :); 
+colors = colors(end-n_cond+1:end, :); 
 
 
 %% 
@@ -170,7 +169,35 @@ feat_fft = struct('z_meter_rel', [], 'z_snr', []);
 
 feat_fft_subtracted = struct('z_meter_rel', []); 
 
+feat_ap = struct('offset', [], 'exponent', []); 
+
 cond_labels = {}; 
+
+%% prepare EEG to get noise from it
+
+if strcmp(noise_type, 'eeg')
+    
+    addpath(genpath(par.lw_path)); 
+
+    % load EEG data
+    [header, data] = CLW_load(fullfile(par.data_path, 'eeg', ...
+                    'resting_eeg', 'sub-01_ses-session1_task-eyesopen_eeg'));
+    % take average reference
+    [header, data] = RLW_rereference(header, data,...
+        'apply_list', {header.chanlocs.labels}, ...
+        'reference_list', {header.chanlocs.labels});
+    % resample to match fs        
+    [P, Q] = rat(par.fs / (1/header.xstep));
+    X = squeeze(data)';
+    X = resample(X, P, Q);
+    data_resampled = [];
+    data_resampled(1, :, 1, 1, 1, :) = X';
+    header_resampled = header;
+    header_resampled.xstep = 1/par.fs;
+    header_resampled.datasize = size(data_resampled);
+end
+
+%%
 
 for i_cond=1:n_cond
     
@@ -189,8 +216,37 @@ for i_cond=1:n_cond
                         );
     
     % generate noisy signal (simulataneously for all repetitions)
-    noise = get_colored_noise2([n_rep, length(x_clean)], par.fs, noise_exponent); 
+    if strcmp(noise_type, 'fractal')
+        
+        noise = get_colored_noise2([n_rep, length(x_clean)], par.fs, noise_exponent); 
+        
+    elseif strcmp(noise_type, 'eeg')
+                
+        noise = nan(n_rep, length(x_clean));
+        for i_rep=1:n_rep
+            % pick a starting point at random
+            x_start = rand * ...
+                (header.xstep * header.datasize(end) - length(x_clean) / par.fs);
+            % segment the duration we need
+            [header_ep, data_ep] = RLW_crop(header_resampled, data_resampled, ...
+                                            'x_crop', true, ...
+                                            'x_start', x_start, ...
+                                            'x_size', length(x_clean) ...
+                                            );
+            % pick a random channel                            
+            chan_idx = randsample(header.datasize(2), 1);
+            [header_chan, data_chan] = RLW_arrange_channels(header_ep, data_ep, ...
+                                            {header.chanlocs(chan_idx).labels});
+            noise(i_rep, :) = squeeze(data_chan);                                
+        end
 
+        % mean-center the data                            
+        noise = noise - mean(noise, 2);       
+        
+    else
+        error('noise type "%s" not implemented', noise_type);
+    end
+    
     % scale the noise to the correct SNR 
     x_clean_rms = rms(x_clean); 
     noise_rms = rms(noise, ndims(noise)); 
@@ -241,9 +297,11 @@ for i_cond=1:n_cond
                                        'force_x_positive', force_x_positive, ...
                                        'normalize_acf_to_1', normalize_acf_to_1, ...
                                        'normalize_acf_z', normalize_acf_z ...
-                                       );    
-                             
+                                       );  
                                    
+    feat_ap(i_cond).offset = cellfun(@(x) x(1), par_ap);            
+    feat_ap(i_cond).exponent = cellfun(@(x) x(2), par_ap);            
+    
     % get features
     % ------------
     
@@ -301,7 +359,7 @@ for i_cond=1:n_cond
     if plot_example_fig      
         if i_cond==1
             f = figure('color','white', ...
-                       'position', [95 67 1062 170 * n_cond]); 
+                       'position', [95, 67, 1062, 150 * n_cond]); 
             pnl_example = panel(f); 
             pnl_example.pack('v', n_cond); 
             pnl_example.margin = [5, 10, 25, 25]; 
@@ -319,6 +377,7 @@ for i_cond=1:n_cond
                          'plot_time_xaxis', i_cond == n_cond, ...
                          'plot_xlabels', i_cond == n_cond, ...
                          'plot_xticks', i_cond == n_cond, ...
+                         'plot_features', false, ...
                          'mX_subtr', mX_subtracted(rep_to_plot_idx, :), ...
                          'acf_subtr', acf_subtracted(rep_to_plot_idx, :), ...
                          'time_col', colors{i_cond}, ...
@@ -326,30 +385,38 @@ for i_cond=1:n_cond
                          'fontsize', par.fontsize, ...
                          'normalize_acf_for_plotting', false);                                        
         f.Name = cond_labels{i_cond};     
-        pnl_example(i_cond).margintop = 25; 
+        pnl_example(i_cond).margintop = 28.5; 
     end
 
 end
 
-if save_figs
-   fname = sprintf('04_snr_irType-%s_exp-%.1f_nrep-%d_examples.svg', ...
+if strcmp(noise_type, 'fractal')
+    fname = sprintf('04_snr_irType-%s_exp-%.1f_nrep-%d_examples.svg', ...
                    ir_type, noise_exponent, n_rep); 
-   print(fullfile(par.fig_path, fname), '-dsvg', '-painters', f);  
+elseif strcmp(noise_type, 'eeg')
+    fname = sprintf('04_snr_irType-%s_noise-eeg_nrep-%d_examples.svg', ...
+                   ir_type, n_rep); 
+else
+    error('noise type "%s" not implemented', noise_type);
 end
 
-
+if par.save_figs
+   save_fig(f, fname)
+end
 
 % assign labels
 [feat_acf.name] = deal(cond_labels{:}); 
 [feat_acf_subtracted.name] = deal(cond_labels{:}); 
 [feat_fft.name] = deal(cond_labels{:}); 
 [feat_fft_subtracted.name] = deal(cond_labels{:}); 
+[feat_ap.name] = deal(cond_labels{:}); 
 
 % assign colors
 [feat_acf.color] = deal(colors{:}); 
 [feat_acf_subtracted.color] = deal(colors{:}); 
 [feat_fft.color] = deal(colors{:}); 
 [feat_fft_subtracted.color] = deal(colors{:}); 
+[feat_ap.color] = deal(colors{:}); 
 
 
 %%
@@ -357,50 +424,81 @@ end
 % plot 
 % ----
 if get_acf_feat_from_x
-    cond_to_plot = [1,  3, 4, 5]; 
+    cond_to_plot = {
+        'acf-z_meter_rel'
+        'fft-z_meter_rel'
+        'fft-z_snr'
+        'ap-offset'
+        'ap-exponent'
+        }; 
 else
-    cond_to_plot = [3, 4, 5]; 
+    cond_to_plot = {
+        'acf-z_meter_rel'
+        'fft-z_meter_rel'
+        'fft-z_snr'
+        'ap-offset'
+        'ap-exponent'
+        }; 
 end
 
-for i_cond=cond_to_plot
+for i_cond=1:length(cond_to_plot)
     
-    switch i_cond
+    ytick_at_means = false;
+    yaxis_right = false;
+    
+    switch cond_to_plot{i_cond}
         
-        case 1
+        case 'acf-mean_meter_rel'
             feat_raw = feat_acf; 
             feat_subtracted = feat_acf_subtracted; 
             feat_orig = feat_acf_orig; 
             feat_fieldname = 'mean_meter_rel'; 
             feat_label = 'mean'; 
             tit = 'ACF'; 
-        case 2
+        case 'acf-ratio_meter_rel'
             feat_raw = feat_acf; 
             feat_subtracted = feat_acf_subtracted; 
             feat_orig = feat_acf_orig; 
             feat_fieldname = 'ratio_meter_rel'; 
             feat_label = 'ratio'; 
             tit = 'ACF'; 
-        case 3
+        case 'acf-z_meter_rel'
             feat_raw = feat_acf; 
             feat_subtracted = feat_acf_subtracted; 
             feat_orig = feat_acf_orig; 
             feat_fieldname = 'z_meter_rel'; 
             feat_label = 'zscore'; 
             tit = 'ACF'; 
-        case 4
+        case 'fft-z_meter_rel'
             feat_raw = feat_fft; 
             feat_subtracted = feat_fft_subtracted; 
             feat_orig = feat_fft_orig; 
             feat_fieldname = 'z_meter_rel'; 
             feat_label = 'zscore'; 
             tit = 'FFT'; 
-        case 5
+        case 'fft-z_snr'
             feat_raw = feat_fft; 
             feat_subtracted = []; 
             feat_orig = []; 
             feat_fieldname = 'z_snr'; 
             feat_label = 'zSNR'; 
             tit = 'FFT'; 
+            ytick_at_means = true;
+            yaxis_right = true;
+        case 'ap-offset'
+            feat_raw = feat_ap; 
+            feat_subtracted = []; 
+            feat_orig = []; 
+            feat_fieldname = 'offset'; 
+            feat_label = 'offset'; 
+            tit = 'AP'; 
+        case 'ap-exponent'
+            feat_raw = feat_ap; 
+            feat_subtracted = []; 
+            feat_orig = []; 
+            feat_fieldname = 'exponent'; 
+            feat_label = 'exponent'; 
+            tit = 'AP'; 
     end
     
     f = figure('color', 'white', 'position', [1442 521 350 373]); 
@@ -418,11 +516,16 @@ for i_cond=cond_to_plot
 
     plot_multiple_cond('ax', ax, ...
                       'plot_legend', true, ...
+                      'ytick_at_means', ytick_at_means, ...
                       'feat', feat, ...
                       'feat_orig', feat_orig,...
                       'ylim_quantile_cutoff', ylim_quantile_cutoff); 
 
     pnl(1).ylabel(sprintf('%s raw', feat_label)); 
+
+    if yaxis_right
+        ax.YAxisLocation = 'right';
+    end
 
     % subtracted
     ax = pnl(2, 1).select(); 
@@ -431,13 +534,17 @@ for i_cond=cond_to_plot
     
     plot_multiple_cond('ax', ax, ...
                       'plot_legend', false, ...
+                      'ytick_at_means', ytick_at_means, ...
                       'feat', feat, ...
                       'feat_orig', feat_orig,...
                       'ylim_quantile_cutoff', ylim_quantile_cutoff); 
 
     pnl(2).ylabel(sprintf('%s 1/f subtr', feat_label)); 
 
-
+    if yaxis_right
+        ax.YAxisLocation = 'right';
+    end
+    
     % make the figure nice 
     pnl.margin = [19, 5, 5, 40]; 
 
@@ -457,26 +564,52 @@ for i_cond=cond_to_plot
     % get the same ylims across subplots
     prec = 1000; 
     ylims = [Inf, -Inf]; 
+    yticks = [];
+    c = 0;
     for i_ax=1:length(pnl.children)
         ax = pnl(i_ax, 1).select(); 
-        ylims(1) = min(ceil(ax.YLim(1)*prec)/prec, ylims(1)); 
-        ylims(2) = max(floor(ax.YLim(2)*prec)/prec, ylims(2)); 
+        if ~isempty(ax.Children)
+            ylims(1) = min(ceil(ax.YLim(1)*prec)/prec, ylims(1)); 
+            ylims(2) = max(floor(ax.YLim(2)*prec)/prec, ylims(2)); 
+            if isempty(yticks)
+                yticks = ax.YTick;
+            else
+                yticks = yticks + ax.YTick;
+            end
+            c = c+1;
+        else
+            ax.Visible = 'off';
+            pnl(i_ax).ylabel('');
+            pnl(i_ax).xlabel('');
+        end
     end
+    yticks = yticks ./ c;
+    
     for i_ax=1:length(pnl.children)
         ax = pnl(i_ax, 1).select(); 
         if ylims(1) < ylims(2)
             ax.YLim = ylims; 
-            ax.YTick = ylims; 
+            ax.YTick = yticks; 
         end
     end
     
-    if save_figs
-        saveas(f, fullfile(par.fig_path, ...
-                           sprintf('04_snr_irType-%s_exp-%.1f_nrep-%d_%s_%s.svg', ...
-                                    ir_type, noise_exponent, n_rep, tit, feat_label)));  
+    if strcmp(noise_type, 'fractal')
+       fname = sprintf('04_snr_irType-%s_exp-%.1f_nrep-%d_%s_%s.svg', ...
+                        ir_type, noise_exponent, n_rep, tit, feat_label);  
+    elseif strcmp(noise_type, 'eeg')
+       fname = sprintf('04_snr_irType-%s_noise-eeg_nrep-%d_%s_%s.svg', ...
+                        ir_type, n_rep, tit, feat_label);  
+    else
+        error('noise type "%s" not implemented', noise_type);
+    end
+    
+    if par.save_figs
+       save_fig(f, fname);                        
     end
    
 end
+
+
 
 %% t-test actoss first two conditions
 

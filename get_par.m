@@ -22,6 +22,10 @@ grid_ioi = 0.2;
 
 %% 
 
+% make sure acf_tools are added because we'll need the get_lag_harmonics
+% function from there...
+addpath(genpath(acf_tools_path)); 
+
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
 min_lag = 0;
@@ -73,7 +77,7 @@ lags_meter_unrel_right = [1.0];
 freq_meter_rel = [1.25 : 1.25 : 5]; 
 freq_meter_unrel = setdiff(1/2.4 * [1:12], freq_meter_rel); 
 
-frex = [freq_meter_rel, freq_meter_unrel];
+frex = sort([freq_meter_rel, freq_meter_unrel]);
 
 max_freq_plot = 5.5; 
 noise_bins = [2, 5]; 
@@ -83,6 +87,8 @@ noise_bins = [2, 5];
 noise_bins_snr = [3, 13]; 
 
 %%
+
+save_figs = true; 
 
 fontsize = 14; 
 
