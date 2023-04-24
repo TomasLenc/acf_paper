@@ -10,6 +10,12 @@ addpath(genpath('lib'))
 
 %% load data
 
+% Note: sub-005 had very short breaks between trials - and so after
+% segmentation, there is sometimes a trigger at the end of the segment which
+% "leaks" from the begining of the successive trial. Using segment_safe
+% function ignores these triggers (unlike letswave, which puts additional
+% trials of zeros!!!). 
+
 [header, data] = CLW_load(fullfile(...
     par.data_path, 'eeg', ...
     'icfilt(2,8) ep but ds butLP64 sub-005_task-ComplexToneSnr_date-202106171802'...
@@ -32,6 +38,9 @@ addpath(genpath('lib'))
 [header, data] = segment_safe(header, data, {'1'}, ...
                               'x_start', 0, 'x_duration', 60, ...
                               'ignore_out_of_range', true); 
+                          
+[header, data] = RLW_pool_channels(header, data, {header.chanlocs.labels},...
+                                    'keep_original_channels', false);
 
 fs = 1/header.xstep; 
 
@@ -209,7 +218,7 @@ for i_cond=1:n_cond
     x = nan(n_rep, header.datasize(end)); 
     for i_rep=1:n_rep
         trial_idx = randsample(header.datasize(1), n_trials(i_cond), with_replacement); 
-        x(i_rep, :) = squeeze(mean(mean(data(trial_idx, :, 1,1,1, :), 2), 1))'; 
+        x(i_rep, :) = squeeze(mean(data(trial_idx, :, 1,1,1, :), 1))'; 
         if any(isnan(x(i_rep, :)))
            error(); 
         end
@@ -297,7 +306,7 @@ for i_cond=1:n_cond
     if plot_example_fig      
         if i_cond==1
             f = figure('color','white', ...
-                       'position', [95, 67, 1062, 150 * n_cond]); 
+                       'position', [95, 67, 1062, 170 * n_cond]); 
             pnl_example = panel(f); 
             pnl_example.pack('v', n_cond); 
             pnl_example.margin = [5, 10, 25, 25]; 
@@ -310,6 +319,7 @@ for i_cond=1:n_cond
                          lags_meter_rel, lags_meter_unrel, ...
                          freq_meter_rel, freq_meter_unrel, ...
                          'pnl', pnl_example(i_cond), ...
+                         'subplot_proportions', [50, 17, 33], ...
                          'max_lag', max_lag, ...
                          'plot_time_xaxis', i_cond == n_cond, ...
                          'plot_xlabels', i_cond == n_cond, ...

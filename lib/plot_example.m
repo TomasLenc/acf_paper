@@ -15,12 +15,14 @@ addParameter(parser, 'min_lag', min(lags));
 addParameter(parser, 'max_lag', 1.21); 
 addParameter(parser, 'max_freq', 5.2); 
 addParameter(parser, 'time_col', [0, 0, 0]); 
+addParameter(parser, 'subplot_proportions', [50, 25, 25]); 
 addParameter(parser, 'plot_time_xaxis', true); 
 addParameter(parser, 'plot_xticks', true); 
 addParameter(parser, 'plot_xlabels', true); 
 addParameter(parser, 'plot_features', true); 
 addParameter(parser, 'fontsize', 12); 
 addParameter(parser, 'prec', 1000); 
+
 
 parse(parser, varargin{:}); 
 
@@ -33,6 +35,7 @@ lags_meter_unrel_left = parser.Results.lags_meter_unrel_left;
 lags_meter_unrel_right = parser.Results.lags_meter_unrel_right; 
 
 prec = parser.Results.prec; 
+subplot_proportions = parser.Results.subplot_proportions; 
 plot_time_xaxis = parser.Results.plot_time_xaxis; 
 plot_xticks = parser.Results.plot_xticks; 
 plot_xlabels = parser.Results.plot_xlabels; 
@@ -77,12 +80,12 @@ if isempty(pnl)
     pnl = panel(f); 
 else
     f = []; 
-    pnl.pack('h', [50, 25, 25]); 
+    pnl.pack('h', subplot_proportions); 
     pnl(1).pack({[0, 0, 1, 1]}); 
     pnl(2).pack({[0, 0, 1, 1]}); 
     pnl(3).pack({[0, 0, 1, 1]}); 
 
-    inset_coord = [0.5, 1.52, 0.5, 0.71]; 
+    inset_coord = [0.3, 1.22, 0.7, 0.71]; 
     pnl(1).pack({inset_coord});
     pnl(2).pack({inset_coord});
     pnl(3).pack({inset_coord});
@@ -157,6 +160,12 @@ end
 % plot ACF
 ax = pnl(3, 1).select(); 
 
+if max_lag > 10
+    linew_acf = 0.8;
+else
+    linew_acf = 2;
+end
+
 features = struct;
 if plot_features
     features.ratio = feat_acf.ratio_meter_rel; 
@@ -178,6 +187,8 @@ plot_acf(ax, ...
          'lags_meter_unrel', lags_meter_unrel, ...
          'min_lag', min_lag, ...
          'max_lag', max_lag, ...
+         'linew', linew_acf, ...
+         'opacity_lagz', 0.5, ...
          'prec', prec); 
 ax.YTick = []; 
 if ~plot_xticks
@@ -206,6 +217,8 @@ if ~isempty(acf_subtr)
              'lags_meter_unrel', lags_meter_unrel, ...
              'min_lag', min_lag, ...
              'max_lag', max_lag, ...
+             'linew', linew_acf, ...
+             'opacity_lagz', 0.5, ...
              'prec', prec); 
     ax.XAxis.Visible = 'off'; 
     ax.YAxis.Visible = 'off'; 
@@ -221,7 +234,7 @@ end
 
 pnl.de.margin = [15, 10, 10, 15]; 
 pnl(2).marginleft = 9; 
-pnl(3).marginleft = 20; 
-pnl.margin = [15, 12, 25, 36]; 
+pnl(3).marginleft = 9; 
+pnl.margin = [15, 12, 10, 36]; 
 
 pnl.fontsize = fontsize;

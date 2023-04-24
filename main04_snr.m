@@ -53,7 +53,11 @@ plot_example_fig = true;
 % ------------------------------------------------
 cond_type = 'SNR'; 
 
-snrs = logspace(log10(0.2), log10(2), 5); 
+if strcmp(noise_type, 'eeg')
+    snrs = logspace(log10(0.2), log10(2), 5); 
+else
+    snrs = logspace(log10(0.2), log10(2), 5); 
+end
 % snrs = linspace(1, 0.2, 6); 
 % snrs = [0.6, 0.3]; 
 % ------------------------------------------------
@@ -172,6 +176,9 @@ feat_fft_subtracted = struct('z_meter_rel', []);
 feat_ap = struct('offset', [], 'exponent', []); 
 
 cond_labels = {}; 
+
+ymax_mX = -Inf;
+ymax_mX_subtracted = -Inf;
 
 %% prepare EEG to get noise from it
 
@@ -365,6 +372,14 @@ for i_cond=1:n_cond
             pnl_example.margin = [5, 10, 25, 25]; 
         end
         rep_to_plot_idx = 1; 
+
+        % update yaxis maximum for FFT
+        frex_idx = dsearchn(freq', par.frex');
+        amps = mX(rep_to_plot_idx, frex_idx);
+        ymax_mX = max(ymax_mX, max(amps));
+        amps = mX_subtracted(rep_to_plot_idx, frex_idx);
+        ymax_mX_subtracted = max(ymax_mX, max(amps));
+        
         plot_example(x(rep_to_plot_idx, :), t, ...
                          acf(rep_to_plot_idx, :), lags, ...
                          ap(rep_to_plot_idx, :), ...
@@ -372,8 +387,10 @@ for i_cond=1:n_cond
                          lags_meter_rel, lags_meter_unrel, ...
                          freq_meter_rel, freq_meter_unrel, ...
                          'pnl', pnl_example(i_cond), ...
+                         'subplot_proportions', [50, 17, 33], ...
                          'min_lag', min_lag, ...
                          'max_lag', max_lag, ...
+                         'max_freq', par.max_freq_plot, ...
                          'plot_time_xaxis', i_cond == n_cond, ...
                          'plot_xlabels', i_cond == n_cond, ...
                          'plot_xticks', i_cond == n_cond, ...
@@ -385,9 +402,16 @@ for i_cond=1:n_cond
                          'fontsize', par.fontsize, ...
                          'normalize_acf_for_plotting', false);                                        
         f.Name = cond_labels{i_cond};     
-        pnl_example(i_cond).margintop = 28.5; 
+        pnl_example(i_cond).margintop = 24; 
     end
 
+end
+
+for i_cond=1:n_cond
+    ax = pnl_example(i_cond, 2, 1).select();
+    ax.YLim = [0, ymax_mX];
+    ax = pnl_example(i_cond, 2, 2).select();
+    ax.YLim = [0, ymax_mX_subtracted];
 end
 
 if strcmp(noise_type, 'fractal')
