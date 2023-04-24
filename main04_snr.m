@@ -1,4 +1,4 @@
-function main04_snr()
+% function main04_snr()
 
 par = get_par(); 
 
@@ -50,7 +50,7 @@ cond_type = 'SNR';
 
 if strcmp(noise_type, 'eeg')
     snrs = logspace(log10(0.2), log10(2), 5); 
-    snrs(1) = 1/1e7;
+%     snrs(1) = 1/1e7;
 else
     snrs = logspace(log10(0.2), log10(2), 5); 
 end
@@ -201,6 +201,18 @@ if strcmp(noise_type, 'eeg')
 end
 
 %%
+
+f = figure('color','white', ...
+           'position', [163 1222 1604 1127]); 
+       
+pnl = panel(f); 
+
+pnl.pack('v', [20, 80]); 
+
+pnl(2).pack('v', n_cond); 
+
+example_subplot_proportions = [40, 15, 45];
+
 
 for i_cond=1:n_cond
     
@@ -354,70 +366,48 @@ for i_cond=1:n_cond
     
     % plot example 
     % ------------
-    
-    if plot_example_fig      
-        if i_cond==1
-            f = figure('color','white', ...
-                       'position', [95, 67, 1062, 150 * n_cond]); 
-            pnl_example = panel(f); 
-            pnl_example.pack('v', n_cond); 
-            pnl_example.margin = [5, 10, 25, 25]; 
-        end
-        rep_to_plot_idx = 1; 
 
-        % update yaxis maximum for FFT
-        frex_idx = dsearchn(freq', par.frex');
-        amps = mX(rep_to_plot_idx, frex_idx);
-        ymax_mX = max(ymax_mX, max(amps));
-        amps = mX_subtracted(rep_to_plot_idx, frex_idx);
-        ymax_mX_subtracted = max(ymax_mX, max(amps));
-        
-        plot_example(x(rep_to_plot_idx, :), t, ...
-                         acf(rep_to_plot_idx, :), lags, ...
-                         ap(rep_to_plot_idx, :), ...
-                         mX(rep_to_plot_idx, :), freq, ...
-                         lags_meter_rel, lags_meter_unrel, ...
-                         freq_meter_rel, freq_meter_unrel, ...
-                         'pnl', pnl_example(i_cond), ...
-                         'subplot_proportions', [50, 17, 33], ...
-                         'min_lag', min_lag, ...
-                         'max_lag', max_lag, ...
-                         'max_freq', par.max_freq_plot, ...
-                         'plot_time_xaxis', i_cond == n_cond, ...
-                         'plot_xlabels', i_cond == n_cond, ...
-                         'plot_xticks', i_cond == n_cond, ...
-                         'plot_features', false, ...
-                         'mX_subtr', mX_subtracted(rep_to_plot_idx, :), ...
-                         'acf_subtr', acf_subtracted(rep_to_plot_idx, :), ...
-                         'time_col', colors{i_cond}, ...
-                         'prec', 1e6, ...
-                         'fontsize', par.fontsize, ...
-                         'normalize_acf_for_plotting', false);                                        
-        f.Name = cond_labels{i_cond};     
-        pnl_example(i_cond).margintop = 24; 
-    end
+    rep_to_plot_idx = 1; 
+
+    % update yaxis maximum for FFT
+    frex_idx = dsearchn(freq', par.frex');
+    amps = mX(rep_to_plot_idx, frex_idx);
+    ymax_mX = max(ymax_mX, max(amps));
+    amps = mX_subtracted(rep_to_plot_idx, frex_idx);
+    ymax_mX_subtracted = max(ymax_mX_subtracted, max(amps));
+
+    plot_example(x(rep_to_plot_idx, :), t, ...
+                     acf(rep_to_plot_idx, :), lags, ...
+                     ap(rep_to_plot_idx, :), ...
+                     mX(rep_to_plot_idx, :), freq, ...
+                     lags_meter_rel, lags_meter_unrel, ...
+                     freq_meter_rel, freq_meter_unrel, ...
+                     'pnl', pnl(2, i_cond), ...
+                     'subplot_proportions', example_subplot_proportions, ...
+                     'min_lag', min_lag, ...
+                     'max_lag', max_lag, ...
+                     'max_freq', par.max_freq_plot, ...
+                     'plot_time_xaxis', i_cond == n_cond, ...
+                     'plot_xlabels', i_cond == n_cond, ...
+                     'plot_xticks', i_cond == n_cond, ...
+                     'plot_features', false, ...
+                     'mX_subtr', mX_subtracted(rep_to_plot_idx, :), ...
+                     'acf_subtr', acf_subtracted(rep_to_plot_idx, :), ...
+                     'time_col', colors{i_cond}, ...
+                     'prec', 1e6, ...
+                     'fontsize', par.fontsize, ...
+                     'normalize_acf_for_plotting', false);                                        
+    f.Name = cond_labels{i_cond};     
+    pnl(2, i_cond).margintop = 24; 
+
 
 end
 
 for i_cond=1:n_cond
-    ax = pnl_example(i_cond, 2, 1).select();
+    ax = pnl(2, i_cond, 2, 1).select();
     ax.YLim = [0, ymax_mX];
-    ax = pnl_example(i_cond, 2, 2).select();
+    ax = pnl(2, i_cond, 2, 2).select();
     ax.YLim = [0, ymax_mX_subtracted];
-end
-
-if strcmp(noise_type, 'fractal')
-    fname = sprintf('04_snr_irType-%s_exp-%.1f_nrep-%d_examples.svg', ...
-                   ir_type, noise_exponent, n_rep); 
-elseif strcmp(noise_type, 'eeg')
-    fname = sprintf('04_snr_irType-%s_noise-eeg_nrep-%d_examples.svg', ...
-                   ir_type, n_rep); 
-else
-    error('noise type "%s" not implemented', noise_type);
-end
-
-if par.save_figs
-   save_fig(f, fname)
 end
 
 % assign labels
@@ -456,6 +446,9 @@ else
         'ap-exponent'
         }; 
 end
+
+pnl(1).pack('h', length(cond_to_plot)); 
+
 
 for i_cond=1:length(cond_to_plot)
     
@@ -517,16 +510,14 @@ for i_cond=1:length(cond_to_plot)
             tit = 'AP'; 
     end
     
-    f = figure('color', 'white', 'position', [1442 521 350 373]); 
-    pnl = panel(f); 
-    pnl.pack('h', 2); 
-    pnl(1).pack({[0, 0, 1, 1]}); 
-    pnl(2).pack({[0, 0, 1, 1]}); 
+    pnl(1, i_cond).pack('h', 2); 
+    pnl(1, i_cond, 1).pack({[0, 0, 1, 1]}); 
+    pnl(1, i_cond, 2).pack({[0, 0, 1, 1]}); 
     
     feat_orig = RenameField(feat_orig, feat_fieldname, 'data');
     
     % raw
-    ax = pnl(1, 1).select(); 
+    ax = pnl(1, i_cond, 1, 1).select(); 
 
     feat = RenameField(feat_raw, feat_fieldname, 'data');
 
@@ -537,14 +528,14 @@ for i_cond=1:length(cond_to_plot)
                       'feat_orig', feat_orig,...
                       'ylim_quantile_cutoff', ylim_quantile_cutoff); 
 
-    pnl(1).ylabel(sprintf('%s raw', feat_label)); 
+    pnl(1, i_cond, 1).ylabel(sprintf('%s raw', feat_label)); 
 
     if yaxis_right
         ax.YAxisLocation = 'right';
     end
 
     % subtracted
-    ax = pnl(2, 1).select(); 
+    ax = pnl(1, i_cond, 2, 1).select(); 
 
     feat = RenameField(feat_subtracted, feat_fieldname, 'data');
     
@@ -555,35 +546,26 @@ for i_cond=1:length(cond_to_plot)
                       'feat_orig', feat_orig,...
                       'ylim_quantile_cutoff', ylim_quantile_cutoff); 
 
-    pnl(2).ylabel(sprintf('%s 1/f subtr', feat_label)); 
+    pnl(1, i_cond, 2).ylabel(sprintf('%s 1/f subtr', feat_label)); 
 
     if yaxis_right
         ax.YAxisLocation = 'right';
     end
     
     % make the figure nice 
-    pnl.margin = [19, 5, 5, 40]; 
+    pnl(1, i_cond).margin = [19, 5, 5, 40]; 
 
-    pnl.title(tit); 
+    pnl(1, i_cond).title(tit); 
 
-    pnl.fontsize = par.fontsize; 
-
-    % fix legend position
-    for i=1:length(f.Children)
-        if strcmpi(f.Children(i).Type, 'legend')
-           f.Children(i).Title.String = cond_type; 
-           f.Children(i).Position(1) = 0; 
-           f.Children(i).Position(2) = 0.7; 
-        end
-    end
+    pnl(1, i_cond).fontsize = par.fontsize; 
 
     % get the same ylims across subplots
     prec = 1000; 
     ylims = [Inf, -Inf]; 
     yticks = [];
     c = 0;
-    for i_ax=1:length(pnl.children)
-        ax = pnl(i_ax, 1).select(); 
+    for i_ax=1:length(pnl(1, i_cond).children)
+        ax = pnl(1, i_cond, i_ax, 1).select(); 
         if ~isempty(ax.Children)
             ylims(1) = min(ceil(ax.YLim(1)*prec)/prec, ylims(1)); 
             ylims(2) = max(floor(ax.YLim(2)*prec)/prec, ylims(2)); 
@@ -595,37 +577,57 @@ for i_cond=1:length(cond_to_plot)
             c = c+1;
         else
             ax.Visible = 'off';
-            pnl(i_ax).ylabel('');
-            pnl(i_ax).xlabel('');
+            pnl(1, i_cond, i_ax).ylabel('');
+            pnl(1, i_cond, i_ax).xlabel('');
         end
     end
     yticks = yticks ./ c;
     
-    for i_ax=1:length(pnl.children)
-        ax = pnl(i_ax, 1).select(); 
+    for i_ax=1:length(pnl(1, i_cond).children)
+        ax = pnl(1, i_cond, i_ax, 1).select(); 
         if ylims(1) < ylims(2)
             ax.YLim = ylims; 
             ax.YTick = yticks; 
         end
     end
     
-    if strcmp(noise_type, 'fractal')
-       fname = sprintf('04_snr_irType-%s_exp-%.1f_nrep-%d_%s_%s.svg', ...
-                        ir_type, noise_exponent, n_rep, tit, feat_label);  
-    elseif strcmp(noise_type, 'eeg')
-       fname = sprintf('04_snr_irType-%s_noise-eeg_nrep-%d_%s_%s.svg', ...
-                        ir_type, n_rep, tit, feat_label);  
-    else
-        error('noise type "%s" not implemented', noise_type);
-    end
-    
-    if par.save_figs
-       save_fig(f, fname);                        
-    end
-   
+
 end
 
 
+% fix legend position
+sw = 1;
+for i=1:length(f.Children)
+    if strcmpi(f.Children(i).Type, 'legend') 
+       if sw
+           f.Children(i).Title.String = cond_type; 
+           f.Children(i).Position(1) = 0.94; 
+           f.Children(i).Position(2) = 0.85; 
+           sw = 0;
+       else
+           f.Children(i).Visible = 'off';
+       end
+    end
+end
+
+pnl.margin = [15, 10, 25, 15]; 
+pnl(2).margintop = 35;
+
+if strcmp(noise_type, 'fractal')
+    fname = sprintf('04_snr_irType-%s_exp-%.1f_nrep-%d.svg', ...
+                   ir_type, noise_exponent, n_rep); 
+elseif strcmp(noise_type, 'eeg')
+    fname = sprintf('04_snr_irType-%s_noise-eeg_nrep-%d.svg', ...
+                   ir_type, n_rep); 
+else
+    error('noise type "%s" not implemented', noise_type);
+end
+
+if par.save_figs
+   save_fig(f, fname)
+end
+
+   
 
 %% t-test actoss first two conditions
 
@@ -638,4 +640,5 @@ if n_cond == 2
     fprintf('\nACFsubtr z: t(%d) = %.2f, p = %.3f\n', stats.df, stats.tstat, p); 
     
 end
+
 
