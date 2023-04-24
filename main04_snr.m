@@ -2,11 +2,6 @@ function main04_snr()
 
 par = get_par(); 
 
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
-addpath(genpath('lib'))
-
-
 %% simulate
 
 noise_exponent = -1.5; 
@@ -55,6 +50,7 @@ cond_type = 'SNR';
 
 if strcmp(noise_type, 'eeg')
     snrs = logspace(log10(0.2), log10(2), 5); 
+    snrs(1) = 1/1e7;
 else
     snrs = logspace(log10(0.2), log10(2), 5); 
 end
@@ -255,13 +251,7 @@ for i_cond=1:n_cond
     end
     
     % scale the noise to the correct SNR 
-    x_clean_rms = rms(x_clean); 
-    noise_rms = rms(noise, ndims(noise)); 
-    noise_gain = (x_clean_rms ./ noise_rms) / snr; 
-    noise = noise .* noise_gain; 
-    
-    % add signal and noise
-    x = x_clean + noise; 
+    x = add_signal_noise(x_clean, noise, snr);
     
     if do_chunk
         
@@ -299,6 +289,8 @@ for i_cond=1:n_cond
     [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, par.fs, ...
                                        'rm_ap', true, ...
                                        'f0_to_ignore', 1/2.4, ...
+                                       'min_freq', 0.1, ...
+                                       'max_freq', 9, ...
                                        'get_x_norm', true, ...
                                        'normalize_x', normalize_x, ...
                                        'force_x_positive', force_x_positive, ...
