@@ -89,12 +89,15 @@ lags_meter_unrel_right = [1.0];
 
 %% 
 
-max_freq = 30;
-max_freq_plot = 30.5; 
+max_freq = 5;
+max_freq_plot = 5.1; 
 
 freq_meter_rel = [1.25 : 1.25 : max_freq]; 
 freq_meter_unrel = [1/2.4 : 1/2.4 : max_freq];
 freq_meter_unrel = freq_meter_unrel(~ismembertol(freq_meter_unrel, freq_meter_rel, 1e-6)); 
+
+% freq_meter_rel(end) = [];
+% freq_meter_unrel(1:2) = [];
 
 frex = sort([freq_meter_rel, freq_meter_unrel]);
 

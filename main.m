@@ -1,4 +1,13 @@
+
+%%
+
+par = get_par(); 
+
+addpath(genpath(par.acf_tools_path)); 
+addpath(genpath(par.rnb_tools_path)); 
 addpath(genpath('lib'))
+
+%%
 
 main03_ir('ir_type', 'square');
 close all
