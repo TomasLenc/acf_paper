@@ -6,6 +6,7 @@ rnb_tools_path = '/datadisk/projects_git_dl/rnb_tools/src';
 experiment_path = '/datadisk/projects_backed_up/autocorrelation'; 
 fig_path = fullfile(experiment_path, 'figures'); 
 data_path = fullfile(experiment_path, 'data'); 
+resting_eeg_path = fullfile(data_path, 'eeg', 'resting_eeg', 'ds004148'); 
 
 lw_path = '/datadisk/projects_backed_up/autocorrelation/lib_external/letswave6'; 
 pica_path = '/datadisk/projects_backed_up/autocorrelation/lib_external/piCA'; 
@@ -109,7 +110,7 @@ noise_bins_snr = [3, 13];
 
 %%
 
-save_figs = false; 
+save_figs = true; 
 
 fontsize = 14; 
 
