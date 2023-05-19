@@ -8,7 +8,7 @@ pat = [1 1 1 1 0 1 1 1 0 0 1 0];
 
 grid_ioi = 0.2;
 
-fs = 200;
+fs = 100;
 
 n_cycles = 16;
 
@@ -190,7 +190,7 @@ plot_erp(x, 't', t, 'col', [0, 0, 0], 'linew', 1, 'ax', ax);
 ax.XLim = [0, N/fs];
 ax.YAxis.Visible = 'off';
 ax.XAxis.Visible = 'on';
-ax.XTick = [0, N/fs];
+ax.XTick = [0, length(pat)*grid_ioi, N/fs];
 
 
 % plot raw FFT
@@ -224,10 +224,14 @@ plot(ax, freq, ap_linear, '--', 'color', 'k', 'linew', 2);
 pnl(3, 1).pack('v', [70, 30]);
 
 freq_all = [0 : N-1] / N * fs;
+freq_to_ignore = [f0_to_ignore : f0_to_ignore : fs]'; 
+freq_to_ignore_idx = dsearchn(ensure_col(freq_all), freq_to_ignore); 
 
 ax = pnl(3, 1, 1).select(); 
 plot_fft(freq_all, abs(X), ...
-         'ax', ax); 
+         'frex_meter_rel', freq_to_ignore, ...
+         'ax', ax, ...
+         'linew', 0.2); 
 ax.XLim = [0, Inf];
 ax.YLim = [0, prctile(ap_whole_spect, 99.95)];
 ax.YAxis.Visible = 'off';
@@ -237,7 +241,7 @@ plot(ax, freq_all, ap_whole_spect, '--', 'color', 'k', 'linew', 2);
   
 ax = pnl(3, 1, 2).select(); 
 plot(ax, freq_all, unwrap(phase(X)), 'linew', 0.7, 'color', [0.4, 0.4, 0.4]); 
-ax.Yxis.Visible = 'off';
+ax.YAxis.Visible = 'off';
 ax.XAxis.Visible = 'on';
 ax.XTick = fs * [0, 1/4, 1/2, 3/4, 1];
 
@@ -245,11 +249,11 @@ ax.XTick = fs * [0, 1/4, 1/2, 3/4, 1];
 
 pnl(3, 2).pack('v', [70, 30]);
 
-freq_all = [0 : N-1] / N * fs;
-
 ax = pnl(3, 2, 1).select(); 
 plot_fft(freq_all, abs(X_norm), ...
-         'ax', ax); 
+         'frex_meter_rel', freq_to_ignore, ...
+         'ax', ax, ...
+         'linew', 0.2); 
 ax.XLim = [0, Inf];
 ax.YAxis.Visible = 'off';
 
@@ -297,6 +301,71 @@ pnl(4).margintop = 15;
 %%
 
 save_fig(f, 'explain_ap_fit');  
+
+
+%%
+
+
+
+f = figure('color', 'white', 'Position', [887 390 668 283]);
+
+pnl = panel(f);
+
+pnl.pack('h', 2);
+
+% pnl.select('all');
+
+
+
+ax = pnl(1).select();
+for i_f=1:length(freq_all)
+    c = [0.7, 0.7, 0.7];
+    if ismember(i_f, freq_to_ignore_idx)
+        c = [222 45 38]/255;
+    end
+    plot3(ax, ...
+        [freq_all(i_f), freq_all(i_f)], ...
+        [0, real(X(i_f))],...
+        [0, imag(X(i_f))], ...
+        'color', c, 'linew', 2)
+    hold on
+end
+grid on
+ax.XLabel.String = 'freq';
+ax.YLabel.String = 'real';
+ax.ZLabel.String = 'imag';
+ax.YTick = [];
+ax.ZTick = [];
+
+
+ax = pnl(2).select();
+for i_f=1:length(freq_all)
+    c = [0.7, 0.7, 0.7];
+    if ismember(i_f, freq_to_ignore_idx)
+        c = [222 45 38]/255;
+    end
+    plot3(ax, ...
+        [freq_all(i_f), freq_all(i_f)], ...
+        [0, real(X_norm(i_f))],...
+        [0, imag(X_norm(i_f))], ...
+        'color', c, 'linew', 2)
+    hold on
+end
+grid on
+ax.XLabel.String = 'freq';
+ax.YLabel.String = 'real';
+ax.ZLabel.String = 'imag';
+ax.YTick = [];
+ax.ZTick = [];
+
+
+save_fig(f, 'explain_ap_fit_complex_spectra');  
+
+
+
+
+
+
 
 
 
