@@ -40,3 +40,5 @@ codegen/
 octave-workspace
 
 
+.Rproj.user
+.Rhistory
