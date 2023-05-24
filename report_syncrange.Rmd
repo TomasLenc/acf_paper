@@ -1,0 +1,213 @@
+---
+title: "Autocorrelation SyncRange"
+author: "Tomas Lenc"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document: 
+    code_folding: hide
+    toc: true
+    toc_float: 
+      collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source('config.R')
+source('figures.R')
+source('utils.R')
+
+```
+
+```{r}
+
+data_path <- file.path(experiment_path, 'data')
+
+list.files(data_path)
+```
+
+
+```{r}
+rhythms <- c('31', '26', '19', '37', '42', '6', '17', '41')
+
+df_eeg <- read.csv(file.path(data_path, 'exp-syncrange_eeg.csv'))
+df_tap <- read.csv(file.path(data_path, 'exp-syncrange_tapping.csv'))
+
+df_eeg$rhythm <- factor(df_eeg$rhythm,  levels=rhythms)
+df_tap$rhythm <- factor(df_tap$rhythm,  levels=rhythms)
+
+# df_eeg$n_trials <- as.factor(df_eeg$n_trials)
+
+```
+
+
+## FFT ~ ACF
+
+### EEG 
+
+```{r, out.height=4, out.width=4}
+
+df <- filter(df_eeg, n_trials==9)
+
+res <- cor.test(df$z_meter_fft_subtr, df$z_meter_acf_subtr, method='spearman')
+
+p <- plot_correlation_scatter(df, 'z_meter_fft_subtr', 'z_meter_acf_subtr', corr_result=res)
+
+save_fig(file.path(fig_path, 'exp-syncsweep_response-eeg_fftAcfCorr'), p, width=4, height=4)
+
+p
+
+```
+
+
+
+```{r}
+df <- filter(df_eeg, n_trials==9)
+
+m <- lm(z_meter_acf_subtr ~ z_meter_fft_subtr + rhythm, data=df)
+summary(m)
+```
+
+```{r}
+library(visreg)
+visreg(m, 'z_meter_fft_subtr', by='rhythm', overlay=T)
+```
+
+Even the amount of selective enhancement of meter compared to the sound is correlated across the two measures.  
+
+```{r}
+df <- filter(df_eeg, n_trials==9)
+df$z_meter_fft_eeg_minus_sound <- df$z_meter_fft_subtr - df$z_meter_fft_sound
+df$z_meter_acf_eeg_minus_sound <- df$z_meter_acf_subtr - df$z_meter_acf_sound
+    
+m <- lm(z_meter_acf_eeg_minus_sound ~ z_meter_fft_eeg_minus_sound + rhythm, data=df)
+summary(m)
+```
+
+```{r}
+library(visreg)
+visreg(m, 'z_meter_fft_eeg_minus_sound', by='rhythm', overlay=T)
+```
+
+
+
+
+### Tapping 
+
+```{r, out.height=4, out.width=4}
+
+res <- cor.test(df_tap$z_meter_fft_raw, df_tap$z_meter_acf_raw, method='spearman')
+
+p <- plot_correlation_scatter(df_tap, 'z_meter_fft_raw', 'z_meter_acf_raw', corr_result=res)
+
+save_fig(file.path(fig_path, 'exp-syncsweep_response-tap_fftAcfCorr'), p, width=4, height=4)
+
+p
+```
+
+
+
+
+```{r}
+m <- lm(z_meter_acf_raw ~ z_meter_fft_raw + rhythm, data=df_tap)
+summary(m)
+```
+
+```{r}
+library(visreg)
+visreg(m, 'z_meter_fft_raw', by='rhythm', overlay=T)
+```
+
+
+
+
+
+
+<br>
+
+---
+
+## low SNR pushes z to 0
+
+```{r}
+m <- lm(z_meter_fft_subtr ~ n_trials * z_meter_fft_sound, data=df_eeg)
+summary(m)
+```
+
+```{r}
+visreg(m, 'n_trials', by='z_meter_fft_sound', overlay=F)
+```
+
+
+
+```{r}
+m <- lm(z_meter_acf_subtr ~ n_trials * z_meter_acf_sound, data=df_eeg)
+summary(m)
+```
+
+```{r}
+visreg(m, 'n_trials', by='z_meter_acf_sound', overlay=F)
+```
+
+
+```{r}
+
+plot_snr_effect <- function(df, yvar) {
+    df <- df_eeg
+    df$n_trials <- as.numeric(df$n_trials)
+    p <- ggplot(df_eeg, aes(n_trials, .data[[yvar]], color=n_trials)) + 
+        geom_point() + 
+        geom_hline(yintercept = 0, color='#5e5e5e') + 
+        scale_x_reverse(breaks=c(9,1)) +
+        # scale_color_distiller(direction=1, palette='Purples') + 
+        scale_color_gradient(high='#701d85', low='#f0c0fc', breaks=c(1,9)) + 
+        facet_grid(~rhythm) + 
+        guides(color = guide_colourbar(ticks = FALSE)) + 
+        theme_cowplot() + 
+        theme(
+            axis.line.x = element_blank(),
+            axis.title.x = element_blank(),
+            axis.ticks.x = element_blank(),
+            axis.text.x = element_blank()
+        )
+    return(p)
+}
+
+```
+
+```{r}
+p <- plot_snr_effect(df_eeg, 'z_meter_fft_subtr') 
+save_fig(file.path(fig_path, 'exp-syncsweep_response-eeg_fftSnrEffect'), p, width=7, height=4)
+p
+```
+
+
+
+```{r}
+p <- plot_snr_effect(df_eeg, 'z_meter_acf_subtr') 
+save_fig(file.path(fig_path, 'exp-syncsweep_response-eeg_acfSnrEffect'), p, width=7, height=4)
+p
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

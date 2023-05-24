@@ -1,16 +1,23 @@
 ---
-title: "report"
-output: html_document
-date: "2023-04-27"
+title: "Autocorrelation Only noise"
+author: "Tomas Lenc"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document: 
+    code_folding: hide
+    toc: true
+    toc_float: 
+      collapsed: false
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+source('config.R')
+
 ```
 
 ```{r}
 
-experiment_path <- '/datadisk/projects_backed_up/autocorrelation'
 data_path <- file.path(experiment_path, 'data')
 
 list.files(data_path)
