@@ -2,7 +2,7 @@ output
 ClickSnr
 lib_external
 data
-figures*
+figures
 
 # bak files
 ~*
