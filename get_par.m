@@ -1,15 +1,34 @@
 function par = get_par()
 
-acf_tools_path = '/datadisk/projects_git_dl/acf_tools/src'; 
-rnb_tools_path = '/datadisk/projects_git_dl/rnb_tools/src'; 
+[~, hostname] = system('hostname');
+hostname = deblank(hostname);
 
-experiment_path = '/datadisk/projects_backed_up/autocorrelation'; 
+if strcmpi(hostname, 'tux')
+    
+    acf_tools_path = '/datadisk/projects_git_dl/acf_tools/src'; 
+    rnb_tools_path = '/datadisk/projects_git_dl/rnb_tools/src'; 
+    lw_path = '/datadisk/projects_backed_up/autocorrelation/lib_external/letswave6'; 
+    pica_path = '/datadisk/projects_backed_up/autocorrelation/lib_external/piCA'; 
+    experiment_path = '/datadisk/projects_backed_up/autocorrelation'; 
+    
+elseif strcmpi(hostname, 'tomo-office-desktop')
+    
+    acf_tools_path = '/home/tomo/Documents/acf_tools/src'; 
+    rnb_tools_path = '/home/tomo/Documents/rnb_tools/src'; 
+    lw_path = '/home/tomo/Documents/letswave6'; 
+    pica_path = ''; 
+    experiment_path = '/DATA2/autocorrelation'; 
+
+else
+
+    error('host %s not set up yet...', hostname);
+    
+end
+
 fig_path = fullfile(experiment_path, 'figures'); 
 data_path = fullfile(experiment_path, 'data'); 
+eeg_path = fullfile(experiment_path, 'eeg'); 
 resting_eeg_path = fullfile(data_path, 'eeg', 'resting_eeg', 'ds004148'); 
-
-lw_path = '/datadisk/projects_backed_up/autocorrelation/lib_external/letswave6'; 
-pica_path = '/datadisk/projects_backed_up/autocorrelation/lib_external/piCA'; 
 
 %% 
 
