@@ -5,8 +5,10 @@ parser = inputParser;
 addParameter(parser, 'ax',  []); 
 addParameter(parser, 'plot_legend',  true); 
 addParameter(parser, 'ytick_at_means',  false); 
+addParameter(parser, 'zero_line',  false); 
 addParameter(parser, 'ylim_quantile_cutoff',  0); % between 0 and 1
 addParameter(parser, 'prec',  3); % number decimal places 
+addParameter(parser, 'point_alpha',  0.4); % opacity of the individual datapoints
 
 addParameter(parser, 'feat',  []); 
 addParameter(parser, 'feat_orig',  []); 
@@ -17,7 +19,9 @@ parse(parser, varargin{:});
 ax = parser.Results.ax; 
 plot_legend = parser.Results.plot_legend; 
 ytick_at_means = parser.Results.ytick_at_means; 
+zero_line = parser.Results.zero_line; 
 prec = parser.Results.prec; 
+point_alpha = parser.Results.point_alpha; 
 
 feat = parser.Results.feat; 
 feat_orig = parser.Results.feat_orig; 
@@ -52,33 +56,13 @@ if ~isempty(feat_thr)
     
 end
 
-if length(feat_orig) == 1
-    
-    plot(ax, [0, n_cond+1], [feat_orig, feat_orig], ...
-         '-', 'color', [0.5, 0.5, 0.5], 'linew', 3)
-    ylims(1) = feat_orig - abs(feat_orig)*0.1;
-    ylims(2) = feat_orig + abs(feat_orig)*0.1;
-    
-elseif length(feat_orig) == length(feat)
-    
-    for i_cond=1:n_cond
-        plot(ax, ...
-             [i_cond-0.4, i_cond+0.4], ...
-             [feat_orig(i_cond).data, feat_orig(i_cond).data], ...
-             '-', 'color', [0.5, 0.5, 0.5], 'linew', 3)
-        ylims(1) = min(feat_orig(i_cond).data - abs(feat_orig(i_cond).data)*0.1, ylims(1)); 
-        ylims(2) = max(feat_orig(i_cond).data  + abs(feat_orig(i_cond).data)*0.1, ylims(2)); 
-    end
-    
-end
-
 h = []; 
 means = nan(1, n_cond);
 
 if ~isempty(feat)
     for i_cond=1:n_cond
         h(i_cond) = plot_points(ax, i_cond, feat(i_cond).data, ...
-                                'opacity', 0.4, ...
+                                'opacity', point_alpha, ...
                                 'col', feat(i_cond).color); 
 
         ylims(1) = min(quantile(feat(i_cond).data, ylim_quantile_cutoff), ylims(1)); 
@@ -88,6 +72,9 @@ if ~isempty(feat)
     end
 
     ax.XLim = [0.5, n_cond+0.5]; 
+    if zero_line
+        plot(ax.XLim, [0, 0], 'color', [0 0 0], 'linew', 0.5)
+    end
     if ylims(1) < ylims(2)
         ax.YLim = ylims; 
     end
@@ -99,10 +86,37 @@ if ~isempty(feat)
         ax.YTick = [ax.YTick(1), ax.YTick(end)];
     end
     
-    if plot_legend
-        leg = legend(h, {feat.name}); 
-        leg.Box = 'off'; 
-        leg.Position(1) = 0; 
-        leg.Position(2) = 0.8; 
+end
+
+if length(feat_orig) == 1
+    
+    plot(ax, [0, n_cond+1], [feat_orig, feat_orig], ...
+         '-', 'color', [0.5, 0.5, 0.5], 'linew', 3)
+    ylims(1) = feat_orig - abs(feat_orig)*0.1;
+    ylims(2) = feat_orig + abs(feat_orig)*0.1;
+    
+elseif length(feat_orig) == length(feat)
+    
+    for i_cond=1:n_cond
+        % check if we have info about color
+        if isfield(feat_orig, 'color')
+            col = feat_orig(i_cond).color; 
+        else
+            col = [0.5, 0.5, 0.5];
+        end
+        plot(ax, ...
+             [i_cond-0.4, i_cond+0.4], ...
+             [feat_orig(i_cond).data, feat_orig(i_cond).data], ...
+             '-', 'color', col, 'linew', 3)
+        ylims(1) = min(feat_orig(i_cond).data - abs(feat_orig(i_cond).data)*0.1, ylims(1)); 
+        ylims(2) = max(feat_orig(i_cond).data  + abs(feat_orig(i_cond).data)*0.1, ylims(2)); 
     end
+    
+end
+
+if plot_legend && ~isempty(feat)
+    leg = legend(h, {feat.name}); 
+    leg.Box = 'off'; 
+    leg.Position(1) = 0; 
+    leg.Position(2) = 0.8; 
 end
