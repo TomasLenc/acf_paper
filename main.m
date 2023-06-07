@@ -5,6 +5,7 @@ par = get_par();
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 
+addpath(genpath(par.lw_path)); 
 addpath(genpath('lib'))
 
 %%
