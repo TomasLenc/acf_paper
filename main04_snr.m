@@ -1,4 +1,5 @@
 % function main04_snr()
+clear 
 
 par = get_par(); 
 
@@ -10,7 +11,7 @@ fit_knee = false;
 
 noise_type = 'eeg'; % eeg, fractal
 
-ir_type = 'square'; 
+ir_type = 'erp2'; 
 
 % number of simulated repetitions 
 n_rep = 100; 
@@ -41,9 +42,6 @@ get_acf_feat_from_x = false;
 
 % percent extreme values omitted for plotting
 ylim_quantile_cutoff = 0.04; 
-
-% plot an example figure for each condition?
-plot_example_fig = true; 
 
 % ------------------------------------------------
 cond_type = 'SNR'; 
@@ -176,29 +174,33 @@ cond_labels = {};
 ymax_mX = -Inf;
 ymax_mX_subtracted = -Inf;
 
-%% prepare EEG to get noise from it
 
-if strcmp(noise_type, 'eeg')
-    
-    addpath(genpath(par.lw_path)); 
 
-    % load EEG data
-    [header, data] = CLW_load(fullfile(par.data_path, 'eeg', ...
-                    'resting_eeg', 'sub-01_ses-session1_task-eyesopen_eeg'));
-    % take average reference
-    [header, data] = RLW_rereference(header, data,...
-        'apply_list', {header.chanlocs.labels}, ...
-        'reference_list', {header.chanlocs.labels});
-    % resample to match fs        
-    [P, Q] = rat(par.fs / (1/header.xstep));
-    X = squeeze(data)';
-    X = resample(X, P, Q);
-    data_resampled = [];
-    data_resampled(1, :, 1, 1, 1, :) = X';
-    header_resampled = header;
-    header_resampled.xstep = 1/par.fs;
-    header_resampled.datasize = size(data_resampled);
+%% generate signals
+
+% make clean signal for the whole trial 
+[x_clean, t] = get_s(...
+                    par.pat, ...
+                    par.grid_ioi, ...
+                    par.fs, ...
+                    'n_cycles', par.n_cycles, ...
+                    'ir', ir ...
+                    );
+
+if strcmp(noise_type, 'fractal')
+
+    noise = get_colored_noise2([n_rep, length(x_clean)], par.fs, noise_exponent); 
+
+elseif strcmp(noise_type, 'eeg')
+
+    trial_dur = par.n_cycles * length(par.pat) * par.grid_ioi; 
+
+    noise = prepare_eeg_noise(n_rep, trial_dur);    
+
+else
+    error('noise type "%s" not implemented', noise_type);
 end
+
 
 %%
 
@@ -220,50 +222,9 @@ for i_cond=1:n_cond
     cond_labels{i_cond} = sprintf('%.2g', snr); 
 
     fprintf('calculating snr %d/%d\n', i_cond, n_cond)
-
-    % make clean signal for the whole trial 
-    [x_clean, t] = get_s(...
-                        par.pat, ...
-                        par.grid_ioi, ...
-                        par.fs, ...
-                        'n_cycles', par.n_cycles, ...
-                        'ir', ir ...
-                        );
-    
-    % generate noisy signal (simulataneously for all repetitions)
-    if strcmp(noise_type, 'fractal')
-        
-        noise = get_colored_noise2([n_rep, length(x_clean)], par.fs, noise_exponent); 
-        
-    elseif strcmp(noise_type, 'eeg')
-                
-        noise = nan(n_rep, length(x_clean));
-        for i_rep=1:n_rep
-            % pick a starting point at random
-            x_start = rand * ...
-                (header.xstep * header.datasize(end) - length(x_clean) / par.fs);
-            % segment the duration we need
-            [header_ep, data_ep] = RLW_crop(header_resampled, data_resampled, ...
-                                            'x_crop', true, ...
-                                            'x_start', x_start, ...
-                                            'x_size', length(x_clean) ...
-                                            );
-            % pick a random channel                            
-            chan_idx = randsample(header.datasize(2), 1);
-            [header_chan, data_chan] = RLW_arrange_channels(header_ep, data_ep, ...
-                                            {header.chanlocs(chan_idx).labels});
-            noise(i_rep, :) = squeeze(data_chan);                                
-        end
-
-        % mean-center the data                            
-        noise = noise - mean(noise, 2);       
-        
-    else
-        error('noise type "%s" not implemented', noise_type);
-    end
     
     % scale the noise to the correct SNR 
-    x = add_signal_noise(x_clean, noise, snr);
+    x = add_signal_noise(repmat(x_clean, n_rep, 1), noise, snr);
     
     if do_chunk
         
@@ -298,7 +259,8 @@ for i_cond=1:n_cond
     mX_subtracted = subtract_noise_bins(mX, noise_bins(1),  noise_bins(2)); 
     
     % with aperiodic subtraction    
-    [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, par.fs, ...
+    [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr, optim_flag] = ...
+                                get_acf(x, par.fs, ...
                                        'rm_ap', true, ...
                                        'f0_to_ignore', 1/2.4, ...
                                        'min_freq', 0.1, ...
@@ -394,7 +356,7 @@ for i_cond=1:n_cond
                      'mX_subtr', mX_subtracted(rep_to_plot_idx, :), ...
                      'acf_subtr', acf_subtracted(rep_to_plot_idx, :), ...
                      'time_col', colors{i_cond}, ...
-                     'prec', 1e6, ...
+                     'prec', 1e8, ...
                      'fontsize', par.fontsize, ...
                      'normalize_acf_for_plotting', false);                                        
     f.Name = cond_labels{i_cond};     
