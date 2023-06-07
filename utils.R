@@ -144,3 +144,12 @@ get_min_n_responsive <- function(df, min_over_factor=NULL){
                group_modify(~get_min_n(.x))
     )
 }
+
+
+get_boot_summary <- function(df, grouping_val, feature_name){
+    # summarize boostrapped samples to get confidence intervals
+    data.frame(
+        ci_low = quantile(df[, feature_name] %>% pull(), 0.025),
+        ci_high = quantile(df[, feature_name] %>% pull(), 1-0.025)
+    )
+}

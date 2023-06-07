@@ -14,9 +14,15 @@ library(lmerTest)
 library(pbkrtest)
 library(emmeans)
 
+library(colorspace)
 library(ggplot2)
 library(cowplot)
 library(ggnewscale)
+library(visreg)
+library(gghalves)
+library(ggpubr)
+
+
 
 library(pander)
 library(huxtable)
