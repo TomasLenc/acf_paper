@@ -23,17 +23,17 @@ close all
 main05_emph('ir_type', 'erp2');
 close all
 
-main06_scale;
-close all
-
-main07_shift;
-close all
-
-main08_coch;
-close all
-
-main09_eeg;
-close all
+% main06_scale;
+% close all
+% 
+% main07_shift;
+% close all
+% 
+% main08_coch;
+% close all
+% 
+% main09_eeg;
+% close all
 
 main10_jitter;
 close all

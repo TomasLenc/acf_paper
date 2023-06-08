@@ -35,7 +35,7 @@ df$max_lag <- factor(df$max_lag)
 df$snr <- factor(round(df$snr, 1))
 df$sample <- factor(df$sample)
 
-df$max_lag <- revalue(df$max_lag, c("4.8"="low", "24"="high"))
+# df$max_lag <- revalue(df$max_lag, c("4.8"="low", "24"="high"))
 
 ```
 

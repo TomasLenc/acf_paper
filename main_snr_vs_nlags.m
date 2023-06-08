@@ -1,5 +1,5 @@
-% function main04_snr()
-clear
+function main_snr_vs_nlags()
+% clear
 
 par = get_par(); 
 
@@ -11,21 +11,17 @@ addpath(genpath('lib'))
 ir_type = 'square'; 
 
 % number of simulated repetitions 
-n_rep = 100; 
+n_rep = 500; % 500
 
 snrs = logspace(log10(0.2), log10(5), 5); 
 
 
 %% prepare EEG noise
 
-trial_dur = par.n_cycles * length(par.pat) * par.grid_ioi; 
-
-noise = prepare_eeg_noise(n_rep, trial_dur); 
-
+noise = prepare_eeg_noise(n_rep, par.trial_dur); 
 
 
 %% simulate
-
 
 if strcmp(ir_type, 'square')
     ir = get_square_kernel(par.fs, ...
@@ -89,7 +85,7 @@ for i_lag_sel=1:2
         
     elseif i_lag_sel == 2
         
-        max_lag = trial_dur / 2; 
+        max_lag = par.trial_dur / 2; 
                                 
         freq_meter_rel = 1/2.4 * [1 : floor(30/(1/2.4))];
         freq_meter_unrel = get_lag_harmonics(1/2.4, 30, 'lag_harm_to_exclude', 1.25);
@@ -199,6 +195,9 @@ end
 fname = sprintf('irType-%s_nrep-%d_snrVsNlagsNfrex', ir_type, n_rep); 
 writetable(tbl, fullfile(par.data_path, [fname, '.csv'])); 
 
+% save parameters 
+save(fullfile(par.data_path, [fname, '_par.mat']), 'par', ...
+    'lags_meter_rel', 'lags_meter_unrel', 'freq_meter_rel', 'freq_meter_unrel'); 
 
 
 

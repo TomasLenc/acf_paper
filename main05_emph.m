@@ -1,6 +1,6 @@
-% function main05_emph(varargin)
-clear 
-varargin = {}; 
+function main05_emph(varargin)
+% clear 
+% varargin = {}; 
 
 parser = inputParser; 
 
@@ -288,11 +288,12 @@ pnl(1).de.marginright = 40;
 pnl(2).margintop = 15;
 pnl.margin = [25, 10, 25, 15];
 
-fname = sprintf('05_emph_irType-%s_%s_%s.svg', ...
+fname = sprintf('05_emph_irType-%s_%s_%s', ...
                 ir_type, tit, feat_label);
             
 if par.save_figs
    save_fig(f, fname)
 end
 
-
+% save parameters 
+save(fullfile(par.fig_path, [fname, '_par.mat']), 'par'); 

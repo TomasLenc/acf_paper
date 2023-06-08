@@ -103,7 +103,7 @@ visreg(m, 'z_meter_fft_eeg_minus_sound', by='rhythm', overlay=T)
 
 ```{r}
 
-cols <- RColorBrewer::brewer.pal(8, 'Set1')    
+cols <- pal_d3()(9)[c(1:7, 9)]
 cols_individual <- lighten(cols, amount=0.7)
 names(cols) <- rhythms
 names(cols_individual) <- rhythms
@@ -126,7 +126,7 @@ plot_feat_ind <- function(df,
                      aes(x=x_coch_start, xend=x_coch_end,
                          y=.data[[col_name_coch]], yend=.data[[col_name_coch]],
                          color=rhythm),
-                     size=3, alpha=0.5) +
+                     linewidth=3, alpha=0.5) +
         scale_color_manual(name='rhythm', values=cols) +
         scale_x_continuous(breaks=c(1:length(levels(df$rhythm))), 
                            labels=levels(df$rhythm)) +  
@@ -147,21 +147,14 @@ plot_feat_ind <- function(df,
     return(p)
 }
 
-plot_feat_ind(df_eeg_ind)
 
-```
-```{r}
+# df <- df_eeg_grand
+# df_boot <- df_eeg_boot %>% filter(n_trials==9)
+# col_name_eeg='z_meter_fft_subtr' 
+# col_name_coch='z_meter_fft_sound'
 
-cols <- pal_d3()(9)[c(1:7, 9)]
-names(cols) <- rhythms
+plot_feat_boot <- function(df, df_boot, col_name_eeg='z_meter_fft_subtr', col_name_coch='z_meter_fft_sound'){
 
-df <- df_eeg_grand
-df_boot <- df_eeg_boot %>% filter(n_trials==9)
-col_name_eeg='z_meter_fft_subtr' 
-col_name_coch='z_meter_fft_sound'
-
-plot_feat_ind <- function(df, df_boot, col_name_eeg='z_meter_fft_subtr', col_name_coch='z_meter_fft_sound'){
-    
     df$x <- as.numeric(df$rhythm)
     df$x_coch_start <- df$x-0.4
     df$x_coch_end <- df$x+0.4
@@ -182,7 +175,7 @@ plot_feat_ind <- function(df, df_boot, col_name_eeg='z_meter_fft_subtr', col_nam
         geom_segment(aes(x=x_coch_start, xend=x_coch_end,
                          y=.data[[col_name_coch]], yend=.data[[col_name_coch]],
                          color=rhythm),
-                     size=3, alpha=0.5) +
+                     linewidth=3, alpha=0.5) +
         scale_color_manual(name='rhythm', values=cols)+
         scale_fill_manual(name='rhythm', values=cols) +
         scale_x_continuous(breaks=c(1:length(levels(df$rhythm))), 
@@ -203,7 +196,19 @@ plot_feat_ind <- function(df, df_boot, col_name_eeg='z_meter_fft_subtr', col_nam
     return(p)
 }
 
-plot_feat_ind(df_eeg_grand, 
+```
+
+```{r}
+
+plot_feat_ind(df_eeg_ind, 
+              col_name_eeg='z_meter_acf_subtr',
+              col_name_coch='z_meter_acf_sound')
+
+```
+
+```{r}
+
+plot_feat_boot(df_eeg_grand, 
               df_eeg_boot %>% filter(n_trials==9), 
               col_name_eeg='z_meter_acf_subtr',
               col_name_coch='z_meter_acf_sound')

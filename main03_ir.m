@@ -1,6 +1,6 @@
-% function main03_ir(varargin)
-clear 
-varargin = {}; 
+function main03_ir(varargin)
+% clear 
+% varargin = {}; 
 
 parser = inputParser; 
 
@@ -276,9 +276,11 @@ pnl(1).de.marginright = 40;
 pnl(2).margintop = 15;
 pnl.margin = [25, 10, 25, 15];
 
-fname = sprintf('03_ir_irType-%s_exp-%.1f_%s_%s.svg', ...
+fname = sprintf('03_ir_irType-%s_exp-%.1f_%s_%s', ...
                  ir_type, noise_exponent, tit, feat_label);
 if par.save_figs
    save_fig(f, fname)
 end
 
+% save parameters 
+save(fullfile(par.fig_path, [fname, '_par.mat']), 'par'); 

@@ -1,14 +1,6 @@
-% function main10_jitter()
-clear 
-varargin = {}; 
-
-parser = inputParser; 
-
-addParameter(parser, 'ir_type', 'square'); % square, erp, erp2
-
-parse(parser, varargin{:});
-
-ir_type = parser.Results.ir_type;
+function main10_jitter()
+% clear 
+% varargin = {}; 
 
 par = get_par(); 
 
@@ -18,6 +10,8 @@ addpath(genpath('lib'))
 
 
 %% simulate
+
+ir_type = 'square'; 
 
 n_rep = 100; 
 
@@ -292,10 +286,12 @@ pnl(1).de.marginright = 40;
 pnl(2).margintop = 15;
 pnl.margin = [25, 10, 25, 15];
 
-fname = sprintf('10_jitter_irType-%s_nrep-%d_%s_%s.svg', ...
+fname = sprintf('10_jitter_irType-%s_nrep-%d_%s_%s', ...
                 ir_type, n_rep, tit, feat_label);  
             
 if par.save_figs
    save_fig(f, fname)
 end
 
+% save parameters 
+save(fullfile(par.fig_path, [fname, '_par.mat']), 'par'); 

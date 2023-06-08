@@ -13,49 +13,8 @@ addpath(genpath('lib'))
 
 fit_knee = false; 
 
-% make x mean 0 var 1
-normalize_x = false; 
-
-% shift x to be positive before calculating acf
-force_x_positive = false; 
-
-% scale whole acf between 0 and 1
-normalize_acf_to_1 = false; 
-
-% zscore the whole acf 
-normalize_acf_z = false; 
-
-% whether to normalize acf values extracted at lags of interest between 0 and 1
-normalize_acf_vals = false; 
-
-% calculate Pearson correlation from requested lags instead of using the
-% non-normalized ACF?
-get_acf_feat_from_x = false; 
-
 % percent extreme values omitted for plotting
 ylim_quantile_cutoff = 0.05; 
-
-% plot an example figure for each condition?
-plot_example_fig = true; 
-
-% autocorrelation lags (in seconds) that are considered meter-related and
-% meter-unrelated
-min_lag = par.min_lag;
-max_lag = par.max_lag;
-
-% lags of interest
-lags_meter_rel = par.lags_meter_rel;
-% meter-unrelated lags 
-lags_meter_unrel = par.lags_meter_unrel;
-
-% frequencies of interest
-freq_meter_rel = par.freq_meter_rel;
-freq_meter_unrel = par.freq_meter_unrel;
-
-% number of neighboring bins for SNR subtraction (FFT only)
-noise_bins = par.noise_bins;
-noise_bins_snr = [3, 13]; 
-
 
 %%
 
@@ -89,37 +48,20 @@ tbl = cell2table(cell(0, length(col_names)), 'VariableNames', col_names);
 
 %% allocate
 
-if get_acf_feat_from_x
-    
-    feat_acf_s = struct(...
-        'z_meter_rel', [], 'ratio_meter_rel', [], ...
-        'contrast_meter_rel', [], 'mean_meter_rel', []); 
+feat_acf_s = struct(...
+    'z_meter_rel', [], 'ratio_meter_rel', [], ...
+    'ratio_meter_rel_left', [], 'ratio_meter_rel_right', [],...
+    'contrast_meter_rel', []); 
 
-    feat_acf = struct(...
-        'z_meter_rel', [], 'ratio_meter_rel', [], ...
-        'contrast_meter_rel', [], 'mean_meter_rel', []); 
+feat_acf = struct(...
+    'z_meter_rel', [], 'ratio_meter_rel', [], ...
+    'ratio_meter_rel_left', [], 'ratio_meter_rel_right', [],...
+    'contrast_meter_rel', []); 
 
-    feat_acf_subtracted = struct(...
-        'z_meter_rel', [], 'ratio_meter_rel', [], ...
-        'contrast_meter_rel', [], 'mean_meter_rel', []); 
-
-else
-    
-    feat_acf_s = struct(...
-        'z_meter_rel', [], 'ratio_meter_rel', [], ...
-        'ratio_meter_rel_left', [], 'ratio_meter_rel_right', [],...
-        'contrast_meter_rel', []); 
-
-    feat_acf = struct(...
-        'z_meter_rel', [], 'ratio_meter_rel', [], ...
-        'ratio_meter_rel_left', [], 'ratio_meter_rel_right', [],...
-        'contrast_meter_rel', []); 
-
-    feat_acf_subtracted = struct(...
-        'z_meter_rel', [], 'ratio_meter_rel', [], ...
-        'ratio_meter_rel_left', [], 'ratio_meter_rel_right', [],...
-        'contrast_meter_rel', []); 
-end
+feat_acf_subtracted = struct(...
+    'z_meter_rel', [], 'ratio_meter_rel', [], ...
+    'ratio_meter_rel_left', [], 'ratio_meter_rel_right', [],...
+    'contrast_meter_rel', []); 
 
 feat_fft_s = struct('z_meter_rel', []); 
 
@@ -160,39 +102,22 @@ for i_rhythm=1:n_rhythms
     s = s(:, 1)'; 
     
     env = abs(hilbert(s)); 
-
-%     % normalize to eeg for plotting?
-%     s = (s - min(s)) ./ (max(s)-min(s)) ;
-%     s = s * (max(data(:)) - min(data(:))) + min(data(:)); 
     
     t_s = [0 : length(s) - 1] / fs_s; 
-    
-    % figure
-    % plot(t_s, s, 'color', [.8, .8, .8]); 
-    % hold on
-    % plot(t, eeg_grand, 'linew', 2)
-    
+        
     %% process stimulus
     
     % get ACF (withuout aperiodic subtraction)
-    [acf_s, lags_s, ~, mX_s, freq_s] = get_acf(...
-                               env, fs_s, ...
-                               'normalize_x', normalize_x, ...
-                               'force_x_positive', force_x_positive, ...
-                               'normalize_acf_to_1', normalize_acf_to_1, ...
-                               'normalize_acf_z', normalize_acf_z ...
-                               );    
+    [acf_s, lags_s, ~, mX_s, freq_s] = get_acf(env, fs_s);    
                            
     % get ACF features
     feat_acf_s(i_rhythm) = get_acf_features(...
                                 acf_s, lags_s, ...
-                                lags_meter_rel, lags_meter_unrel, ...
-                                'normalize_acf', normalize_acf_vals...
-                                );    
+                                par.lags_meter_rel, par.lags_meter_unrel);    
     
     % get features for the raw spectra                                    
     feat_fft_s(i_rhythm) = get_fft_features(mX_s, freq_s, ...
-                                     freq_meter_rel, freq_meter_unrel); 
+                                     par.freq_meter_rel, par.freq_meter_unrel); 
     
     
     %% process EEG
@@ -203,14 +128,9 @@ for i_rhythm=1:n_rhythms
     % -------
                                        
     % withuout aperiodic subtraction    
-    [acf, lags, ~, mX, freq] = get_acf(data, fs, ...
-                               'normalize_x', normalize_x, ...
-                               'force_x_positive', force_x_positive, ...
-                               'normalize_acf_to_1', normalize_acf_to_1, ...
-                               'normalize_acf_z', normalize_acf_z ...
-                               );    
+    [acf, lags, ~, mX, freq] = get_acf(data, fs);    
                                    
-    mX_subtracted = subtract_noise_bins(mX, noise_bins(1),  noise_bins(2)); 
+    mX_subtracted = subtract_noise_bins(mX, par.noise_bins(1),  par.noise_bins(2)); 
     
     % with aperiodic subtraction    
     [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr, optim_exitflag] = ...
@@ -234,37 +154,24 @@ for i_rhythm=1:n_rhythms
                                    
     % get features
     % ------------
-    
-    if get_acf_feat_from_x
 
-        feat_acf(i_rhythm) = get_acf_features2(data, fs, ...
-                                    lags_meter_rel, lags_meter_unrel);    
+    feat_acf(i_rhythm) = get_acf_features(acf, lags, ...
+                                par.lags_meter_rel, par.lags_meter_unrel);    
 
-        feat_acf_subtracted(i_rhythm) = get_acf_features2(x_subtr, fs, ...
-                                     lags_meter_rel, lags_meter_unrel); 
-        
-    else
-                
-        feat_acf(i_rhythm) = get_acf_features(acf, lags, ...
-                                    lags_meter_rel, lags_meter_unrel, ...
-                                    'normalize_acf', normalize_acf_vals);    
+    feat_acf_subtracted(i_rhythm) = get_acf_features(acf_subtracted, lags, ...
+                                 par.lags_meter_rel, par.lags_meter_unrel); 
 
-        feat_acf_subtracted(i_rhythm) = get_acf_features(acf_subtracted, lags, ...
-                                     lags_meter_rel, lags_meter_unrel, ...
-                                     'normalize_acf', normalize_acf_vals); 
-    end
-                                 
     % get features for the raw spectra                                    
-    tmp = get_fft_features(mX, freq, freq_meter_rel, freq_meter_unrel); 
+    tmp = get_fft_features(mX, freq, par.freq_meter_rel, par.freq_meter_unrel); 
     feat_fft(i_rhythm).z_meter_rel = tmp.z_meter_rel; 
                                         
     feat_fft(i_rhythm).z_snr = get_z_snr(mX, freq, par.frex, ...
-                                       noise_bins_snr(1), ...
-                                       noise_bins_snr(2)); 
+                                       par.noise_bins_snr(1), ...
+                                       par.noise_bins_snr(2)); 
 
     % get features for the 1/f-subtracted spectra                                    
     feat_fft_subtracted(i_rhythm) = get_fft_features(mX_subtracted, freq, ...
-                                           freq_meter_rel, freq_meter_unrel);
+                                           par.freq_meter_rel, par.freq_meter_unrel);
     
                              
     % plot example 
@@ -283,17 +190,17 @@ for i_rhythm=1:n_rhythms
                          acf(rep_to_plot_idx, :), lags, ...
                          ap(rep_to_plot_idx, :), ...
                          mX(rep_to_plot_idx, :), freq, ...
-                         lags_meter_rel, lags_meter_unrel, ...
-                         freq_meter_rel, freq_meter_unrel, ...
+                         par.lags_meter_rel, par.lags_meter_unrel, ...
+                         par.freq_meter_rel, par.freq_meter_unrel, ...
                          'pnl', pnl_example(i_rhythm), ...
                          'subplot_proportions', [50, 17, 33], ...
                          'max_t', 40.8, ...
-                         'max_lag', max_lag, ...
+                         'max_lag', par.max_lag, ...
                          'plot_time_xaxis', i_rhythm == n_rhythms, ...
                          'plot_xlabels', i_rhythm == n_rhythms, ...
                          'plot_xticks', i_rhythm == n_rhythms, ...
                          'plot_features', false, ...
-                         'min_lag', 0.2, ...
+                         'par.min_lag', 0.2, ...
                          'mX_subtr', mX_subtracted(rep_to_plot_idx, :), ...
                          'acf_subtr', acf_subtracted(rep_to_plot_idx, :), ...
                          'time_col', colors{i_rhythm}, ...
@@ -352,29 +259,18 @@ for i_rhythm=1:n_rhythms
     
 end
 
-
-
 %% plot
 
 % plot 
 % ----
-if get_acf_feat_from_x
-    cond_to_plot = {
-        'acf-z_meter_rel'
-        'fft-z_meter_rel'
-        'fft-z_snr'
-        'ap-offset'
-        'ap-exponent'
-        }; 
-else
-    cond_to_plot = {
-        'acf-z_meter_rel'
-        'fft-z_meter_rel'
-        'fft-z_snr'
-        'ap-offset'
-        'ap-exponent'
-        }; 
-end
+
+cond_to_plot = {
+    'acf-z_meter_rel'
+    'fft-z_meter_rel'
+    'fft-z_snr'
+    'ap-offset'
+    'ap-exponent'
+    }; 
 
 for i_rhythm=1:length(cond_to_plot)
     
@@ -548,3 +444,10 @@ end
 
 fname = sprintf('exp-syncrange_eegIndividual'); 
 writetable(tbl, fullfile(par.data_path, [fname, '.csv'])); 
+
+% save parameters 
+save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 
+
+
+
+

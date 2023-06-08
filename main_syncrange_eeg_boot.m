@@ -19,24 +19,6 @@ ylim_quantile_cutoff = 0.05;
 % plot an example figure for each condition?
 plot_example_fig = true; 
 
-% autocorrelation lags (in seconds) that are considered meter-related and
-% meter-unrelated
-min_lag = par.min_lag;
-max_lag = par.max_lag;
-
-% lags of interest
-lags_meter_rel = par.lags_meter_rel;
-% meter-unrelated lags 
-lags_meter_unrel = par.lags_meter_unrel;
-
-% frequencies of interest
-freq_meter_rel = par.freq_meter_rel;
-freq_meter_unrel = par.freq_meter_unrel;
-
-% number of neighboring bins for SNR subtraction (FFT only)
-noise_bins = par.noise_bins;
-noise_bins_snr = [3, 13]; 
-
 
 %%
 
@@ -122,11 +104,11 @@ for i_n_trials=1:length(n_trials_all)
                                
         % get ACF features
         feat_acf_s = get_acf_features(acf_s, lags_s, ...
-                               lags_meter_rel, lags_meter_unrel); 
+                               par.lags_meter_rel, par.lags_meter_unrel); 
                                    
         % get features for the raw spectra                      
         feat_fft_s = get_fft_features(mX_s, freq_s,...
-                                   freq_meter_rel, freq_meter_unrel); 
+                                   par.freq_meter_rel, par.freq_meter_unrel); 
         
         
         %% process bootstrap EEG
@@ -163,7 +145,7 @@ for i_n_trials=1:length(n_trials_all)
             % withuout aperiodic subtraction    
             [acf, lags, ~, mX, freq] = get_acf(eeg_boot, fs);    
 
-            mX_subtracted = subtract_noise_bins(mX, noise_bins(1),  noise_bins(2)); 
+            mX_subtracted = subtract_noise_bins(mX, par.noise_bins(1),  par.noise_bins(2)); 
 
             % with aperiodic subtraction    
             [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr, optim_exitflag] = ...
@@ -181,7 +163,7 @@ for i_n_trials=1:length(n_trials_all)
 
             % raw ACF                          
             tmp = get_acf_features(acf, lags, ...
-                                   lags_meter_rel, lags_meter_unrel); 
+                                   par.lags_meter_rel, par.lags_meter_unrel); 
                                         
             feat_acf_boot.z_meter_rel = cat(1, ...
                             feat_acf_boot.z_meter_rel, ...
@@ -189,7 +171,7 @@ for i_n_trials=1:length(n_trials_all)
 
             % noise-subtracted ACF                            
             tmp = get_acf_features(acf_subtracted, lags, ...
-                                         lags_meter_rel, lags_meter_unrel); 
+                                         par.lags_meter_rel, par.lags_meter_unrel); 
                                      
             feat_acf_subtracted_boot.z_meter_rel = cat(1, ...
                             feat_acf_subtracted_boot.z_meter_rel, ...
@@ -197,19 +179,19 @@ for i_n_trials=1:length(n_trials_all)
 
                         
             % raw FFT              
-            tmp = get_fft_features(mX, freq, freq_meter_rel, freq_meter_unrel); 
+            tmp = get_fft_features(mX, freq, par.freq_meter_rel, par.freq_meter_unrel); 
             
             feat_fft_boot.z_meter_rel = cat(1, ...
                 feat_fft_boot.z_meter_rel, tmp.z_meter_rel); 
 
             tmp = get_z_snr(mX, freq, par.frex, ...
-                            noise_bins_snr(1), noise_bins_snr(2)); 
+                            par.noise_bins_snr(1), par.noise_bins_snr(2)); 
             
             feat_fft_boot.z_snr = cat(1, feat_fft_boot.z_snr, tmp); 
 
             % noise-subtracted FFT
             tmp = get_fft_features(mX_subtracted, freq, ...
-                                   freq_meter_rel, freq_meter_unrel);
+                                   par.freq_meter_rel, par.freq_meter_unrel);
             
             feat_fft_subtracted_boot.z_meter_rel = cat(1, ...
                 feat_fft_subtracted_boot.z_meter_rel, tmp.z_meter_rel); 
@@ -252,25 +234,25 @@ for i_n_trials=1:length(n_trials_all)
 
         % ACF features                      
         feat_acf = get_acf_features(acf_grand, lags, ...
-                                        lags_meter_rel, lags_meter_unrel); 
+                                        par.lags_meter_rel, par.lags_meter_unrel); 
                                     
         feat_acf_subtracted = get_acf_features(acf_subtracted_grand, lags, ...
-                                     lags_meter_rel, lags_meter_unrel); 
+                                     par.lags_meter_rel, par.lags_meter_unrel); 
                                  
                                      
         % FFT features         
         feat_fft = get_fft_features(mX_grand, freq, ...
-                              freq_meter_rel, freq_meter_unrel); 
+                              par.freq_meter_rel, par.freq_meter_unrel); 
                           
         feat_fft.z_snr = get_z_snr(mX_grand, freq, par.frex, ...
-                                           noise_bins_snr(1), ...
-                                           noise_bins_snr(2)); 
+                                           par.noise_bins_snr(1), ...
+                                           par.noise_bins_snr(2)); 
     
         mX_subtracted_grand = subtract_noise_bins(...
-                                mX_grand, noise_bins(1), noise_bins(2)); 
+                                mX_grand, par.noise_bins(1), par.noise_bins(2)); 
 
         feat_fft_subtracted = get_fft_features(mX_subtracted_grand, freq, ...
-                               freq_meter_rel, freq_meter_unrel); 
+                               par.freq_meter_rel, par.freq_meter_unrel); 
                                    
                                            
         %% plot example 
@@ -287,16 +269,16 @@ for i_n_trials=1:length(n_trials_all)
                              acf_grand, lags, ...
                              ap_grand, ...
                              mX_grand, freq, ...
-                             lags_meter_rel, lags_meter_unrel, ...
-                             freq_meter_rel, freq_meter_unrel, ...
+                             par.lags_meter_rel, par.lags_meter_unrel, ...
+                             par.freq_meter_rel, par.freq_meter_unrel, ...
                              'pnl', pnl_example(i_rhythm), ...
                              'subplot_proportions', [50, 17, 33], ...
-                             'max_lag', max_lag, ...
+                             'min_lag', 0.2, ...
+                             'max_lag', par.max_lag, ...
                              'plot_time_xaxis', i_rhythm == n_rhythms, ...
                              'plot_xlabels', i_rhythm == n_rhythms, ...
                              'plot_xticks', i_rhythm == n_rhythms, ...
                              'plot_features', false, ...
-                             'min_lag', 0.2, ...
                              'mX_subtr', mX_subtracted_grand, ...
                              'acf_subtr', acf_subtracted_grand, ...
                              'time_col', colors{i_rhythm}, ...
@@ -355,9 +337,11 @@ end
 
 fname = sprintf('exp-syncrange_eegGrand'); 
 writetable(tbl_grand, fullfile(par.data_path, [fname, '.csv'])); 
+save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 
 
 fname = sprintf('exp-syncrange_eegBoot'); 
 writetable(tbl_boot, fullfile(par.data_path, [fname, '.csv'])); 
+save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 
 
 
 

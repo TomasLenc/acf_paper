@@ -26,8 +26,7 @@ list.files(data_path)
 
 ```{r}
 
-df_only_noise <- read.csv(file.path(data_path, 'onlyNoise_noise-eeg_nrep-1000.csv'))
-# df_only_noise <- read.csv(file.path(data_path, 'onlyNoise_noise-fractal_exp--1.5_nrep-1000.csv'))
+df_only_noise <- read.csv(file.path(data_path, 'onlyNoise_noise-eeg_nrep-1000_snrbins-2-5.csv'))
 
 df_only_noise$sample <- seq(1, nrow(df_only_noise))
     
