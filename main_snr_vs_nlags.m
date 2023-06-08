@@ -1,5 +1,13 @@
-function main_snr_vs_nlags()
+function main_snr_vs_nlags(varargin)
 % clear
+
+parser = inputParser; 
+
+addParameter(parser, 'ir_type', 'square'); % square, erp, erp2
+
+parse(parser, varargin{:});
+
+ir_type = parser.Results.ir_type;
 
 par = get_par(); 
 
@@ -7,8 +15,6 @@ addpath(genpath(par.acf_tools_path));
 addpath(genpath(par.rnb_tools_path)); 
 addpath(genpath(par.lw_path)); 
 addpath(genpath('lib'))
-
-ir_type = 'square'; 
 
 % number of simulated repetitions 
 n_rep = 500; % 500
