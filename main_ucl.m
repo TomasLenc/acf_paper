@@ -10,9 +10,9 @@ addpath(genpath('lib'))
 
 %%
 
-main_snr_vs_nlags('square'); 
-main_snr_vs_nlags('erp'); 
-main_snr_vs_nlags('erp2'); 
+main_snr_vs_nlags('ir_type', 'square'); 
+main_snr_vs_nlags('ir_type', 'erp'); 
+main_snr_vs_nlags('ir_type', 'erp2'); 
 
 main_only_noise(); 
 
