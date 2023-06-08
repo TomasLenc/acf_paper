@@ -16,7 +16,7 @@ fit_knee = false;
 noise_type = 'eeg'; % eeg, fractal
 
 % number of simulated repetitions 
-n_rep = 100; 
+n_rep = 1000; 
 
 % Set true and the signal will be epoched into 1-cycle long chunks and
 % averaged. 

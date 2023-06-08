@@ -29,7 +29,7 @@ list.files(data_path)
 
 ```{r}
 
-df <- read.csv(file.path(data_path, 'snr_vs_nlags_nfrex_erp2.csv'))
+df <- read.csv(file.path(data_path, 'irType-erp2_nrep-500_snrVsNlagsNfrex.csv'))
 
 df$max_lag <- factor(df$max_lag)
 df$snr <- factor(round(df$snr, 1))
