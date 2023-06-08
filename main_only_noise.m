@@ -1,8 +1,11 @@
 % function main04_snr()
 
-addpath(genpath(par.lw_path)); 
-
 par = get_par(); 
+
+addpath(genpath(par.acf_tools_path)); 
+addpath(genpath(par.rnb_tools_path)); 
+addpath(genpath(par.lw_path)); 
+addpath(genpath('lib'))
 
 %% simulate
 
@@ -13,7 +16,7 @@ fit_knee = false;
 noise_type = 'eeg'; % eeg, fractal
 
 % number of simulated repetitions 
-n_rep = 1000; 
+n_rep = 100; 
 
 % Set true and the signal will be epoched into 1-cycle long chunks and
 % averaged. 
