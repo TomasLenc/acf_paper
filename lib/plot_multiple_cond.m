@@ -56,6 +56,32 @@ if ~isempty(feat_thr)
     
 end
 
+if length(feat_orig) == 1
+    
+    plot(ax, [0, n_cond+1], [feat_orig, feat_orig], ...
+         '-', 'color', [0.5, 0.5, 0.5], 'linew', 3)
+    ylims(1) = feat_orig - abs(feat_orig)*0.1;
+    ylims(2) = feat_orig + abs(feat_orig)*0.1;
+    
+elseif length(feat_orig) == length(feat)
+    
+    for i_cond=1:n_cond
+        % check if we have info about color
+        if isfield(feat_orig, 'color')
+            col = feat_orig(i_cond).color; 
+        else
+            col = [0.5, 0.5, 0.5];
+        end
+        plot(ax, ...
+             [i_cond-0.4, i_cond+0.4], ...
+             [feat_orig(i_cond).data, feat_orig(i_cond).data], ...
+             '-', 'color', col, 'linew', 3)
+        ylims(1) = min(feat_orig(i_cond).data - abs(feat_orig(i_cond).data)*0.1, ylims(1)); 
+        ylims(2) = max(feat_orig(i_cond).data  + abs(feat_orig(i_cond).data)*0.1, ylims(2)); 
+    end
+    
+end
+
 h = []; 
 means = nan(1, n_cond);
 
@@ -84,32 +110,6 @@ if ~isempty(feat)
         ax.YTick = round(sort(means), prec);
     else
         ax.YTick = [ax.YTick(1), ax.YTick(end)];
-    end
-    
-end
-
-if length(feat_orig) == 1
-    
-    plot(ax, [0, n_cond+1], [feat_orig, feat_orig], ...
-         '-', 'color', [0.5, 0.5, 0.5], 'linew', 3)
-    ylims(1) = feat_orig - abs(feat_orig)*0.1;
-    ylims(2) = feat_orig + abs(feat_orig)*0.1;
-    
-elseif length(feat_orig) == length(feat)
-    
-    for i_cond=1:n_cond
-        % check if we have info about color
-        if isfield(feat_orig, 'color')
-            col = feat_orig(i_cond).color; 
-        else
-            col = [0.5, 0.5, 0.5];
-        end
-        plot(ax, ...
-             [i_cond-0.4, i_cond+0.4], ...
-             [feat_orig(i_cond).data, feat_orig(i_cond).data], ...
-             '-', 'color', col, 'linew', 3)
-        ylims(1) = min(feat_orig(i_cond).data - abs(feat_orig(i_cond).data)*0.1, ylims(1)); 
-        ylims(2) = max(feat_orig(i_cond).data  + abs(feat_orig(i_cond).data)*0.1, ylims(2)); 
     end
     
 end

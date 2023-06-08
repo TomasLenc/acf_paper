@@ -11,7 +11,7 @@ fit_knee = false;
 
 noise_type = 'eeg'; % eeg, fractal
 
-ir_type = 'erp2'; 
+ir_type = 'square'; 
 
 % number of simulated repetitions 
 n_rep = 100; 
@@ -176,7 +176,7 @@ ymax_mX_subtracted = -Inf;
 
 
 
-%% generate signals
+%% generate signal
 
 % make clean signal for the whole trial 
 [x_clean, t] = get_s(...
@@ -186,6 +186,8 @@ ymax_mX_subtracted = -Inf;
                     'n_cycles', par.n_cycles, ...
                     'ir', ir ...
                     );
+
+%% genearet noise
 
 if strcmp(noise_type, 'fractal')
 
@@ -202,7 +204,7 @@ else
 end
 
 
-%%
+%% run
 
 f = figure('color','white', ...
            'position', [163 1222 1604 1127]); 
