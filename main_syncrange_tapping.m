@@ -213,6 +213,12 @@ end
 fname = sprintf('exp-syncrange_response-tapping_examples.svg'); 
 save_fig(f, fullfile(par.data_path, fname))
 
+% assign labels
+[feat_acf.name] = deal(rhythms{:}); 
+[feat_acf_subtracted.name] = deal(rhythms{:}); 
+[feat_fft.name] = deal(rhythms{:}); 
+[feat_fft_subtracted.name] = deal(rhythms{:}); 
+[feat_ap.name] = deal(rhythms{:}); 
 
 %% add features to table
 

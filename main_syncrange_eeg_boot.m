@@ -69,7 +69,7 @@ for i_n_trials=1:length(n_trials_all)
         t = [0 : size(eeg.data, 2) - 1] / fs; 
                 
         % make sure we don't have lags longer than half trial duration!
-        trial_dur = size(data, 2) / fs; 
+        trial_dur = size(eeg.data, 2) / fs; 
         
         par.lags_meter_rel = ...
             par.lags_meter_rel(par.lags_meter_rel < trial_dur/2); 
