@@ -17,7 +17,7 @@ my_theme <- function(){
 
 col_scale <- scale_color_brewer(palette='Paired')
 
-plot_data <- function(df, col_name, col_name_orig){
+plot_data <- function(df, col_name, col_name_orig, col_max){
     
     df$x <- as.numeric(df$snr)
     df$x_orig_start <- df$x-0.3
@@ -36,7 +36,7 @@ plot_data <- function(df, col_name, col_name_orig){
                          fill='grey60', color=NA, alpha=1, trim=T) + 
         geom_half_point(aes(group=snr), side='r', alpha=0.1, color='black') + 
         ylab(paste(col_name, '(dist from true)')) + 
-        facet_wrap(~ max_lag, nrow=2) + 
+        facet_wrap(~ .data[[col_max]], nrow=2) + 
         theme_cowplot()
     
     return(p)
@@ -44,20 +44,20 @@ plot_data <- function(df, col_name, col_name_orig){
 }
 
 
-plot_bias_var <- function(df, col_name, col_name_orig){
+plot_bias_var <- function(df, col_name, col_name_orig, col_max){
     
     df$x <- as.numeric(df$snr)
     
     df$y <- df[, col_name] - df[, col_name_orig]
     
     df_bias_var <- df %>% 
-        group_by(max_lag, snr) %>% 
+        group_by(.data[[col_max]], snr) %>% 
         summarise(bias=mean(y), 
                   bias_ci=sd(y) / sqrt(n()) * qnorm(1 - 0.05), 
                   variance=var(y))
     
     pos <- position_dodge(0.1)
-    p1 <- ggplot(df_bias_var, aes(snr, bias, group=max_lag, color=max_lag)) + 
+    p1 <- ggplot(df_bias_var, aes(snr, bias, group=.data[[col_max]], color=.data[[col_max]])) + 
         geom_hline(yintercept=0, linewidth=1, color='red', alpha=1, linetype='dotted') + 
         geom_point(position=pos) + 
         geom_errorbar(aes(ymin=bias-bias_ci, ymax=bias+bias_ci),
@@ -69,7 +69,7 @@ plot_bias_var <- function(df, col_name, col_name_orig){
             legend.position = 'none'
         )
     
-    p2 <- ggplot(df_bias_var, aes(snr, variance, group=max_lag, color=max_lag)) + 
+    p2 <- ggplot(df_bias_var, aes(snr, variance, group=.data[[col_max]], color=.data[[col_max]])) + 
         geom_hline(yintercept=0, linewidth=1, color='red', alpha=1, linetype='dotted') + 
         geom_point() + 
         geom_line() + 

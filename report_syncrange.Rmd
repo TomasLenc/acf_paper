@@ -20,9 +20,6 @@ source('utils.R')
 ```
 
 ```{r}
-
-data_path <- file.path(experiment_path, 'data')
-
 list.files(data_path)
 ```
 

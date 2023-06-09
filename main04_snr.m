@@ -288,6 +288,7 @@ for i_cond=1:length(cond_to_plot)
     ytick_at_means = false;
     yaxis_right = false;
     zero_line = false; 
+    symmetric_ylims = false; 
     
     switch cond_to_plot{i_cond}
         
@@ -313,6 +314,7 @@ for i_cond=1:length(cond_to_plot)
             feat_label = 'zscore'; 
             tit = 'ACF'; 
             zero_line = true; 
+            symmetric_ylims = true; 
         case 'fft-z_meter_rel'
             feat_raw = feat_fft; 
             feat_subtracted = feat_fft_subtracted; 
@@ -321,6 +323,7 @@ for i_cond=1:length(cond_to_plot)
             feat_label = 'zscore'; 
             tit = 'FFT'; 
             zero_line = true; 
+            symmetric_ylims = true; 
         case 'fft-z_snr'
             feat_raw = feat_fft; 
             feat_subtracted = []; 
@@ -420,6 +423,11 @@ for i_cond=1:length(cond_to_plot)
         end
     end
     yticks = yticks ./ c;
+    
+    if symmetric_ylims
+        ylims = [-max(ylims), +max(ylims)]; 
+        yticks = ylims; 
+    end
     
     for i_ax=1:length(pnl(1, i_cond).children)
         ax = pnl(1, i_cond, i_ax, 1).select(); 

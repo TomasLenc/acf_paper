@@ -17,16 +17,13 @@ source('config.R')
 ```
 
 ```{r}
-
-data_path <- file.path(experiment_path, 'data')
-
 list.files(data_path)
 ```
 
 
 ```{r}
 
-df_only_noise <- read.csv(file.path(data_path, 'onlyNoise_noise-eeg_nrep-1000_snrbins-2-5.csv'))
+df_only_noise <- read.csv(file.path(data_path, 'onlyNoise_noise-eeg_nrep-500.csv'))
 
 df_only_noise$sample <- seq(1, nrow(df_only_noise))
     

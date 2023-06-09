@@ -47,8 +47,6 @@ if (host_name == 'tux'){
     experiment_path <-  '/DATA2/autocorrelation'
 }
 
-fig_path <- file.path(experiment_path, 'figures')
-
 ####################################################################################################
 # PARAMS 
 
