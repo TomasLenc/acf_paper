@@ -122,7 +122,7 @@ freq_meter_unrel = freq_meter_unrel(~ismembertol(freq_meter_unrel, freq_meter_re
 
 frex = sort([freq_meter_rel, freq_meter_unrel]);
 
-noise_bins = [3, 13]; 
+noise_bins = [2, 5]; 
 
 % noies bins for calculating the SNR of the raw spectra
 % (harmonic-snippet-zsocre method as used by Rossion)
