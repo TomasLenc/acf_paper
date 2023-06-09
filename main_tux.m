@@ -12,8 +12,6 @@ addpath(genpath('lib'))
 
 main03_ir('ir_type', 'square');
 close all
-main03_ir('ir_type', 'erp');
-close all
 
 main04_snr;
 close all
