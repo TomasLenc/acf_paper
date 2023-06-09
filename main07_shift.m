@@ -64,11 +64,6 @@ lags_meter_rel = par.lags_meter_rel;
 % meter-unrelated lags 
 lags_meter_unrel = par.lags_meter_unrel;
 
-% you can separately set meter-unrelated lags on the left and right (this is
-% used when checking for spurious results)
-lags_meter_unrel_left = par.lags_meter_unrel_left;
-lags_meter_unrel_right = par.lags_meter_unrel_right;
-
 freq_meter_rel = par.freq_meter_rel;
 freq_meter_unrel = par.freq_meter_unrel;
 

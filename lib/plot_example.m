@@ -5,8 +5,6 @@ function f = plot_example(x, t, acf, lags, ap, mX, freq, ...
 parser = inputParser; 
 
 addParameter(parser, 'pnl', []); 
-addParameter(parser, 'lags_meter_unrel_left', []); 
-addParameter(parser, 'lags_meter_unrel_right', []); 
 addParameter(parser, 'mX_subtr', []); 
 addParameter(parser, 'acf_subtr', []); 
 addParameter(parser, 'normalize_acf_for_plotting', true); 
@@ -30,10 +28,6 @@ pnl = parser.Results.pnl;
 
 mX_subtr = parser.Results.mX_subtr; 
 acf_subtr = parser.Results.acf_subtr; 
-
-lags_meter_unrel_left = parser.Results.lags_meter_unrel_left; 
-lags_meter_unrel_right = parser.Results.lags_meter_unrel_right; 
-
 prec = parser.Results.prec; 
 subplot_proportions = parser.Results.subplot_proportions; 
 plot_time_xaxis = parser.Results.plot_time_xaxis; 
@@ -53,17 +47,13 @@ time_col = parser.Results.time_col;
 %%
                   
 feat_acf = get_acf_features(acf, lags,...
-                            lags_meter_rel, lags_meter_unrel, ...
-                            'lags_meter_unrel_left', lags_meter_unrel_left, ...
-                            'lags_meter_unrel_right', lags_meter_unrel_right); 
+                            lags_meter_rel, lags_meter_unrel); 
                         
 feat_fft = get_fft_features(mX, freq, freq_meter_rel, freq_meter_unrel);
 
 if ~isempty(acf_subtr)
     feat_acf_subtr = get_acf_features(acf_subtr, lags,...
-                                lags_meter_rel, lags_meter_unrel, ...
-                                'lags_meter_unrel_left', lags_meter_unrel_left, ...
-                                'lags_meter_unrel_right', lags_meter_unrel_right); 
+                                lags_meter_rel, lags_meter_unrel); 
 end
 
 if ~isempty(mX_subtr)

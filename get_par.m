@@ -101,13 +101,6 @@ lags_meter_unrel = get_lag_harmonics(...
 % make sure one more time that there's no overlap between meter-rel and -unrel !!! 
 assert(~any( min(abs(bsxfun(@minus, lags_meter_rel', lags_meter_unrel))) < 1e-9 ))
 
-% you can separately set meter-unrelated lags on the left and right (this is
-% used when checking for spurious results)
-% (actually this is just for backward compatibility reasons, we don't really
-% use these anymore...)
-lags_meter_unrel_left = [0.6]; 
-lags_meter_unrel_right = [1.0]; 
-
 %% 
 
 max_freq = 5;
