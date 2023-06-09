@@ -110,10 +110,10 @@ lags_meter_unrel_right = [1.0];
 
 %% 
 
-max_freq = 30;
+max_freq = 5;
 max_freq_plot = max_freq + 0.1; 
 
-f0_to_excl = [5]; 
+f0_to_excl = []; 
 
 freq_meter_rel = [1.25 : 1.25 : max_freq]; 
 freq_meter_unrel = [1/2.4 : 1/2.4 : max_freq];
