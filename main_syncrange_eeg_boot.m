@@ -1,24 +1,16 @@
-% function main_syncrange_eeg_boot()
-clear 
-
-par = get_par(); 
+function main_syncrange_eeg_boot(par)
+% clear 
+% par = get_par(); 
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 
 addpath(genpath(par.lw_path)); 
 addpath(genpath('lib'))
 
-
 %% parameters
-
-fit_knee = false; 
-
-% percent extreme values omitted for plotting
-ylim_quantile_cutoff = 0.05; 
 
 % plot an example figure for each condition?
 plot_example_fig = true; 
-
 
 %%
 
@@ -27,8 +19,6 @@ n_boot = 1000;
 n_trials_all = [9:-1:1]; 
 
 rhythms = {'31', '26', '19', '37', '42', '6', '17', '41'}; 
-
-cond_type = 'rhythm'; 
 
 n_rhythms = length(rhythms); 
 

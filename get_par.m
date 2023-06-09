@@ -60,13 +60,13 @@ addpath(genpath(acf_tools_path));
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
 min_lag = 0;
-max_lag = (grid_ioi * length(pat) * n_cycles) / 2; 
-% max_lag = 2.4; 
+% max_lag = (grid_ioi * length(pat) * n_cycles) / 2; 
+max_lag = 2.4; 
 
 lag_base_incl_meter_rel = [0.8]; 
-lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
+lag_base_excl_meter_rel = [2.4]; % [0.6, 1.0, 1.4]   [2.4]
 
-lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
+lag_base_incl_meter_unrel = [0.2]; % [0.6, 1.0, 1.4]   [0.2]
 lag_base_excl_meter_unrel = [0.8]; 
 
 
@@ -110,17 +110,25 @@ lags_meter_unrel_right = [1.0];
 
 %% 
 
-max_freq = 5;
-max_freq_plot = 5.1; 
+max_freq = 30;
+max_freq_plot = max_freq + 0.1; 
+
+f0_to_excl = [5]; 
 
 freq_meter_rel = [1.25 : 1.25 : max_freq]; 
 freq_meter_unrel = [1/2.4 : 1/2.4 : max_freq];
 freq_meter_unrel = freq_meter_unrel(~ismembertol(freq_meter_unrel, freq_meter_rel, 1e-6)); 
 
-% freq_meter_rel(end) = [];
-% freq_meter_unrel(1:2) = [];
+if ~isempty(f0_to_excl)
+    freq_meter_rel(mod(freq_meter_rel, f0_to_excl) < ...
+        1e4 * eps(min(freq_meter_rel))) = []; 
+    freq_meter_unrel(mod(freq_meter_unrel, f0_to_excl) < ...
+        1e4 * eps(min(freq_meter_unrel))) = []; 
+end
 
 frex = sort([freq_meter_rel, freq_meter_unrel]);
+
+%%
 
 noise_bins = [2, 5]; 
 

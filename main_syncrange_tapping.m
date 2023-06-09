@@ -1,17 +1,13 @@
-% function main_syncrange()
-clear 
-
-par = get_par(); 
+function main_syncrange_tapping(par)
+% clear 
+% par = get_par(); 
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 
 addpath(genpath(par.lw_path)); 
 addpath(genpath('lib'))
 
-
 %% parameters
-
-fit_knee = false; 
 
 % percent extreme values omitted for plotting
 ylim_quantile_cutoff = 0.05; 

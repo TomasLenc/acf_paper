@@ -1,7 +1,13 @@
-function main_only_noise()
+function main_only_noise(par, varargin)
 % clear
+% par = get_par(); 
 
-par = get_par(); 
+parser = inputParser; 
+
+addParameter(parser, 'prepared_noise', []); 
+
+x = parser.Results.prepared_noise;
+
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 
@@ -12,28 +18,35 @@ addpath(genpath('lib'))
 
 noise_exponent = -1.5; 
 
-fit_knee = false; 
-
 noise_type = 'eeg'; % eeg, fractal
 
 % number of simulated repetitions 
-n_rep = 500; % 1000
+n_rep = 1000; % 1000
 
 %% generate noise
 
 N = round(par.trial_dur * par.fs); 
 
-% generate noisy signal (simulataneously for all repetitions) 
-if strcmp(noise_type, 'fractal')
 
-    x = get_colored_noise2([n_rep, N], par.fs, noise_exponent); 
+if ~isempty(x)
 
-elseif strcmp(noise_type, 'eeg')
-
-    x = prepare_eeg_noise(n_rep, par.trial_dur); 
-
+    n_rep = size(x, 1); 
+    
 else
-    error('noise type "%s" not implemented', noise_type);
+ 
+    % generate noisy signal (simulataneously for all repetitions) 
+    if strcmp(noise_type, 'fractal')
+
+        x = get_colored_noise2([n_rep, N], par.fs, noise_exponent); 
+
+    elseif strcmp(noise_type, 'eeg')
+
+        x = prepare_eeg_noise(n_rep, par.trial_dur); 
+
+    else
+        error('noise type "%s" not implemented', noise_type);
+    end
+
 end
 
 

@@ -1,6 +1,7 @@
-function main05_emph(varargin)
+function main05_emph(par, varargin)
 % clear 
 % varargin = {}; 
+% par = get_par(); 
 
 parser = inputParser; 
 
@@ -10,7 +11,6 @@ parse(parser, varargin{:});
 
 ir_type = parser.Results.ir_type;
 
-par = get_par(); 
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 
@@ -292,7 +292,7 @@ fname = sprintf('05_emph_irType-%s_%s_%s', ...
                 ir_type, tit, feat_label);
             
 if par.save_figs
-   save_fig(f, fname)
+   save_fig(f, fullfile(par.fig_path, fname))
 end
 
 % save parameters 

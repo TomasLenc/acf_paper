@@ -1,8 +1,7 @@
-function main10_jitter()
+function main10_jitter(par)
 % clear 
 % varargin = {}; 
-
-par = get_par(); 
+% par = get_par(); 
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 
@@ -290,7 +289,7 @@ fname = sprintf('10_jitter_irType-%s_nrep-%d_%s_%s', ...
                 ir_type, n_rep, tit, feat_label);  
             
 if par.save_figs
-   save_fig(f, fname)
+   save_fig(f, fullfile(par.fig_path, fname))
 end
 
 % save parameters 

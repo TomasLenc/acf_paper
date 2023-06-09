@@ -1,7 +1,16 @@
-function main04_snr()
+function main04_snr(par, varargin)
 % clear 
+% par = get_par(); 
 
-par = get_par(); 
+parser = inputParser; 
+
+addParameter(parser, 'ir_type', 'square'); % square, erp, erp2
+addParameter(parser, 'prepared_noise', []); % square, erp, erp2
+
+parse(parser, varargin{:});
+
+ir_type = parser.Results.ir_type;
+noise = parser.Results.prepared_noise;
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 
@@ -15,8 +24,6 @@ noise_exponent = -1.5;
 fit_knee = false; 
 
 noise_type = 'eeg'; % eeg, fractal
-
-ir_type = 'square'; 
 
 % number of simulated repetitions 
 n_rep = 200; 
@@ -45,7 +52,6 @@ n_cond = length(snrs);
 cmap_name = 'OrRd'; 
 colors = num2cell(brewermap(n_cond + n_cond, cmap_name), 2); 
 colors = colors(end-n_cond+1:end, :); 
-
 
 %% 
 
@@ -103,8 +109,6 @@ cond_labels = {};
 ymax_mX = -Inf;
 ymax_mX_subtracted = -Inf;
 
-
-
 %% generate signal
 
 % make clean signal for the whole trial 
@@ -118,20 +122,25 @@ ymax_mX_subtracted = -Inf;
 
 %% genearet noise
 
-if strcmp(noise_type, 'fractal')
+if ~isempty(noise)
 
-    noise = get_colored_noise2([n_rep, length(x_clean)], par.fs, noise_exponent); 
-
-elseif strcmp(noise_type, 'eeg')
-
-    trial_dur = par.n_cycles * length(par.pat) * par.grid_ioi; 
-
-    noise = prepare_eeg_noise(n_rep, trial_dur);    
-
+    n_rep = size(noise, 1); 
+    
 else
-    error('noise type "%s" not implemented', noise_type);
-end
+    
+    if strcmp(noise_type, 'fractal')
 
+        noise = get_colored_noise2([n_rep, length(x_clean)], par.fs, noise_exponent); 
+
+    elseif strcmp(noise_type, 'eeg')
+
+        noise = prepare_eeg_noise(n_rep, par.trial_dur);    
+
+    else
+        error('noise type "%s" not implemented', noise_type);
+    end
+    
+end
 
 %% run
 
@@ -470,8 +479,8 @@ else
 end
 
 if par.save_figs
-   save_fig(f, fname)
+   save_fig(f, fullfile(par.fig_path, fname))
 end
 
 % save parameters 
-save(fullfile(par.fig_path, [fname, '_par.mat']), 'par'); 
+save(fullfile(par.fig_path, [fname, '_par.mat']), 'par', 'snrs'); 

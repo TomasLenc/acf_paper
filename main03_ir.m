@@ -1,6 +1,7 @@
-function main03_ir(varargin)
+function main03_ir(par, varargin)
 % clear 
 % varargin = {}; 
+% par = get_par(); 
 
 parser = inputParser; 
 
@@ -9,8 +10,6 @@ addParameter(parser, 'ir_type', 'square'); % square, erp, erp2
 parse(parser, varargin{:});
 
 ir_type = parser.Results.ir_type;
-
-par = get_par(); 
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 
@@ -279,7 +278,7 @@ pnl.margin = [25, 10, 25, 15];
 fname = sprintf('03_ir_irType-%s_exp-%.1f_%s_%s', ...
                  ir_type, noise_exponent, tit, feat_label);
 if par.save_figs
-   save_fig(f, fname)
+   save_fig(f, fullfile(par.fig_path, fname))
 end
 
 % save parameters 
