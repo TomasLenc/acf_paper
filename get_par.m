@@ -28,7 +28,7 @@ end
 fig_path = fullfile(experiment_path, 'figures'); 
 data_path = fullfile(experiment_path, 'data'); 
 eeg_path = fullfile(experiment_path, 'eeg'); 
-resting_eeg_path = fullfile(data_path, 'eeg', 'resting_eeg', 'ds004148'); 
+resting_eeg_path = fullfile(eeg_path, 'resting_eeg', 'ds004148'); 
 
 %% 
 
