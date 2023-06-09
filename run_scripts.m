@@ -38,6 +38,8 @@ elseif strcmpi(hostname, 'tomo-office-desktop')
     
     main_syncrange_tapping(par); 
     
+    close all
+    
 end
 
 

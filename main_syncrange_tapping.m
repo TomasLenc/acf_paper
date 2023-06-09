@@ -188,6 +188,7 @@ for i_rhythm=1:n_rhythms
                      'max_t', 40.8, ...
                      'min_lag', 0.2, ...
                      'max_lag', par.max_lag, ...
+                     'max_freq', par.max_freq_plot, ...
                      'plot_time_xaxis', i_rhythm == n_rhythms, ...
                      'plot_xlabels', i_rhythm == n_rhythms, ...
                      'plot_xticks', i_rhythm == n_rhythms, ...
@@ -203,29 +204,9 @@ for i_rhythm=1:n_rhythms
 
 end
     
-if par.save_figs
-   fname = sprintf('exp-syncrange_response-tapping_examples.svg'); 
-   save_fig(f, fname)
-end
+fname = sprintf('exp-syncrange_response-tapping_examples.svg'); 
+save_fig(f, fullfile(par.data_path, fname))
 
-% assign labels
-[feat_acf.name] = deal(rhythms{:}); 
-[feat_acf_subtracted.name] = deal(rhythms{:}); 
-[feat_fft.name] = deal(rhythms{:}); 
-[feat_fft_subtracted.name] = deal(rhythms{:}); 
-[feat_ap.name] = deal(rhythms{:}); 
-
-% assign colors
-[feat_acf.color] = deal(colors{:}); 
-[feat_fft.color] = deal(colors{:}); 
-
-[feat_acf_subtracted.color] = deal(colors{:}); 
-[feat_fft_subtracted.color] = deal(colors{:}); 
-
-[feat_ap.color] = deal(colors{:}); 
-
-[feat_acf_s.color] = deal([0 0 0]); 
-[feat_fft_s.color] = deal([0 0 0]); 
 
 %% add features to table
 
@@ -248,188 +229,6 @@ for i_rhythm=1:n_rhythms
     tbl = [tbl; rows];
     
 end
-
-
-
-%% plot
-
-% plot 
-% ----
-cond_to_plot = {
-    'acf-z_meter_rel'
-    'fft-z_meter_rel'
-    'fft-z_snr'
-    'ap-offset'
-    'ap-exponent'
-    }; 
-
-for i_rhythm=1:length(cond_to_plot)
-    
-    ytick_at_means = false;
-    yaxis_right = false;
-    zero_line = false; 
-    
-    switch cond_to_plot{i_rhythm}
-        
-        case 'acf-mean_meter_rel'
-            feat_raw = feat_acf; 
-            feat_subtracted = feat_acf_subtracted; 
-            feat_sound = feat_acf_s; 
-            feat_fieldname = 'mean_meter_rel'; 
-            feat_label = 'mean'; 
-            tit = 'ACF'; 
-        case 'acf-ratio_meter_rel'
-            feat_raw = feat_acf; 
-            feat_subtracted = feat_acf_subtracted; 
-            feat_sound = feat_acf_s; 
-            feat_fieldname = 'ratio_meter_rel'; 
-            feat_label = 'ratio'; 
-            tit = 'ACF'; 
-        case 'acf-z_meter_rel'
-            feat_raw = feat_acf; 
-            feat_subtracted = feat_acf_subtracted; 
-            feat_orig = feat_acf_s; 
-            feat_fieldname = 'z_meter_rel'; 
-            feat_label = 'zscore'; 
-            tit = 'ACF'; 
-            zero_line = true;
-        case 'fft-z_meter_rel'
-            feat_raw = feat_fft; 
-            feat_subtracted = feat_fft_subtracted; 
-            feat_orig = feat_fft_s; 
-            feat_fieldname = 'z_meter_rel'; 
-            feat_label = 'zscore'; 
-            tit = 'FFT'; 
-            zero_line = true;
-        case 'fft-z_snr'
-            feat_raw = feat_fft; 
-            feat_subtracted = []; 
-            feat_sound = [];
-            feat_orig = []; 
-            feat_fieldname = 'z_snr'; 
-            feat_label = 'zSNR'; 
-            tit = 'FFT'; 
-            ytick_at_means = true;
-            yaxis_right = true;
-        case 'ap-offset'
-            feat_raw = feat_ap; 
-            feat_subtracted = []; 
-            feat_orig = []; 
-            feat_fieldname = 'offset'; 
-            feat_label = 'offset'; 
-            tit = 'AP'; 
-        case 'ap-exponent'
-            feat_raw = feat_ap; 
-            feat_subtracted = []; 
-            feat_orig = []; 
-            feat_fieldname = 'exponent'; 
-            feat_label = 'exponent'; 
-            tit = 'AP'; 
-    end
-    
-    f = figure('color', 'white', 'position', [1442 521 350 373]); 
-    pnl = panel(f); 
-    pnl.pack('h', 2); 
-    pnl(1).pack({[0, 0, 1, 1]}); 
-    pnl(2).pack({[0, 0, 1, 1]}); 
-    
-    
-    % raw
-    ax = pnl(1, 1).select(); 
-
-    feat = RenameField(feat_raw, feat_fieldname, 'data');
-    feat_orig = RenameField(feat_orig, feat_fieldname, 'data');
-
-    plot_multiple_cond('ax', ax, ...
-                      'plot_legend', true, ...
-                      'feat', feat, ...
-                      'feat_orig', feat_orig, ...
-                      'zero_line', zero_line, ...
-                      'ytick_at_means', ytick_at_means, ...
-                      'prec', 3, ...
-                      'ylim_quantile_cutoff', ylim_quantile_cutoff, ...
-                      'point_alpha', 0.2); 
-
-    pnl(1).ylabel(sprintf('%s raw', feat_label)); 
-    
-    if yaxis_right
-        ax.YAxisLocation = 'right';
-    end
-    
-    % subtracted
-    ax = pnl(2, 1).select(); 
-
-    feat = RenameField(feat_subtracted, feat_fieldname, 'data');    
-    feat_orig = RenameField(feat_orig, feat_fieldname, 'data');
-
-    plot_multiple_cond('ax', ax, ...
-                      'plot_legend', false, ...
-                      'feat', feat, ...
-                      'feat_orig', feat_orig, ...
-                      'zero_line', zero_line, ...
-                      'ytick_at_means', ytick_at_means, ...
-                      'prec', 3, ...
-                      'ylim_quantile_cutoff', ylim_quantile_cutoff, ...
-                      'point_alpha', 0.2); 
-
-    pnl(2).ylabel(sprintf('%s 1/f subtr', feat_label)); 
-
-    if yaxis_right
-        ax.YAxisLocation = 'right';
-    end
-
-    % make the figure nice 
-    pnl.margin = [19, 5, 5, 40]; 
-
-    pnl.title(tit); 
-
-    pnl.fontsize = par.fontsize; 
-
-    % fix legend position
-    for i=1:length(f.Children)
-        if strcmpi(f.Children(i).Type, 'legend')
-           f.Children(i).Title.String = cond_type; 
-           f.Children(i).Position(1) = 0; 
-           f.Children(i).Position(2) = 0.7; 
-        end
-    end
-
-    % get the same ylims across subplots
-    prec = 1000; 
-    ylims = [Inf, -Inf]; 
-    yticks = [];
-    c = 0;
-    for i_ax=1:length(pnl.children)
-        ax = pnl(i_ax, 1).select(); 
-        if ~isempty(ax.Children)
-            ylims(1) = min(ceil(ax.YLim(1)*prec)/prec, ylims(1)); 
-            ylims(2) = max(floor(ax.YLim(2)*prec)/prec, ylims(2)); 
-            if isempty(yticks)
-                yticks = ax.YTick;
-            else
-                yticks = yticks + ax.YTick;
-            end
-            c = c+1;
-        end
-    end
-    yticks = yticks ./ c;
-    
-    for i_ax=1:length(pnl.children)
-        ax = pnl(i_ax, 1).select(); 
-        if ylims(1) < ylims(2)
-            ax.YLim = ylims; 
-            ax.YTick = yticks; 
-        end
-    end
-    
-    if par.save_figs
-       fname = sprintf('exp-syncrange_response-tapping_%s_%s.svg', ...
-                        tit, feat_label);  
-       save_fig(f, fname)
-    end
-       
-end
-
 
 %% save table
 
