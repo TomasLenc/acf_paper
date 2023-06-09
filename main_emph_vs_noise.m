@@ -7,6 +7,8 @@ parser = inputParser;
 addParameter(parser, 'ir_type', 'square'); % square, erp, erp2
 addParameter(parser, 'prepared_noise', []); % square, erp, erp2
 
+parse(parser, varargin{:});
+
 ir_type = parser.Results.ir_type;
 noise = parser.Results.prepared_noise;
 

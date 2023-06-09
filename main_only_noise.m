@@ -6,6 +6,8 @@ parser = inputParser;
 
 addParameter(parser, 'prepared_noise', []); 
 
+parse(parser, varargin{:});
+
 x = parser.Results.prepared_noise;
 
 
