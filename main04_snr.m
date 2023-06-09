@@ -19,7 +19,7 @@ noise_type = 'eeg'; % eeg, fractal
 ir_type = 'square'; 
 
 % number of simulated repetitions 
-n_rep = 10; 
+n_rep = 200; 
 
 % percent extreme values omitted for plotting
 ylim_quantile_cutoff = 0.04; 
@@ -48,7 +48,6 @@ colors = colors(end-n_cond+1:end, :);
 
 
 %% 
-
 
 if strcmp(ir_type, 'square')
     ir = get_square_kernel(par.fs, ...
@@ -288,6 +287,7 @@ for i_cond=1:length(cond_to_plot)
     
     ytick_at_means = false;
     yaxis_right = false;
+    zero_line = false; 
     
     switch cond_to_plot{i_cond}
         
@@ -312,6 +312,7 @@ for i_cond=1:length(cond_to_plot)
             feat_fieldname = 'z_meter_rel'; 
             feat_label = 'zscore'; 
             tit = 'ACF'; 
+            zero_line = true; 
         case 'fft-z_meter_rel'
             feat_raw = feat_fft; 
             feat_subtracted = feat_fft_subtracted; 
@@ -319,6 +320,7 @@ for i_cond=1:length(cond_to_plot)
             feat_fieldname = 'z_meter_rel'; 
             feat_label = 'zscore'; 
             tit = 'FFT'; 
+            zero_line = true; 
         case 'fft-z_snr'
             feat_raw = feat_fft; 
             feat_subtracted = []; 
@@ -357,6 +359,7 @@ for i_cond=1:length(cond_to_plot)
 
     plot_multiple_cond('ax', ax, ...
                       'plot_legend', true, ...
+                      'zero_line', zero_line, ...
                       'ytick_at_means', ytick_at_means, ...
                       'feat', feat, ...
                       'feat_orig', feat_orig,...
@@ -375,6 +378,7 @@ for i_cond=1:length(cond_to_plot)
     
     plot_multiple_cond('ax', ax, ...
                       'plot_legend', false, ...
+                      'zero_line', zero_line, ...
                       'ytick_at_means', ytick_at_means, ...
                       'feat', feat, ...
                       'feat_orig', feat_orig,...
