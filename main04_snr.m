@@ -150,7 +150,7 @@ pnl.pack('v', [20, 80]);
 
 pnl(2).pack('v', n_cond); 
 
-example_subplot_proportions = [40, 15, 45];
+example_subplot_proportions = [35, 10, 55];
 
 
 for i_cond=1:n_cond
