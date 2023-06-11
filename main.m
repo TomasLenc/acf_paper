@@ -119,6 +119,7 @@ par.fig_path = par.data_path;
 mkdir(par.data_path); 
         
 par.max_freq = 5; 
+par.max_freq_plot = 5.1; 
 par.f0_to_excl = 5; 
 [par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
                                                 par.max_freq, ...
@@ -139,6 +140,7 @@ par.fig_path = par.data_path;
 mkdir(par.data_path); 
         
 par.max_freq = 30; 
+par.max_freq_plot = 30.1; 
 par.f0_to_excl = 5; 
 [par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
                                                 par.max_freq, ...
