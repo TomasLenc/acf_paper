@@ -60,8 +60,7 @@ addpath(genpath(acf_tools_path));
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
 min_lag = 0;
-% max_lag = (grid_ioi * length(pat) * n_cycles) / 2; 
-max_lag = 2.4; 
+max_lag = (grid_ioi * length(pat) * n_cycles) / 2; 
 
 lag_base_incl_meter_rel = [0.8]; 
 lag_base_excl_meter_rel = [2.4]; % [0.6, 1.0, 1.4]   [2.4]

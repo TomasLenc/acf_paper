@@ -25,12 +25,22 @@ if strcmpi(hostname, 'tux')
         'prepared_noise', noise_all_samples(1:n_rep_emph_vs_noise, :));
 
     main_snr_vs_nlags(par,...
+        'ir_type', 'square', ...
+        'prepared_noise', noise_all_samples(1:n_rep_snr_vs_nlags, :)); 
+
+    main_snr_vs_nlags(par,...
+        'ir_type', 'erp2', ...
         'prepared_noise', noise_all_samples(1:n_rep_snr_vs_nlags, :)); 
 
 elseif strcmpi(hostname, 'tomo-office-desktop')   
     
     main_only_noise(par,...
         'prepared_noise', noise_all_samples(1:n_rep_only_noise, :)); 
+    
+    % update maximum lag of interest according to eeg trial duration (40.8 s)
+    par.max_lag = 20.4; 
+    par.lags_meter_rel = par.lags_meter_rel(par.lags_meter_rel < par.max_lag); 
+    par.lags_meter_unrel = par.lags_meter_unrel(par.lags_meter_unrel < par.max_lag); 
     
     main_syncrange_eeg_boot(par); 
     
