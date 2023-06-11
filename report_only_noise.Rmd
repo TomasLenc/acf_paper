@@ -23,7 +23,7 @@ source('config.R')
 
 ```{r}
 
-df_only_noise <- read.csv(file.path(data_path, 'onlyNoise_noise-eeg_nrep-500.csv'))
+df_only_noise <- read.csv(file.path(data_path, 'onlyNoise_noise-eeg_nrep-1000.csv'))
 
 df_only_noise$sample <- seq(1, nrow(df_only_noise))
     
@@ -87,13 +87,69 @@ ggplot(df_only_noise_long, aes(x=1, y=z_meter)) +
 
 
 
+---
+
+
+```{r}
+
+fun_plot <- function(fname, yvar) {
+    df <- read.csv(file.path(data_path, fname))
+    df$pat <- factor(df$pat)
+    df <- filter(df, z_snr > 0)
+    ggplot(df, aes(log10(z_snr), .data[[yvar]])) +
+    # geom_point(alpha=0.1, color='#701d85') + 
+    geom_point(aes(color=pat), alpha=0.1) + 
+    geom_hline(yintercept = 0, color='#5e5e5e') + 
+    # coord_cartesian(xlim=c(0,100)) + 
+    scale_x_reverse() +
+    theme_cowplot()
+}
+
+```
+
+
+
+<br><br><br>
+
+## IR erp2
+
+### FFT  
+
+```{r}
+fname <- 'irType-erp2_nrep-100_emphVsNoise.csv'
+fun_plot(fname, 'z_meter_fft_raw')
+fun_plot(fname, 'z_meter_fft_subtr')
+```
+
+### ACF  
+
+```{r}
+fun_plot(fname, 'z_meter_acf_raw')
+fun_plot(fname, 'z_meter_acf_subtr')
+```
 
 
 
 
 
+<br><br><br>
 
+## IR square
 
+### FFT  
+
+```{r}
+fname <- 'irType-square_nrep-100_emphVsNoise.csv'
+fun_plot(fname, 'z_meter_fft_raw')
+fun_plot(fname, 'z_meter_fft_subtr')
+```
+
+### ACF  
+
+```{r}
+fun_plot(fname, 'z_meter_acf_raw')
+fun_plot(fname, 'z_meter_acf_subtr')
+```
 
 
 

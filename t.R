@@ -87,12 +87,12 @@ write.csv(df, fname, row.names=F)
 
 
 
-fname <- '/datadisk/projects_backed_up/autocorrelation/data/maxfreq-30_excl5/irType-erp2_nrep-50_emphVsNoise.csv'
+fname <- '/datadisk/projects_backed_up/autocorrelation/data/maxlag-halfTrial_meterUnrel-0.2/irType-erp2_nrep-100_emphVsNoise.csv'
 df <- read.csv(fname)
 
 df <- filter(df, z_snr > 0)
 
-ggplot(df, aes(log10(z_snr), z_meter_fft_raw)) + 
+ggplot(df, aes(log10(z_snr), z_meter_fft_raw)) +
     # geom_point(alpha=0.1, color='#701d85') + 
     geom_point(aes(color=as.factor(pat)), alpha=0.1) + 
     geom_hline(yintercept = 0, color='#5e5e5e') + 
