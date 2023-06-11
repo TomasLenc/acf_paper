@@ -1,4 +1,4 @@
-% function main_syncrange_eeg_boot(par)
+function main_syncrange_eeg_boot(par)
 % clear 
 % par = get_par(); 
 
@@ -250,7 +250,7 @@ for i_n_trials=1:length(n_trials_all)
                                            
         %% plot example 
         
-        if i_n_trials == length(n_trials_all)
+        if i_n_trials == 1
             if i_rhythm==1
                 f = figure('color','white', ...
                            'position', [95, 67, 1062, 170 * n_rhythms]); 
@@ -321,7 +321,7 @@ for i_n_trials=1:length(n_trials_all)
         
     end
         
-    if i_n_trials == length(n_trials_all)
+    if i_n_trials == 1
         fname = sprintf('exp-syncrange_response-eeg_nTrials-%d_boot_examples.svg', n_trials); 
         save_fig(f, fullfile(par.data_path, fname))
     end
