@@ -155,8 +155,26 @@ fun_plot(fname, 'z_meter_acf_subtr')
 
 
 
+```{r}
+fname <- 'irType-square_nrep-100_emphVsNoise.csv'
+df <- read.csv(file.path(data_path, fname))
+df$pat <- factor(df$pat)
+df <- filter(df, z_snr > 0)
+df$z_snr_log <- log10(df$z_snr)
 
+```
 
+```{r}
+m <- lm(z_meter_acf_raw ~ z_snr_log * z_meter_acf_orig, data=df)
+summary(m)
+visreg(m, xvar='z_snr_log', by='z_meter_acf_orig', overlay=T)
+```
+
+```{r}
+m <- lm(z_meter_fft_raw ~ z_snr_log * z_meter_fft_orig, data=df)
+summary(m)
+visreg(m, xvar='z_snr_log', by='z_meter_fft_orig', overlay=T)
+```
 
 
 

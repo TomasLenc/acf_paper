@@ -24,34 +24,39 @@ source('utils.R')
 ```
 
 
+<br><br><br>
+
+---
+
+## IR square
+
 ```{r}
 
 df <- read.csv(file.path(data_path, 
-                         sprintf('irType-%s_nrep-500_snrVsNlagsNfrex.csv', ir_type)))
+                         sprintf('irType-square_nrep-500_snrVsNlagsNfrex.csv')))
 
 df$max_lag <- factor(df$max_lag)
 df$max_freq <- factor(df$max_freq)
 df$snr <- factor(round(df$snr, 1))
 df$sample <- factor(df$sample)
-
-# df$max_lag <- revalue(df$max_lag, c("4.8"="low", "24"="high"))
-
 ```
 
+<br><br>
+
+### ACF  
+
 ```{r, fig.width=10, fig.height=5.5}
-
-# col_name <- 'z_meter_acf_subtr'
-# col_name_orig <- 'z_meter_acf_orig'
-
 p1 <- plot_data(df,  'z_meter_acf_subtr', 'z_meter_acf_orig', 'max_lag')
 p2 <- plot_bias_var(df,  'z_meter_acf_subtr', 'z_meter_acf_orig', 'max_lag')
 plot_grid(p1, p2, rel_widths=c(60, 40))
 ```
 
 
+<br><br>
+
+### FFT
 
 ```{r, fig.width=10, fig.height=5.5}
-
 p1 <- plot_data(df,  'z_meter_fft_subtr', 'z_meter_fft_orig', 'max_freq')
 p2 <- plot_bias_var(df,  'z_meter_fft_subtr', 'z_meter_fft_orig', 'max_freq')
 plot_grid(p1, p2, rel_widths=c(60, 40))
@@ -60,3 +65,40 @@ plot_grid(p1, p2, rel_widths=c(60, 40))
 
 
 
+<br><br><br>
+
+---
+
+## IR erp2
+
+```{r}
+
+df <- read.csv(file.path(data_path, 
+                         sprintf('irType-erp2_nrep-500_snrVsNlagsNfrex.csv')))
+
+df$max_lag <- factor(df$max_lag)
+df$max_freq <- factor(df$max_freq)
+df$snr <- factor(round(df$snr, 1))
+df$sample <- factor(df$sample)
+```
+
+<br><br>
+
+### ACF  
+
+```{r, fig.width=10, fig.height=5.5}
+p1 <- plot_data(df,  'z_meter_acf_subtr', 'z_meter_acf_orig', 'max_lag')
+p2 <- plot_bias_var(df,  'z_meter_acf_subtr', 'z_meter_acf_orig', 'max_lag')
+plot_grid(p1, p2, rel_widths=c(60, 40))
+```
+
+
+<br><br>
+
+### FFT
+
+```{r, fig.width=10, fig.height=5.5}
+p1 <- plot_data(df,  'z_meter_fft_subtr', 'z_meter_fft_orig', 'max_freq')
+p2 <- plot_bias_var(df,  'z_meter_fft_subtr', 'z_meter_fft_orig', 'max_freq')
+plot_grid(p1, p2, rel_widths=c(60, 40))
+```
