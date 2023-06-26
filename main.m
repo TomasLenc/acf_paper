@@ -150,6 +150,26 @@ par.f0_to_excl = 5;
 run_scripts
 
 
+%% 
+
+sel_name = 'maxfreq-5_excl0.416,0.833'; 
+
+par = get_par(); 
+
+par.data_path = fullfile(par.data_path, sel_name); 
+par.fig_path = par.data_path; 
+mkdir(par.data_path); 
+        
+par.max_freq = 5; 
+par.max_freq_plot = 5.1; 
+[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+                                                par.max_freq);
+
+par.freq_meter_rel(par.freq_meter_rel < 1) = []; 
+par.freq_meter_unrel(par.freq_meter_unrel < 1) = []; 
+                                            
+run_scripts
+
 
 
 
