@@ -21,17 +21,17 @@ for (i_data_dir in c(1:length(data_dirs))) {
     if (! dir.exists(fig_path)) {
         dir.create(fig_path)
     }
-    
-    # # Noise
-    # results_fname <- sprintf('report_noise')
-    # rmarkdown::render(sprintf('report_noise.Rmd'), 
-    #                   output_file=sprintf('%s/%s.html', data_path, results_fname))
-    # 
-    # # Syncrange
-    # results_fname <- sprintf('report_syncrange')
-    # rmarkdown::render(sprintf('report_syncrange.Rmd'), 
-    #                   output_file=sprintf('%s/%s.html', data_path, results_fname))
-    
+
+    # Noise
+    results_fname <- sprintf('report_noise')
+    rmarkdown::render(sprintf('report_noise.Rmd'),
+                      output_file=sprintf('%s/%s.html', data_path, results_fname))
+
+    # Syncrange
+    results_fname <- sprintf('report_syncrange')
+    rmarkdown::render(sprintf('report_syncrange.Rmd'),
+                      output_file=sprintf('%s/%s.html', data_path, results_fname))
+
     # N-lags vs. SNR
     results_fname <- sprintf('report_nalgsVsSnr')
     rmarkdown::render(sprintf('report_nlags_nfrex.Rmd'), 
