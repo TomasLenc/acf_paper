@@ -17,7 +17,10 @@ if strcmpi(hostname, 'tux')
     close all
     main05_emph(par, 'ir_type', 'erp2');
     close all
-
+    
+    main08_coch(par);
+    close all
+    
     main10_jitter(par);
     close all
 

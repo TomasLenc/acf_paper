@@ -27,6 +27,7 @@ end
 
 fig_path = fullfile(experiment_path, 'figures'); 
 data_path = fullfile(experiment_path, 'data'); 
+coch_data_path = fullfile(experiment_path, 'data', 'coch'); 
 eeg_path = fullfile(experiment_path, 'eeg'); 
 resting_eeg_path = fullfile(eeg_path, 'resting_eeg', 'ds004148'); 
 
