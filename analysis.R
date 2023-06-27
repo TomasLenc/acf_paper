@@ -8,7 +8,8 @@ data_dirs <- c(
     'maxlag-2.4_meterUnrel-0.2', 
     'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4',
     'maxfreq-5_excl5', 
-    'maxfreq-30_excl5'
+    'maxfreq-30_excl5',
+    'maxfreq-5_excl0.416,0.833'
 )
 
 i_data_dir <- 1
