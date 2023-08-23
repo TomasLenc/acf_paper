@@ -1,0 +1,117 @@
+---
+title: "Autocorrelation FOOOF vs. IRASA"
+author: "Tomas Lenc"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document: 
+    code_folding: hide
+    toc: true
+    toc_float: 
+      collapsed: false
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source('config.R')
+
+```
+
+```{r}
+
+df <- read.csv(file.path(experiment_path, 'data', 'irasaVsFooof_irType-square_noise-eeg_nrep-100.csv'))
+
+library(tidyr)
+df_long <- pivot_longer(df, c(r_fooof, r_irasa),
+                        names_to='method', 
+                        values_to='r')
+
+df_long$method <- sapply(df_long$method, function(x){substr(x, 3, 1e6)})
+
+df_long$only_f0_harmonics <- factor(df_long$only_f0_harmonics)
+df_long$method <- factor(df_long$method)
+df_long$snr <- factor(round(df_long$snr, 3))
+
+# fisher-transform the correlation coefficients
+r_to_z <- function(r) .5 * (log(1+r) - log(1-r))
+
+df_long$z <- r_to_z(df_long$r)
+
+```
+
+
+```{r, fig.width=10, fig.height=4}
+
+cols <- c(fooof='#9c517a', irasa='#208c4d')
+
+ylims <- c(0, 6)
+
+plt_rm_noise <- ggplot(filter(df_long, only_f0_harmonics==0), 
+                       aes(method, z, group=snr, color=method)) + 
+    geom_point(position=position_jitter(height=0, width=0.1), alpha=0.1) + 
+    stat_summary(fun=mean, geom="point", size=2, color='black') + 
+    stat_summary(fun.data=mean_cl_boot, geom="errorbar", width=0.1, linewidth=0.7, color='black') + 
+    facet_wrap(~snr, nrow=1) + 
+    scale_y_continuous(limits=ylims) + 
+    scale_color_manual(values=cols) + 
+    ylab('fisher-transformed r') + 
+    theme_cowplot() + 
+    # coord_cartesian(ylim=c(0.7, NA)) + 
+    theme(
+        axis.title.x = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank()
+    )
+
+plt_only_f0_harm <- ggplot(filter(df_long, only_f0_harmonics==1), 
+                       aes(method, z, group=snr, color=method)) + 
+    geom_point(position=position_jitter(height=0, width=0.1), alpha=0.1) + 
+    stat_summary(fun=mean, geom="point", size=2, color='black') + 
+    stat_summary(fun.data=mean_cl_boot, geom="errorbar", width=0.1, linewidth=0.7, color='black') + 
+    facet_wrap(~snr, nrow=1) + 
+    scale_color_manual(values=cols) + 
+    scale_y_continuous(limits=ylims) + 
+    theme_cowplot() + 
+    theme(
+        axis.title.x = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank(),
+        axis.title.y = element_blank()
+    )
+
+legend <- get_legend(plt_only_f0_harm + theme(legend.position = 'right'))
+
+plot_grid(plt_rm_noise + theme(legend.position = 'none'),
+          plt_only_f0_harm + theme(legend.position = 'none'),
+          legend,
+          nrow=1, rel_widths=c(10, 10, 4))
+
+```
+
+```{r}
+
+m <- lm(z ~ method * snr, data=filter(df_long, only_f0_harmonics==0))
+pander(anova(m))
+
+```
+
+```{r}
+
+m <- lm(z ~ method * snr, data=filter(df_long, only_f0_harmonics==1))
+pander(anova(m))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

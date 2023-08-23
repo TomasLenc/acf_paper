@@ -40,3 +40,19 @@ for (i_data_dir in c(1:length(data_dirs))) {
 
     
 }
+
+
+# FOOOF vs IRASA
+data_path = file.path(experiment_path, 'data')
+results_fname <- sprintf('report_fooofVsIrasa')
+rmarkdown::render(sprintf('report_fooof_irasa.Rmd'),
+                  output_file=sprintf('%s/%s.html', data_path, results_fname))
+
+
+
+
+
+
+
+
+
