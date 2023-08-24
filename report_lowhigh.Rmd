@@ -19,20 +19,24 @@ source('utils.R')
 
 ```
 
-```{r}
-# list.files(data_path)
-```
-
 
 ```{r}
+
+ap_fit_method <- 'irasa'
+
 rhythms <- c('unsyncopated', 'syncopated')
 tones <- c('L', 'H')
 
 data_path = file.path(experiment_path, 'data')
 
-df_eeg_boot <- read.csv(file.path(data_path, 'exp-lowhigh_apFitMethod-irasa_eegBoot.csv'))
-df_eeg_grand <- read.csv(file.path(data_path, 'exp-lowhigh_apFitMethod-irasa_eegGrand.csv'))
-df_eeg_ind <- read.csv(file.path(data_path, 'exp-lowhigh_apFitMethod-irasa_eegIndividual.csv'))
+df_eeg_boot <- read.csv(file.path(data_path,
+                                  sprintf('exp-lowhigh_apFitMethod-%s_eegBoot.csv', ap_fit_method)))
+
+df_eeg_grand <- read.csv(file.path(data_path, 
+                                  sprintf('exp-lowhigh_apFitMethod-%s_eegGrand.csv', ap_fit_method)))
+
+df_eeg_ind <- read.csv(file.path(data_path, 
+                                  sprintf('exp-lowhigh_apFitMethod-%s_eegIndividual.csv', ap_fit_method)))
 
 df_eeg_boot$rhythm <- factor(df_eeg_boot$rhythm,  levels=rhythms)
 df_eeg_grand$rhythm <- factor(df_eeg_grand$rhythm,  levels=rhythms)
@@ -41,6 +45,14 @@ df_eeg_ind$rhythm <- factor(df_eeg_ind$rhythm,  levels=rhythms)
 df_eeg_boot$tone <- factor(df_eeg_boot$tone,  levels=tones)
 df_eeg_grand$tone <- factor(df_eeg_grand$tone,  levels=tones)
 df_eeg_ind$tone <- factor(df_eeg_ind$tone,  levels=tones)
+
+# load matlab parameters 
+library(R.matlab)
+par_matlab <- drop(readMat(file.path(data_path, 
+                                  sprintf('exp-lowhigh_apFitMethod-%s_eegBoot_par.mat',
+                                          ap_fit_method)), fixNames=FALSE)$par)
+
+
 ```
 
 
@@ -146,58 +158,86 @@ plot_feat_boot <- function(df, df_boot,
 
 ```
 
-```{r}
+<br> 
 
+Individual participant data. 1/f component was estimated using `r ap_fit_method` method, separately for each electrode and participant. 
+
+After subtracting the 1/f, acf was computed and averaged across **all** channels, separately for each participant.  
+
+The zscore at meter-related lags was computed from the channel-averaged ACF, separately for each participant and condition.  
+
+Lags of interest were seleted as follows:   
+
+**Meter-related**: `r par_matlab$lags_meter_rel`
+
+**Meter-unrelated**: `r par_matlab$lags_meter_unrel`
+
+
+```{r}
 plot_feat_ind(df_eeg_ind, 
               col_name_eeg='z_meter_acf_subtr',
               col_name_coch='z_meter_acf_sound')
-
 ```
+<br> 
+
+Mixed model (factors: rhythm x tone)
+
 ```{r}
-m <- lmer(z_meter_acf_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
+m <- lmer(z_meter_acf_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
 pander(Anova(m))
 ```
+<br> 
 
-Posthoc unsyncopated: 
+Posthoc t-test low vs. high tone  (bonferroni corrected): 
+
 ```{r}
 
+ttest_tone <- function(df, var_name){
+    vals_low <- df %>% filter(tone == 'L') %>% arrange(subject) %>% pull(.data[[var_name]])
+    vals_high <- df %>% filter(tone == 'H') %>% arrange(subject) %>% pull(.data[[var_name]])
+    res <- t.test(vals_low, vals_high, paired=T)
+    data.frame(t=res$statistic, p=res$p.value)
+}
 
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm) %>% 
+    group_modify(~ttest_tone(.x, var_name='z_meter_acf_subtr'))
 
+df_posthoc$p <- p.adjust(df_posthoc$p, method='bonferroni')
 
-vals_low <- df_eeg_ind %>% 
-    filter(rhythm == 'unsyncopated' & tone == 'L') %>%
-    arrange(subject) %>%
-    pull(z_meter_acf_subtr)
-
-vals_high <- df_eeg_ind %>% 
-    filter(rhythm == 'unsyncopated' & tone == 'H') %>%
-    arrange(subject) %>%
-    pull(z_meter_acf_subtr)
-
-pander(t.test(vals_low, vals_high, paired=T))
-
+pander(df_posthoc)
 ```
+<br> 
 
-Posthoc syncopated: 
+T-test against 0 (fdr corrected): 
 ```{r}
 
-vals_low <- df_eeg_ind %>% 
-    filter(rhythm == 'syncopated' & tone == 'L') %>%
-    arrange(subject) %>%
-    pull(z_meter_acf_subtr)
+ttest_0 <- function(df, var_name){
+    vals_eeg <- df %>% pull(.data[[var_name]])
+    res <- t.test(vals_eeg, mu=0, alternative='greater')
+    data.frame(t=res$statistic, p=res$p.value)
+}
 
-vals_high <- df_eeg_ind %>% 
-    filter(rhythm == 'syncopated' & tone == 'H') %>%
-    arrange(subject) %>%
-    pull(z_meter_acf_subtr)
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm, tone) %>% 
+    group_modify(~ttest_0(.x, var_name='z_meter_acf_subtr'))
 
-pander(t.test(vals_low, vals_high, paired=T))
+df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 
+pander(df_posthoc)
 ```
 
 
 
 <br><br><br> 
+
+### EEG bootstrapped 
+
+Grand average was computed by averaging time-domain responses across all participants, separately for each condition and channel.  
+
+Then, 1/f-subtracted acf was computed and averaged across all channels, and zscore at meter-related lags was computed. 
+
+To estimate confidence intervals of the grand-average values, bootrapping was used. On each bootstrap iteration (N=`r par_matlab$n_boot` per condition), 14 participants were chosen with repetition, and analysed the same way as the true grand average above.  
 
 ```{r}
 plot_feat_boot(df_eeg_grand, 

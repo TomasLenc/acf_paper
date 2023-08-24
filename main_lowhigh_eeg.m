@@ -22,7 +22,7 @@ n_rhythms = 2;
 
 rm_id = [1,4,6,11,14];
 
-trial_dur = 50.4;  
+par.trial_dur = 50.4;  
 
 %% allocate table
 
@@ -41,25 +41,24 @@ tbl = cell2table(cell(0, length(col_names)), 'VariableNames', col_names);
 
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
-min_lag = 0;
-max_lag = trial_dur / 2; 
+par.max_lag = par.trial_dur / 2; 
 
-lag_base_incl_meter_rel = [0.8]; 
-lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
+par.lag_base_incl_meter_rel = [0.8]; 
+par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
 
-lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
-lag_base_excl_meter_unrel = [0.8]; 
+par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
+par.lag_base_excl_meter_unrel = [0.8]; 
 
 par.lags_meter_rel = get_lag_harmonics(...
-                            lag_base_incl_meter_rel, ...
-                            max_lag,...
-                            'lag_harm_to_exclude', lag_base_excl_meter_rel ...
+                            par.lag_base_incl_meter_rel, ...
+                            par.max_lag,...
+                            'lag_harm_to_exclude', par.lag_base_excl_meter_rel ...
                             ); 
                         
 par.lags_meter_unrel = get_lag_harmonics(...
-                            lag_base_incl_meter_unrel, ...
-                            max_lag,...
-                            'lag_harm_to_exclude', lag_base_excl_meter_unrel ...
+                            par.lag_base_incl_meter_unrel, ...
+                            par.max_lag,...
+                            'lag_harm_to_exclude', par.lag_base_excl_meter_unrel ...
                             ); 
 
 
@@ -125,7 +124,7 @@ for i_rhythm=1:n_rhythms
         end
 
         [header, data] = RLW_segmentation(header, data, {'trig'}, ...
-                            'x_start', 0+offset, 'x_duration', trial_dur); 
+                            'x_start', 0+offset, 'x_duration', par.trial_dur); 
 
         % downsample 
         [header, data] = RLW_downsample(header, data, 'x_downsample_ratio', 16); 
@@ -135,10 +134,10 @@ for i_rhythm=1:n_rhythms
 
         % make sure we don't have lags longer than half trial duration!
         par.lags_meter_rel = ...
-            par.lags_meter_rel(par.lags_meter_rel < trial_dur/2); 
+            par.lags_meter_rel(par.lags_meter_rel < par.trial_dur/2); 
 
         par.lags_meter_unrel = ...
-            par.lags_meter_unrel(par.lags_meter_unrel < trial_dur/2); 
+            par.lags_meter_unrel(par.lags_meter_unrel < par.trial_dur/2); 
 
         %% load stimulus
 
@@ -161,7 +160,7 @@ for i_rhythm=1:n_rhythms
 
     %     % cut off the edges to remove filter artifacts 
     %     idx_start = round(2.4 * fs_coch); 
-    %     N = round((trial_dur - 2 * 2.4) * fs_coch); 
+    %     N = round((par.trial_dur - 2 * 2.4) * fs_coch); 
     %     coch = coch(idx_start+1 : idx_start+N); 
     %     
     %     % ensure integer number of cycles 

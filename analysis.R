@@ -52,6 +52,12 @@ rmarkdown::render(sprintf('report_fooof_irasa.Rmd'),
 
 
 
+# lowhigh
+data_path = file.path(experiment_path, 'data')
+results_fname <- sprintf('report_lowhigh')
+rmarkdown::render(sprintf('report_lowhigh.Rmd'),
+                  output_file=sprintf('%s/%s.html', data_path, results_fname))
+
 
 
 
