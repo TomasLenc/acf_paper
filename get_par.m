@@ -44,19 +44,20 @@ grid_ioi = 0.2;
 trial_dur = n_cycles * length(pat) * grid_ioi; 
 
 
-%% 
+%% acf parameters 
+
+ap_fit_method = 'irasa'; 
+
+f0_to_ignore = 1/2.4; 
+
+ap_fit_flims = [0.1, 9]; 
+
+
+%% lags of interest
 
 % make sure acf_tools are added because we'll need the get_lag_harmonics
 % function from there...
 addpath(genpath(acf_tools_path)); 
-
-
-% min_lag = 0;
-% max_lag = (grid_ioi * length(pat)); 
-% lags_meter_rel = [0.8, 1.6];
-% lags_meter_unrel = [0.6, 1.0, 1.4, 2.0];
-
-
 
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
@@ -101,7 +102,7 @@ lags_meter_unrel = get_lag_harmonics(...
 % make sure one more time that there's no overlap between meter-rel and -unrel !!! 
 assert(~any( min(abs(bsxfun(@minus, lags_meter_rel', lags_meter_unrel))) < 1e-9 ))
 
-%% 
+%% frequencies of interest
 
 max_freq = 5;
 max_freq_plot = max_freq + 0.1; 
@@ -121,13 +122,14 @@ end
 
 frex = sort([freq_meter_rel, freq_meter_unrel]);
 
-%%
+%% 
 
 noise_bins = [2, 5]; 
 
 % noies bins for calculating the SNR of the raw spectra
 % (harmonic-snippet-zsocre method as used by Rossion)
 noise_bins_snr = [3, 13]; 
+
 
 %%
 

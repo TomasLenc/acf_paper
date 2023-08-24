@@ -199,12 +199,21 @@ for i_rhythm=1:n_rhythms
         mX_subtracted = subtract_noise_bins(mX, par.noise_bins(1),  par.noise_bins(2)); 
 
         % with aperiodic subtraction    
-        [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr, optim_exitflag] = ...
-                                    get_acf(data, fs, ...
-                                           'rm_ap', true, ...
-                                           'f0_to_ignore', 1 / 2.4, ...
-                                           'ap_fit_flims', [0.1, 9]);
-
+        acf_subtracted = nan(size(acf)); 
+        ap = nan(size(acf)); 
+        parfor i_sub=1:size(data, 1)
+            fprintf('sub-%02d\n', i_sub); 
+            [acf_subtracted(i_sub, :, 1, 1, 1, :), ~, ...
+             ap(i_sub, :, 1, 1, 1, :), ~, ~, ~, ~, ...
+             optim_exitflag(i_sub, :)] = ...
+                                get_acf(data(i_sub, :, 1, 1, 1, :), fs, ...
+                                       'rm_ap', true, ...
+                                       'ap_fit_method', par.ap_fit_method, ...
+                                       'f0_to_ignore', par.f0_to_ignore, ...
+                                       'ap_fit_flims', par.ap_fit_flims, ...
+                                       'verbose', false);
+        end
+        
     %     chan_idx = find(strcmp({header.chanlocs.labels}, 'Fz'));
     %     [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr, optim_exitflag] = ...
     %                                 get_acf(data(5, chan_idx, 1, 1, 1, :), ...
@@ -215,7 +224,7 @@ for i_rhythm=1:n_rhythms
     %                                        'f0_to_ignore', 1 / 2.4, ...
     %                                        'ap_fit_flims', [0.1, 9]);                                   
 
-        if any(~optim_exitflag)
+        if strcmp(par.ap_fit_method, 'fooof') && any(~optim_exitflag)
             warning('ap-fit didnt converge %d/%d reps', sum(~optim_exitflag), n_rhythms); 
         end
 
@@ -291,8 +300,6 @@ for i_rhythm=1:n_rhythms
             ];
 
         tbl = [tbl; rows];
-
-
         
     end
 
@@ -337,7 +344,7 @@ end
 
 %% save table
 
-fname = sprintf('exp-lowhigh_eegIndividual'); 
+fname = sprintf('exp-lowhigh_apFitMethod-%s_eegIndividual', par.ap_fit_method); 
 writetable(tbl, fullfile(par.data_path, [fname, '.csv'])); 
 
 % save parameters 
