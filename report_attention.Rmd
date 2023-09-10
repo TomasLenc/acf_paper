@@ -1,5 +1,5 @@
 ---
-title: "Autocorrelation LowHigh"
+title: "Autocorrelation Attention"
 author: "Tomas Lenc"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
@@ -23,37 +23,47 @@ source('utils.R')
 ```{r}
 
 rhythms <- c('unsyncopated', 'syncopated')
-tones <- c('L', 'H')
+tasks <- c('tempo', 'pitch', 'arithmetics')
 
 data_path = file.path(experiment_path, 'data')
 
-df_eeg_boot <- read.csv(file.path(data_path,
-                                  sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegBoot.csv',
+df_eeg_ind_fft <- read.csv(file.path(data_path, 
+                                  sprintf('exp-attention_apFitMethod-%s_roi-%s_eegIndividual_fft.csv', 
+                                          ap_fit_method, roi_name)))
+df_eeg_ind_acf <- read.csv(file.path(data_path, 
+                                  sprintf('exp-attention_apFitMethod-%s_roi-%s_eegIndividual_acf.csv', 
                                           ap_fit_method, roi_name)))
 
+df_eeg_ind <- merge(df_eeg_ind_fft, df_eeg_ind_acf, by=c('subject', 'rhythm', 'task'))
+
+df_eeg_boot <- read.csv(file.path(data_path, 
+                                  sprintf('exp-attention_apFitMethod-%s_roi-%s_eegBoot.csv', 
+                                          ap_fit_method, roi_name)))
 df_eeg_grand <- read.csv(file.path(data_path, 
-                                  sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegGrand.csv', 
+                                  sprintf('exp-attention_apFitMethod-%s_roi-%s_eegGrand.csv', 
                                           ap_fit_method, roi_name)))
 
-df_eeg_ind <- read.csv(file.path(data_path, 
-                                  sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegIndividual.csv',
-                                          ap_fit_method, roi_name)))
+# remove subjects
+df_eeg_ind <- filter(df_eeg_ind, subject >= 5)
+
+df_eeg_ind$subject <- factor(df_eeg_ind$subject)
+df_eeg_ind$rhythm <- factor(df_eeg_ind$rhythm,  levels=rhythms)
+df_eeg_ind$task <- factor(df_eeg_ind$task,  levels=tasks)
 
 df_eeg_boot$rhythm <- factor(df_eeg_boot$rhythm,  levels=rhythms)
+df_eeg_boot$task <- factor(df_eeg_boot$task,  levels=tasks)
+
 df_eeg_grand$rhythm <- factor(df_eeg_grand$rhythm,  levels=rhythms)
-df_eeg_ind$rhythm <- factor(df_eeg_ind$rhythm,  levels=rhythms)
+df_eeg_grand$task <- factor(df_eeg_grand$task,  levels=tasks)
 
-df_eeg_boot$tone <- factor(df_eeg_boot$tone,  levels=tones)
-df_eeg_grand$tone <- factor(df_eeg_grand$tone,  levels=tones)
-df_eeg_ind$tone <- factor(df_eeg_ind$tone,  levels=tones)
-
-# load matlab parameters 
+# load matlab parameters
 library(R.matlab)
-par_matlab <- drop(readMat(file.path(data_path, 
-                                  sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegBoot_par.mat',
+par_matlab <- drop(readMat(file.path(data_path,
+                                  sprintf('exp-attention_apFitMethod-%s_roi-%s_eegBoot_par.mat',
                                           ap_fit_method, roi_name)), fixNames=FALSE)$par)
 
-cols <- c(L='red', H='blue')
+
+cols <- c(tempo='red', pitch='blue', arithmetics='purple')
 cols_individual <- lighten(cols, amount=0.7)
 names(cols_individual) <- names(cols)
 ```
@@ -68,35 +78,35 @@ names(cols_individual) <- names(cols)
 plot_feat_ind <- function(df, 
                          col_name_eeg='z_meter_fft_subtr', col_name_coch='z_meter_fft_sound'){
     
-    df$x <- as.numeric(df$tone)
+    df$x <- as.numeric(df$task)
     df$x_coch_start <- df$x-0.3
     df$x_coch_end <- df$x+0.3
     
-    df_summary <- summarySE(df, groupvars=c('rhythm', 'tone'), measurevar=col_name_eeg)
+    df_summary <- summarySE(df, groupvars=c('rhythm', 'task'), measurevar=col_name_eeg)
     
-    df_summary$x <- as.numeric(df_summary$tone)
+    df_summary$x <- as.numeric(df_summary$task)
     
-    p <- ggplot(df, aes(x, .data[[col_name_eeg]], color=tone)) + 
+    p <- ggplot(df, aes(x, .data[[col_name_eeg]], color=task)) + 
         geom_segment(data=df[df$subject==df$subject[1],],
                      inherit.aes=FALSE,
                      aes(x=x_coch_start, xend=x_coch_end,
                          y=.data[[col_name_coch]], yend=.data[[col_name_coch]],
-                         color=tone),
+                         color=task),
                      linewidth=3, alpha=0.5) +
-        scale_color_manual(name='tone', values=cols) +
-        scale_x_continuous(breaks=c(1:length(levels(df$tone))), 
-                           labels=levels(df$tone)) +  
+        scale_color_manual(name='task', values=cols) +
+        scale_x_continuous(breaks=c(1:length(levels(df$task))), 
+                           labels=levels(df$task)) +  
         new_scale_color() + new_scale_fill() +
-        geom_point(aes(color=tone), size=2, position=position_jitter(width=0.1, height=0)) +
-        scale_color_manual(name='tone', values=cols_individual) + 
+        geom_point(aes(color=task), size=2, position=position_jitter(width=0.1, height=0)) +
+        scale_color_manual(name='task', values=cols_individual) + 
         geom_hline(yintercept=0) +
         new_scale_color() + new_scale_fill() + 
-        geom_point(data=df_summary, aes(color=tone), size=3) + 
+        geom_point(data=df_summary, aes(color=task), size=3) + 
         geom_errorbar(data=df_summary, 
-                      aes(color=tone, ymin=.data[[col_name_eeg]]-ci,
+                      aes(color=task, ymin=.data[[col_name_eeg]]-ci,
                           ymax=.data[[col_name_eeg]]+ci), 
                       linewidth=1, width=0.2) + 
-        scale_color_manual(name='tone', values=cols) + 
+        scale_color_manual(name='task', values=cols) + 
         facet_wrap(~rhythm, nrow=1) + 
         theme_cowplot() + 
         my_theme()
@@ -113,37 +123,37 @@ plot_feat_ind <- function(df,
 plot_feat_boot <- function(df, df_boot, 
                            col_name_eeg='z_meter_fft_subtr', col_name_coch='z_meter_fft_sound'){
 
-    df$x <- as.numeric(df$tone)
+    df$x <- as.numeric(df$task)
     df$x_coch_start <- df$x-0.4
     df$x_coch_end <- df$x+0.4
     
-    df_boot$x <- as.numeric(df_boot$tone)
+    df_boot$x <- as.numeric(df_boot$task)
     
     df_ci <- df_boot %>% 
-        group_by(tone, rhythm) %>% 
+        group_by(task, rhythm) %>% 
         group_modify(~ get_boot_summary(.x, .y, feature_name=col_name_eeg)) 
         
     df_summary <- join(df_ci, 
-                       df %>% select(tone, rhythm, x, 
+                       df %>% select(task, rhythm, x, 
                                      x_coch_start, x_coch_end, 
                                      .data[[col_name_eeg]], .data[[col_name_coch]]), 
-                       by=c('tone', 'rhythm'))
+                       by=c('task', 'rhythm'))
     
-    p <- ggplot(df_summary, aes(x, .data[[col_name_eeg]], color=tone)) + 
+    p <- ggplot(df_summary, aes(x, .data[[col_name_eeg]], color=task)) + 
         geom_segment(aes(x=x_coch_start, xend=x_coch_end,
                          y=.data[[col_name_coch]], yend=.data[[col_name_coch]],
-                         color=tone),
+                         color=task),
                      linewidth=3, alpha=0.5) +
-        scale_color_manual(name='tone', values=cols)+
-        scale_fill_manual(name='tone', values=cols) +
-        scale_x_continuous(breaks=c(1:length(levels(df$tone))), 
-                           labels=levels(df$tone)) +  
-        geom_half_violin(data=df_boot, aes(fill=tone, group=tone), 
+        scale_color_manual(name='task', values=cols)+
+        scale_fill_manual(name='task', values=cols) +
+        scale_x_continuous(breaks=c(1:length(levels(df$task))), 
+                           labels=levels(df$task)) +  
+        geom_half_violin(data=df_boot, aes(fill=task, group=task), 
                          side='l', scale='width', fill='grey60', color=NA, alpha=0.6, trim=T) + 
         geom_hline(yintercept=0) +
-        geom_point(aes(x=x+0.15, color=tone), size=3) + 
-        geom_errorbar(aes(x=x+0.15, color=tone, ymin=ci_low, ymax=ci_high), 
-                      size=1, width=0) + 
+        geom_point(aes(x=x+0.15, color=task), size=3) + 
+        geom_errorbar(aes(x=x+0.15, color=task, ymin=ci_low, ymax=ci_high), 
+                      linewidth=1, width=0) + 
         facet_wrap(~rhythm, nrow=1) + 
         theme_cowplot() + 
         my_theme()
@@ -154,6 +164,16 @@ plot_feat_boot <- function(df, df_boot,
 ```
 
 
+Reference channels:  
+`r unlist(par_matlab$ref_chans)`  
+
+ROI channels (averaged in the time domain):  
+`r unlist(par_matlab$roi_chans)`  
+
+<br>
+
+--- 
+
 <br>
 
 ## EEG individual 
@@ -161,8 +181,6 @@ plot_feat_boot <- function(df, df_boot,
 <br> 
 
 ### FFT
-
-Analysis performed on a frontal cluster of channels, same as in the paper. 
 
 Frequencies of interest were selected as follows:   
 
@@ -178,19 +196,19 @@ plot_feat_ind(df_eeg_ind,
 ```
 <br> 
 
-Mixed model (factors: rhythm x tone)
+Mixed model (factors: rhythm x task)
 
 ```{r}
-m <- lmer(z_meter_fft_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
+m <- lmer(z_meter_fft_subtr ~ rhythm * task + (1|subject), data=df_eeg_ind)
 pander(Anova(m))
 ```
 <br> 
 
-Posthoc tests low vs. high tone: 
+Posthoc tests task: 
 
 ```{r}
-m_posthoc <- lmer(z_meter_fft_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
-emm <- emmeans(m_posthoc, 'tone')
+m_posthoc <- lmer(z_meter_fft_subtr ~ rhythm + task + (1|subject), data=df_eeg_ind)
+emm <- emmeans(m_posthoc, 'task')
 c <- contrast(emm, 'pairwise', adjust='bonferroni')
 pander(as.data.frame(c))
 ```
@@ -206,7 +224,7 @@ ttest_0 <- function(df, var_name){
 }
 
 df_posthoc <- df_eeg_ind %>% 
-    group_by(rhythm, tone) %>% 
+    group_by(rhythm, task) %>% 
     group_modify(~ttest_0(.x, var_name='z_meter_fft_subtr'))
 
 df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
@@ -220,11 +238,7 @@ pander(df_posthoc)
 
 ### ACF
 
-Individual participant data. 1/f component was estimated using **`r ap_fit_method`** method, separately for each electrode and participant. 
-
-After subtracting the 1/f, acf was computed and averaged across **all** channels, separately for each participant.  
-
-The zscore at meter-related lags was computed from the channel-averaged ACF, separately for each participant and condition.  
+Individual participant data. 1/f component was estimated using **`r ap_fit_method`** method, separately for each participant. 
 
 Lags of interest were seleted as follows:   
 
@@ -240,45 +254,34 @@ plot_feat_ind(df_eeg_ind,
 ```
 <br> 
 
-Mixed model (factors: rhythm x tone)
+Mixed model (factors: rhythm x task)
 
 ```{r}
-m <- lmer(z_meter_acf_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
+m <- lmer(z_meter_acf_subtr ~ rhythm * task + (1|subject), data=df_eeg_ind)
 pander(Anova(m))
 ```
 <br> 
 
-Posthoc tests low vs. high tone: 
-
-```{r}
-m_posthoc <- lmer(z_meter_acf_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
-emm <- emmeans(m_posthoc, 'tone')
-c <- contrast(emm, 'pairwise', adjust='bonferroni')
-pander(as.data.frame(c))
-```
-<br> 
-
-T-test against 0 (fdr corrected): 
+T-test against cochlear model (fdr corrected): 
 ```{r}
 
-ttest_0 <- function(df, var_name){
-    vals_eeg <- df %>% pull(.data[[var_name]])
-    res <- t.test(vals_eeg, mu=0, alternative='greater')
+ttest_sound <- function(df, var_name_eeg, var_name_sound){
+    vals_eeg <- df %>% pull(.data[[var_name_eeg]])
+    val_sound <- unique(df %>% pull(.data[[var_name_sound]]))
+    res <- t.test(vals_eeg, mu=val_sound, alternative='greater')
     data.frame(t=res$statistic, p=res$p.value)
 }
 
 df_posthoc <- df_eeg_ind %>% 
-    group_by(rhythm, tone) %>% 
-    group_modify(~ttest_0(.x, var_name='z_meter_acf_subtr'))
+    group_by(rhythm, task) %>% 
+    group_modify(~ttest_sound(.x, 
+                      var_name_eeg='z_meter_acf_subtr', 
+                      var_name_sound='z_meter_acf_sound'))
 
 df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 
 pander(df_posthoc)
 ```
-
-
-
-
 
 
 
@@ -330,13 +333,13 @@ prop_test_0 <- function(df, var_name_eeg){
 }
 
 # df_posthoc <- df_eeg_boot %>% 
-#     group_by(rhythm, tone) %>% 
+#     group_by(rhythm, task) %>% 
 #     group_modify(~prop_test_sound(.x, 
 #                       var_name_eeg='z_meter_acf_subtr', 
 #                       var_name_sound='z_meter_acf_sound'))
 
 df_posthoc <- df_eeg_boot %>%
-    group_by(rhythm, tone) %>%
+    group_by(rhythm, task) %>%
     group_modify(~prop_test_0(.x, var_name='z_meter_acf_subtr'))
 
 
@@ -345,7 +348,6 @@ df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 pander(df_posthoc)
 
 ```
-
 
 
 

@@ -24,6 +24,13 @@ rm_id = [1,4,6,11,14];
 
 par.trial_dur = 50.4;  
 
+par.roi_name = 'frontocentral'; 
+par.roi_chans = {'F1', 'Fz', 'F2', 'FC1', 'FCz', 'FC2', 'C1', 'Cz', 'C2'}; 
+
+par.ref_name = 'all'; 
+% par.ref_chans = 'all'; 
+
+
 %% allocate table
 
 col_names = {
@@ -47,7 +54,7 @@ par.lag_base_incl_meter_rel = [0.8];
 par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
 
 par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
-par.lag_base_excl_meter_unrel = [0.8]; 
+par.lag_base_excl_meter_unrel = [0.4]; 
 
 par.lags_meter_rel = get_lag_harmonics(...
                             par.lag_base_incl_meter_rel, ...
@@ -101,6 +108,13 @@ for i_rhythm=1:n_rhythms
                     tone_id, rhythm_id));
 
         [header, data] = CLW_load(fname); 
+        
+        if strcmp(par.roi_name, 'all')
+            par.roi_chans = {header.chanlocs.labels}; 
+        end
+        if strcmp(par.ref_name, 'all')
+            par.ref_chans = {header.chanlocs.labels}; 
+        end
 
         % remove bad subjects 
         [header, data] = RLW_arrange_epochs(header, data, ...
@@ -108,7 +122,21 @@ for i_rhythm=1:n_rhythms
 
         n_sub = header.datasize(1); 
 
-        n_chan = header.datasize(2); 
+        % reference
+        [header, data] = RLW_rereference(header, data,...
+                                'apply_list', {header.chanlocs.labels}, ...
+                                'reference_list', par.ref_chans); 
+                            
+        % select channels of interest 
+        [header, data] = RLW_arrange_channels(header, data, par.roi_chans); 
+        
+        assert(header.datasize(2) == length(par.roi_chans)); 
+        
+        % average channels of interest (unless we're taking all channels)
+        if ~strcmp(par.roi_name, 'all')
+            [header, data] = RLW_pool_channels(header, data, par.roi_chans, ...
+                                               'keep_original_channels', 0); 
+        end
 
         % filter
         [header, data] = RLW_butterworth_filter(header, data, ...
@@ -213,15 +241,15 @@ for i_rhythm=1:n_rhythms
                                        'verbose', false);
         end
         
-    %     chan_idx = find(strcmp({header.chanlocs.labels}, 'Fz'));
-    %     [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr, optim_exitflag] = ...
-    %                                 get_acf(data(5, chan_idx, 1, 1, 1, :), ...
-    %                                         fs, ...
-    %                                        'ap_fit_method', 'irasa', ...
-    %                                        'plot_diagnostic', true, ...
-    %                                        'rm_ap', true, ...
-    %                                        'f0_to_ignore', 1 / 2.4, ...
-    %                                        'ap_fit_flims', [0.1, 9]);                                   
+%         chan_idx = find(strcmp({header.chanlocs.labels}, 'Fz'));
+%         [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr, optim_exitflag] = ...
+%                                     get_acf(data(5, 1, 1, 1, 1, :), ...
+%                                             fs, ...
+%                                            'ap_fit_method', 'irasa', ...
+%                                            'plot_diagnostic', true, ...
+%                                            'rm_ap', true, ...
+%                                            'f0_to_ignore', 1 / 2.4, ...
+%                                            'ap_fit_flims', [0.1, 9]);                                   
 
         if strcmp(par.ap_fit_method, 'fooof') && any(~optim_exitflag)
             warning('ap-fit didnt converge %d/%d reps', sum(~optim_exitflag), n_rhythms); 
@@ -343,7 +371,8 @@ end
 
 %% save table
 
-fname = sprintf('exp-lowhigh_apFitMethod-%s_eegIndividual', par.ap_fit_method); 
+fname = sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegIndividual', ...
+                par.ap_fit_method, par.roi_name); 
 writetable(tbl, fullfile(par.data_path, [fname, '.csv'])); 
 
 % save parameters 

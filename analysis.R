@@ -50,14 +50,29 @@ rmarkdown::render(sprintf('report_fooof_irasa.Rmd'),
 
 
 
-
+# infant
+data_path = file.path(experiment_path, 'data')
+results_fname <- sprintf('report_infant')
+rmarkdown::render(sprintf('report_infant.Rmd'),
+                  output_file=sprintf('%s/%s.html', data_path, results_fname))
 
 # lowhigh
+ap_fit_method <- 'irasa'
+roi_name <- 'frontocentral'
 data_path = file.path(experiment_path, 'data')
-results_fname <- sprintf('report_lowhigh')
+results_fname <- sprintf(sprintf('report_xp-lowhigh_apFitMethod-%s_roi-%s',
+                                 ap_fit_method, roi_name))
 rmarkdown::render(sprintf('report_lowhigh.Rmd'),
                   output_file=sprintf('%s/%s.html', data_path, results_fname))
 
+# attention
+ap_fit_method <- 'irasa'
+roi_name <- 'all'
+data_path = file.path(experiment_path, 'data')
+results_fname <- sprintf(sprintf('report_xp-attention_apFitMethod-%s_roi-%s',
+                                 ap_fit_method, roi_name))
+rmarkdown::render(sprintf('report_attention.Rmd'),
+                  output_file=sprintf('%s/%s.html', data_path, results_fname))
 
 
 

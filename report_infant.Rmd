@@ -1,5 +1,5 @@
 ---
-title: "Autocorrelation LowHigh"
+title: "Autocorrelation Infant"
 author: "Tomas Lenc"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
@@ -22,38 +22,38 @@ source('utils.R')
 
 ```{r}
 
-rhythms <- c('unsyncopated', 'syncopated')
-tones <- c('L', 'H')
+ap_fit_method <- 'irasa'
+
+rhythms <- c('unsync', 'sync')
+tones <- c('low', 'high')
 
 data_path = file.path(experiment_path, 'data')
-
-df_eeg_boot <- read.csv(file.path(data_path,
-                                  sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegBoot.csv',
-                                          ap_fit_method, roi_name)))
-
-df_eeg_grand <- read.csv(file.path(data_path, 
-                                  sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegGrand.csv', 
-                                          ap_fit_method, roi_name)))
+# 
+# df_eeg_boot <- read.csv(file.path(data_path,
+#                                   sprintf('exp-infant_apFitMethod-%s_eegBoot.csv', ap_fit_method)))
+# 
+# df_eeg_grand <- read.csv(file.path(data_path, 
+#                                   sprintf('exp-infant_apFitMethod-%s_eegGrand.csv', ap_fit_method)))
 
 df_eeg_ind <- read.csv(file.path(data_path, 
-                                  sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegIndividual.csv',
-                                          ap_fit_method, roi_name)))
+                                  sprintf('exp-infant_apFitMethod-%s_eegIndividual.csv', ap_fit_method)))
 
-df_eeg_boot$rhythm <- factor(df_eeg_boot$rhythm,  levels=rhythms)
-df_eeg_grand$rhythm <- factor(df_eeg_grand$rhythm,  levels=rhythms)
+# df_eeg_boot$rhythm <- factor(df_eeg_boot$rhythm,  levels=rhythms)
+# df_eeg_grand$rhythm <- factor(df_eeg_grand$rhythm,  levels=rhythms)
 df_eeg_ind$rhythm <- factor(df_eeg_ind$rhythm,  levels=rhythms)
 
-df_eeg_boot$tone <- factor(df_eeg_boot$tone,  levels=tones)
-df_eeg_grand$tone <- factor(df_eeg_grand$tone,  levels=tones)
+# df_eeg_boot$tone <- factor(df_eeg_boot$tone,  levels=tones)
+# df_eeg_grand$tone <- factor(df_eeg_grand$tone,  levels=tones)
 df_eeg_ind$tone <- factor(df_eeg_ind$tone,  levels=tones)
 
-# load matlab parameters 
+# load matlab parameters
 library(R.matlab)
-par_matlab <- drop(readMat(file.path(data_path, 
-                                  sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegBoot_par.mat',
-                                          ap_fit_method, roi_name)), fixNames=FALSE)$par)
+par_matlab <- drop(readMat(file.path(data_path,
+                                  sprintf('exp-infant_apFitMethod-%s_eegIndividual_par.mat',
+                                          ap_fit_method)), fixNames=FALSE)$par)
 
-cols <- c(L='red', H='blue')
+
+cols <- c(low='red', high='blue')
 cols_individual <- lighten(cols, amount=0.7)
 names(cols_individual) <- names(cols)
 ```
@@ -222,7 +222,7 @@ pander(df_posthoc)
 
 Individual participant data. 1/f component was estimated using **`r ap_fit_method`** method, separately for each electrode and participant. 
 
-After subtracting the 1/f, acf was computed and averaged across **all** channels, separately for each participant.  
+After subtracting the 1/f, acf was computed and averaged across **frontocentral** channels, separately for each participant.  
 
 The zscore at meter-related lags was computed from the channel-averaged ACF, separately for each participant and condition.  
 
@@ -275,85 +275,4 @@ df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 
 pander(df_posthoc)
 ```
-
-
-
-
-
-
-
-
-<br>
-
-## EEG boot 
-
-We computed `r par_matlab$n_boot` bootstrap samples, separately for each condition.  
-
-
-<br> 
-
-### FFT
-
-
-```{r}
-plot_feat_boot(df_eeg_grand, df_eeg_boot,  
-              col_name_eeg='z_meter_fft_subtr',
-              col_name_coch='z_meter_fft_sound')
-```
-
-<br> 
-
-### ACF
-
-```{r}
-plot_feat_boot(df_eeg_grand, df_eeg_boot,  
-              col_name_eeg='z_meter_acf_subtr',
-              col_name_coch='z_meter_acf_sound')
-```
-<br> 
-
-Proportion test against cochlear/0 (fdr corrected): 
-
-```{r}
-
-prop_test_sound <- function(df, var_name_eeg, var_name_sound){
-    vals_eeg <- df %>% pull(.data[[var_name_eeg]])
-    val_sound <- unique(df %>% pull(.data[[var_name_sound]]))
-    p <- mean(vals_eeg < val_sound)
-    data.frame(p=p)
-}
-
-prop_test_0 <- function(df, var_name_eeg){
-    vals_eeg <- df %>% pull(.data[[var_name_eeg]])
-    p <- mean(vals_eeg < 0)
-    data.frame(p=p)
-}
-
-# df_posthoc <- df_eeg_boot %>% 
-#     group_by(rhythm, tone) %>% 
-#     group_modify(~prop_test_sound(.x, 
-#                       var_name_eeg='z_meter_acf_subtr', 
-#                       var_name_sound='z_meter_acf_sound'))
-
-df_posthoc <- df_eeg_boot %>%
-    group_by(rhythm, tone) %>%
-    group_modify(~prop_test_0(.x, var_name='z_meter_acf_subtr'))
-
-
-df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
-
-pander(df_posthoc)
-
-```
-
-
-
-
-
-
-
-
-
-
-
 

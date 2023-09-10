@@ -10,33 +10,28 @@ addpath(genpath('lib'))
 
 %% parameters
 
-% percent extreme values omitted for plotting
-ylim_quantile_cutoff = 0.05; 
-
-load_path = '/datadisk/projects/XPLowHigh'; 
+load_path = '/datadisk/projects/Attention'; 
 
 rhythms = {'unsyncopated', 'syncopated'}; 
-tones = {'L', 'H'}; 
+tasks = {'tempo', 'pitch', 'arithmetics'}; 
 
-n_rhythms = 2; 
+n_rhythms = length(rhythms); 
+n_tasks = length(tasks); 
 
-rm_id = [1, 4, 6, 11, 14];
+par.trial_dur = 33.6;   
 
-par.trial_dur = 50.4;  
+par.roi_name = 'all'; % frontocentral, all
+% par.roi_chans = {'F1', 'Fz', 'F2', 'FC1', 'FCz', 'FC2', 'C1', 'Cz', 'C2'}; 
 
-par.roi_name = 'frontocentral'; 
-par.roi_chans = {'F1', 'Fz', 'F2', 'FC1', 'FCz', 'FC2', 'C1', 'Cz', 'C2'}; 
-
-par.ref_name = 'all'; 
-% par.ref_chans = 'all'; 
+par.ref_name = 'all'; % mastoid, all
+par.ref_chans = {'mast1', 'mast2'}; 
 
 par.n_boot = 500;
-
 
 %% allocate table
 
 col_names = {
-    'rhythm', 'tone', 'boot_sample', ...
+    'rhythm', 'task', 'boot_sample', ...
     'z_meter_fft_raw', 'z_meter_acf_raw', ...
     'z_meter_fft_subtr', 'z_meter_acf_subtr', ...
     'z_meter_fft_sound', 'z_meter_acf_sound', ...
@@ -45,8 +40,9 @@ col_names = {
 
 tbl_boot = cell2table(cell(0, length(col_names)), 'VariableNames', col_names);
 
+
 col_names = {
-    'rhythm', 'tone', ...
+    'rhythm', 'task', ...
     'z_meter_fft_raw', 'z_meter_acf_raw', ...
     'z_meter_fft_subtr', 'z_meter_acf_subtr', ...
     'z_meter_fft_sound', 'z_meter_acf_sound', ...
@@ -54,6 +50,10 @@ col_names = {
     };
 
 tbl_grand = cell2table(cell(0, length(col_names)), 'VariableNames', col_names);
+
+
+
+%% frequencies of interest 
 
 
 %% lags of interest 
@@ -84,35 +84,37 @@ par.lags_meter_unrel = get_lag_harmonics(...
 
 for i_rhythm=1:n_rhythms
     
-    for i_tone=1:2
+    for i_task=1:n_tasks
+
+        rhythm = rhythms{i_rhythm};
+        task = tasks{i_task}; 
+
+        fprintf('processing rhythm: %s-%s\n', rhythm, task);
+
+        %% get EEG data
         
-        rhythm_id = rhythms{i_rhythm};
-        tone_id = tones{i_tone}; 
-
-        fprintf('processing rhythm: %s-%s\n', tone_id, rhythm_id);
-
-
-        %% load data
-
         fname = fullfile(load_path, 'preprocessed', ...
-            sprintf('avgRef_timeAvg_mergedParticipants %s_%s(19).lw6', ...
-                    tone_id, rhythm_id));
+            sprintf('%s-%s timeAvg mergedParticipants*.lw6', ...
+                    rhythm, task));
+                
+        d = dir(fullfile(fname)); 
 
-        [header, data] = CLW_load(fname); 
+        [header, data] = CLW_load(fullfile(d.folder, d.name)); 
         
+        [header, data] = RLW_arrange_epochs(header, data, ...
+                                            [5 : header.datasize(1)]); 
+        
+        n_sub = header.datasize(1); 
+
+        n_chan = header.datasize(2); 
+
         if strcmp(par.roi_name, 'all')
             par.roi_chans = {header.chanlocs.labels}; 
         end
         if strcmp(par.ref_name, 'all')
             par.ref_chans = {header.chanlocs.labels}; 
         end
-
-        % remove bad subjects 
-        [header, data] = RLW_arrange_epochs(header, data, ...
-                                    setdiff([1:header.datasize(1)], rm_id)); 
-
-        n_sub = header.datasize(1); 
-
+        
         % reference
         [header, data] = RLW_rereference(header, data,...
                                 'apply_list', {header.chanlocs.labels}, ...
@@ -128,25 +130,22 @@ for i_rhythm=1:n_rhythms
             [header, data] = RLW_pool_channels(header, data, par.roi_chans, ...
                                                'keep_original_channels', 0); 
         end
-
+        
         % filter
         [header, data] = RLW_butterworth_filter(header, data, ...
                                                 'filter_type', 'lowpass', ...
                                                 'high_cutoff', 30, ...
                                                 'filter_order', 2); 
 
-        % if is unsyncopated, shift the ERP by 3 events!!!
-        if strcmpi(rhythm_id, 'unsyncopated')
-            offset = 3 * 0.2; 
-        else
-            offset = 0; 
-        end
-
-        [header, data] = RLW_segmentation(header, data, {'trig'}, ...
-                            'x_start', 0+offset, 'x_duration', par.trial_dur); 
+        % segment                                     
+        trig = unique({header.events.code}); 
+        assert(length(trig) == 1); 
+        
+        [header, data] = RLW_segmentation(header, data, trig, ...
+                            'x_start', 0, 'x_duration', par.trial_dur); 
 
         % downsample 
-        [header, data] = RLW_downsample(header, data, 'x_downsample_ratio', 16); 
+        [header, data] = RLW_downsample(header, data, 'x_downsample_ratio', 4); 
 
         fs = 1/header.xstep; 
         t = [0 : header.datasize(end)-1] * header.xstep + header.xstart; 
@@ -161,26 +160,20 @@ for i_rhythm=1:n_rhythms
 
         %% load stimulus
 
-        fname = fullfile(load_path, 'Slaney_128coch_meddis_timeDomain_meanAcrossCF'); 
-
-        coch_output = load(fname); % variables: freq, res_all, rowNames
-
-        idx = ~cellfun(@isempty, ...
-            strfind(coch_output.cond_names, [tone_id, '_standard_', rhythm_id])); 
-
-        coch = coch_output.slaney(idx, :); 
-
-        fs_coch = coch_output.fs;
-
-        t_coch = coch_output.t; 
-
-        % low-pass filter to have the same filtering as EEG data
-        [b,a] = butter(2, 30/(fs_coch/2), 'low'); 
-        coch = filtfilt(b, a, coch); 
+        d = dir(fullfile(load_path, 'urear', sprintf('UREAR_*_%s.mat', rhythm))); 
+        
+        coch_data = load(fullfile(d.folder, d.name)); 
+        
+        coch = sum(coch_data.output.AN.an_sout, 1); 
+        
+        fs_coch = coch_data.output.AN.fs; 
+        
+        t_coch = [0 : length(coch)-1] / fs_coch; 
 
         % ensure eeg and coch have the same duration 
         assert(length(coch) / fs_coch - length(data) / fs < 1e-4)
-
+        
+        
 
         %% process stimulus
 
@@ -194,7 +187,7 @@ for i_rhythm=1:n_rhythms
 
         % get features for the raw spectra                                    
         feat_fft_coch = get_fft_features(mX_coch, freq_coch, ...
-                                         par.freq_meter_rel, par.freq_meter_unrel); 
+                                     par.freq_meter_rel, par.freq_meter_unrel); 
 
 
         %% bootstrap EEG 
@@ -255,15 +248,6 @@ for i_rhythm=1:n_rhythms
                                            'verbose', false);
             end
             
-%             [acf_subtracted, ~, ap, ~, ~, ~, ~, optim_exitflag] = ...
-%                                         get_acf(eeg_boot, fs, ...
-%                                                'rm_ap', true, ...
-%                                                'ap_fit_method', par.ap_fit_method, ...
-%                                                'f0_to_ignore', par.f0_to_ignore, ...
-%                                                'ap_fit_flims', par.ap_fit_flims, ...
-%                                                'plot_diagnostic', false, ...
-%                                                'verbose', true);      
-                                           
             if strcmp(par.ap_fit_method, 'fooof') && any(~optim_exitflag)
                 warning('ap-fit didnt converge %d/%d reps', sum(~optim_exitflag), n_rhythms); 
             end
@@ -371,8 +355,8 @@ for i_rhythm=1:n_rhythms
         %% add features to table  
         
         rows = [...
-            repmat({rhythm_id}, par.n_boot, 1), ...
-            repmat({tone_id}, par.n_boot, 1), ...
+            repmat({rhythm}, par.n_boot, 1), ...
+            repmat({task}, par.n_boot, 1), ...
             num2cell([1:par.n_boot]'), ...
             num2cell(feat_fft_boot.z_meter_rel), ...
             num2cell(feat_acf_boot.z_meter_rel), ...
@@ -386,8 +370,8 @@ for i_rhythm=1:n_rhythms
         tbl_boot = [tbl_boot; rows];
         
         rows = [...
-            {rhythm_id}, ...
-            {tone_id}, ...
+            {rhythm}, ...
+            {task}, ...
             num2cell(feat_fft.z_meter_rel), ...
             num2cell(feat_acf.z_meter_rel), ...
             num2cell(feat_fft_subtracted.z_meter_rel), ...
@@ -404,19 +388,19 @@ for i_rhythm=1:n_rhythms
 
 
 end
-    
-%% save tables
 
+%% save table
 
-fname = sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegGrand', ...
+fname = sprintf('exp-attention_apFitMethod-%s_roi-%s_eegGrand', ...
                 par.ap_fit_method, par.roi_name); 
 writetable(tbl_grand, fullfile(par.data_path, [fname, '.csv'])); 
 save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 
 
-fname = sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegBoot', ...
+fname = sprintf('exp-attention_apFitMethod-%s_roi-%s_eegBoot', ...
                 par.ap_fit_method, par.roi_name); 
 writetable(tbl_boot, fullfile(par.data_path, [fname, '.csv'])); 
 save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 
+
 
 
 
