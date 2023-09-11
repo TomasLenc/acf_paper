@@ -109,20 +109,10 @@ assert(~any( min(abs(bsxfun(@minus, lags_meter_rel', lags_meter_unrel))) < 1e-9 
 max_freq = 5;
 max_freq_plot = max_freq + 0.1; 
 
-f0_to_excl = []; 
-
-freq_meter_rel = [1.25 : 1.25 : max_freq]; 
-freq_meter_unrel = [1/2.4 : 1/2.4 : max_freq];
-freq_meter_unrel = freq_meter_unrel(~ismembertol(freq_meter_unrel, freq_meter_rel, 1e-6)); 
-
-if ~isempty(f0_to_excl)
-    freq_meter_rel(mod(freq_meter_rel, f0_to_excl) < ...
-        1e4 * eps(min(freq_meter_rel))) = []; 
-    freq_meter_unrel(mod(freq_meter_unrel, f0_to_excl) < ...
-        1e4 * eps(min(freq_meter_unrel))) = []; 
-end
-
-frex = sort([freq_meter_rel, freq_meter_unrel]);
+f0_to_excl = [5]; 
+[freq_meter_rel, freq_meter_unrel, frex] = get_meter_freq(...
+                                               max_freq, ...
+                                               'f0_to_excl', f0_to_excl);
 
 %% 
 

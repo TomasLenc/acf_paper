@@ -39,6 +39,15 @@ par.data_path = fullfile(par.data_path, sel_name);
 par.fig_path = par.data_path; 
 mkdir(par.data_path); 
 
+% frequencies of interst
+par.max_freq = 5; 
+par.max_freq_plot = 5.1; 
+par.f0_to_excl = 5; 
+[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+                                                par.max_freq, ...
+                                                'f0_to_excl', par.f0_to_excl);
+
+% lags of interest 
 par.max_lag = par.trial_dur / 2; 
 
 par.lag_base_incl_meter_rel = [0.8]; 
@@ -67,6 +76,15 @@ par.data_path = fullfile(par.data_path, sel_name);
 par.fig_path = par.data_path; 
 mkdir(par.data_path); 
 
+% frequencies of interst
+par.max_freq = 5; 
+par.max_freq_plot = 5.1; 
+par.f0_to_excl = 5; 
+[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+                                                par.max_freq, ...
+                                                'f0_to_excl', par.f0_to_excl);
+
+% lags of interest 
 par.max_lag = par.trial_dur / 2; 
 
 par.lag_base_incl_meter_rel = [0.8]; 
@@ -141,69 +159,69 @@ run_scripts
 % 
 
 
+% 
+% %% 
+% 
+% sel_name = 'maxfreq-5_excl5'; 
+% 
+% par = get_par(); 
+% 
+% par.data_path = fullfile(par.data_path, sel_name); 
+% par.fig_path = par.data_path; 
+% mkdir(par.data_path); 
+%         
+% par.max_freq = 5; 
+% par.max_freq_plot = 5.1; 
+% par.f0_to_excl = 5; 
+% [par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+%                                                 par.max_freq, ...
+%                                                 'f0_to_excl', par.f0_to_excl);
+% 
+% 
+% run_scripts
+% 
+% 
+% %% 
+% 
+% sel_name = 'maxfreq-30_excl5'; 
+% 
+% par = get_par(); 
+% 
+% par.data_path = fullfile(par.data_path, sel_name); 
+% par.fig_path = par.data_path; 
+% mkdir(par.data_path); 
+%         
+% par.max_freq = 30; 
+% par.max_freq_plot = 30.1; 
+% par.f0_to_excl = 5; 
+% [par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+%                                                 par.max_freq, ...
+%                                                 'f0_to_excl', par.f0_to_excl);
+% 
+% 
+% run_scripts
 
-%% 
-
-sel_name = 'maxfreq-5_excl5'; 
-
-par = get_par(); 
-
-par.data_path = fullfile(par.data_path, sel_name); 
-par.fig_path = par.data_path; 
-mkdir(par.data_path); 
-        
-par.max_freq = 5; 
-par.max_freq_plot = 5.1; 
-par.f0_to_excl = 5; 
-[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
-                                                par.max_freq, ...
-                                                'f0_to_excl', par.f0_to_excl);
-
-
-run_scripts
-
-
-%% 
-
-sel_name = 'maxfreq-30_excl5'; 
-
-par = get_par(); 
-
-par.data_path = fullfile(par.data_path, sel_name); 
-par.fig_path = par.data_path; 
-mkdir(par.data_path); 
-        
-par.max_freq = 30; 
-par.max_freq_plot = 30.1; 
-par.f0_to_excl = 5; 
-[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
-                                                par.max_freq, ...
-                                                'f0_to_excl', par.f0_to_excl);
-
-
-run_scripts
-
-
-%% 
-
-sel_name = 'maxfreq-5_excl0.416,0.833'; 
-
-par = get_par(); 
-
-par.data_path = fullfile(par.data_path, sel_name); 
-par.fig_path = par.data_path; 
-mkdir(par.data_path); 
-        
-par.max_freq = 5; 
-par.max_freq_plot = 5.1; 
-[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
-                                                par.max_freq);
-
-par.freq_meter_rel(par.freq_meter_rel < 1) = []; 
-par.freq_meter_unrel(par.freq_meter_unrel < 1) = []; 
-                                            
-run_scripts
-
+% 
+% %% 
+% 
+% sel_name = 'maxfreq-5_excl0.416,0.833'; 
+% 
+% par = get_par(); 
+% 
+% par.data_path = fullfile(par.data_path, sel_name); 
+% par.fig_path = par.data_path; 
+% mkdir(par.data_path); 
+%         
+% par.max_freq = 5; 
+% par.max_freq_plot = 5.1; 
+% [par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+%                                                 par.max_freq);
+% 
+% par.freq_meter_rel(par.freq_meter_rel < 1) = []; 
+% par.freq_meter_unrel(par.freq_meter_unrel < 1) = []; 
+%                                             
+% run_scripts
+% 
 
 
 
