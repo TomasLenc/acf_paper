@@ -1,4 +1,4 @@
-function main_noise_effect_acf_fft(par, varargin)
+function main_noiseEffectDist_ACFvsFFT(par, varargin)
 % clear 
 % par = get_par(); 
 
@@ -21,8 +21,6 @@ addpath(genpath('lib'))
 
 n_rep = 50; 
 
-emph_levels = 0; % linspace(0, 2, 4)
-
 snrs = logspace(log10(0.01), log10(8), 10); 
 
 
@@ -30,9 +28,9 @@ snrs = logspace(log10(0.01), log10(8), 10);
 
 if strcmp(ir_type, 'square')
     ir = get_square_kernel(par.fs, ...
-        'duration', par.grid_ioi, ...
-        'rampon', 0.010, ...
-        'rampoff', 0.010 ...
+        'duration', 0.100, ...
+        'rampon', 0, ...
+        'rampoff', 0 ...
         ); 
 elseif strcmp(ir_type, 'erp')
     ir = get_erp_kernel(par.fs,...
@@ -55,102 +53,19 @@ end
 
 %% find patterns 
 
+n_pats = 5; 
+
 n_events = 12; 
 n_sounds = 7; 
+max_group_size = 4; 
 
-f_gen_all_pats = @(n, k) dec2bin(sum(nchoosek(2.^(0:n-1),k),2)) - '0'; 
-all_possible_pats = f_gen_all_pats(n_events, n_sounds); 
-all_possible_pats = flip(all_possible_pats, 1); 
+all_good_pats = find_all_patterns(n_events, n_sounds, max_group_size); 
 
-all_good_pats = nan(size(all_possible_pats)); 
-z_fft_all_good_pats = nan(size(all_possible_pats, 1), 1); 
-z_acf_all_good_pats = nan(size(all_possible_pats, 1), 1); 
+idx = randsample(size(all_good_pats, 1), n_pats); 
 
-c = 1; 
-for i_pat=1:size(all_possible_pats, 1)
-       
-    fprintf('c=%d, pat %d/%d\n', c, i_pat, size(all_possible_pats, 1)); 
-
-    pat = all_possible_pats(i_pat, :); 
-
-    flag = 1; 
-    
-    for i_shift=0:n_events
-        [B, N] = RunLength(circshift(pat, i_shift));
-        if any(N(B == 1) > 4) 
-            flag = 0; 
-        end
-    end
-    if flag == 0
-        continue
-    end
-    
-    for i_shift=0:n_events
-        if any(all((all_good_pats - circshift(pat, i_shift)) == 0, 2)) || ...
-           any(all((all_good_pats - circshift(flip(pat), i_shift)) == 0, 2))
-            flag = 0; 
-        end
-    end    
-    if flag == 0
-        continue
-    end
-    
-    [x_clean, t] = get_s(...
-                        pat, ...
-                        par.grid_ioi, ...
-                        par.fs, ...
-                        'n_cycles', par.n_cycles, ...
-                        'ir', ir ...
-                        );
-
-    [acf_clean, lags, ~, mX_clean, freq] = get_acf(x_clean, par.fs);    
-
-    feat_acf_orig = get_acf_features(acf_clean, lags, ...
-                                 par.lags_meter_rel, par.lags_meter_unrel);         
-
-    feat_fft_orig = get_fft_features(mX_clean, freq,...
-                            par.freq_meter_rel, par.freq_meter_unrel); 
-
-    z_acf_all_good_pats(c) = feat_acf_orig.z_meter_rel; 
-    z_fft_all_good_pats(c) = feat_fft_orig.z_meter_rel; 
-
-    all_good_pats(c, :) = pat; 
-    
-    c = c+1; 
-end
-
-all_good_pats(c:end, :) = []; 
-z_acf_all_good_pats(c:end) = []; 
-z_fft_all_good_pats(c:end) = []; 
+all_pats = all_good_pats(idx, :); 
 
 
-% figure
-% [z, idx] = sort(z_acf_all_good_pats); 
-% plot(z)
-% hold on 
-% [z, idx] = sort(z_fft_all_good_pats); 
-% plot(z)
-% 
-
-target_z = [-0.5, 0, 0.5]; 
-n_pat_per_z = 3; 
-
-pat_idx_acf = []; 
-pat_idx_fft = []; 
-for i=1:length(target_z)
-    [err, idx] = sort(abs(z_acf_all_good_pats - target_z(i))); 
-    pat_idx_acf = [pat_idx_acf; idx(1:n_pat_per_z)]; 
-    
-    [err, idx] = sort(abs(z_fft_all_good_pats - target_z(i))); 
-    pat_idx_fft = [pat_idx_fft; idx(1:n_pat_per_z)]; 
-end
-
-z_acf_all_good_pats(pat_idx_acf)
-z_fft_all_good_pats(pat_idx_fft)
-
-%%
-
-all_pats = all_good_pats([pat_idx_acf, pat_idx_fft], :); 
 
 %%
 
@@ -167,10 +82,9 @@ end
 %%
 
 col_names = {
-    'pat', 'selected_for', 'snr', 'sample', ...
-    'z_meter_fft_raw', 'z_meter_acf_raw', ...
-    'z_meter_fft_subtr', 'z_meter_acf_subtr', ...
-    'z_meter_fft_orig', 'z_meter_acf_orig', ...
+    'pat', 'snr', 'sample', ...
+    'r_fft_raw', 'r_acf_raw', 'r_fft_subtr', 'r_acf_subtr', ...
+    'l2_fft_raw', 'l2_acf_raw', 'l2_fft_subtr', 'l2_acf_subtr', ...
     'z_snr' ...
     };
 
@@ -238,7 +152,7 @@ for i_pat=1:size(all_pats, 1)
                         par.freq_meter_rel, par.freq_meter_unrel); 
         feat_fft = []; 
         feat_fft.z_meter_rel = tmp.z_meter_rel; 
-
+        feat_fft.vals = tmp.vals; 
         feat_fft.z_snr = get_z_snr(mX, freq, par.frex, ...
                                            par.noise_bins_snr(1), ...
                                            par.noise_bins_snr(2)); 
@@ -247,22 +161,33 @@ for i_pat=1:size(all_pats, 1)
         feat_fft_subtracted = get_fft_features(mX_subtracted, freq, ...
                                 par.freq_meter_rel, par.freq_meter_unrel);
 
-        if i_pat <= n_pat_per_z * length(target_z)
-            selected_for = 'acf'; 
-        else
-            selected_for = 'fft'; 
-        end
+                            
+
+        % get measures of disctance from ground truth
+        pearson_acf = corr(feat_acf_orig.vals', feat_acf.vals'); 
+        pearson_acf_subtr = corr(feat_acf_orig.vals', feat_acf_subtracted.vals'); 
+        
+        pearson_fft = corr(feat_fft_orig.vals', feat_fft.vals'); 
+        pearson_fft_subtr = corr(feat_fft_orig.vals', feat_fft_subtracted.vals'); 
+        
+        l2_acf = pdist2(feat_acf_orig.vals, feat_acf.vals); 
+        l2_acf_subtr = pdist2(feat_acf_orig.vals, feat_acf_subtracted.vals); 
+        
+        l2_fft = pdist2(feat_fft_orig.vals, feat_fft.vals); 
+        l2_fft_subtr = pdist2(feat_fft_orig.vals, feat_fft_subtracted.vals); 
+        
         rows = [...
             repmat({i_pat}, n_rep, 1), ...
-            repmat({selected_for}, n_rep, 1), ...
             repmat({snr}, n_rep, 1), ...
             num2cell([1:n_rep]'), ...
-            num2cell(feat_fft.z_meter_rel), ...
-            num2cell(feat_acf.z_meter_rel), ...
-            num2cell(feat_fft_subtracted.z_meter_rel), ...
-            num2cell(feat_acf_subtracted.z_meter_rel), ...
-            repmat({feat_fft_orig.z_meter_rel}, n_rep, 1), ...
-            repmat({feat_acf_orig.z_meter_rel}, n_rep, 1), ...
+            num2cell(pearson_fft'), ...
+            num2cell(pearson_acf'), ...
+            num2cell(pearson_fft_subtr'), ...
+            num2cell(pearson_acf_subtr'), ...
+            num2cell(l2_fft'), ...
+            num2cell(l2_acf'), ...
+            num2cell(l2_fft_subtr'), ...
+            num2cell(l2_acf_subtr'), ...
             num2cell(feat_fft.z_snr)...
             ];
 
@@ -274,7 +199,7 @@ end
 %%
 
 % save table
-fname = sprintf('irType-%s_apFitMethod-%s_onlyHarm-%s_nrep-%d_noiseEffectACFvsFFT', ...
+fname = sprintf('irType-%s_apFitMethod-%s_onlyHarm-%s_nrep-%d_noiseEffectDistACFvsFFT', ...
                 ir_type, ...
                 par.ap_fit_method, ...
                 jsonencode(par.only_use_f0_harmonics), ...
