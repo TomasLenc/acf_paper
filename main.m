@@ -19,7 +19,7 @@ if strcmpi(hostname, 'tux')
 
 elseif strcmpi(hostname, 'tomo-office-desktop')
 
-    noise_all_samples = prepare_eeg_noise(1000, par.trial_dur);    
+    noise_all_samples = prepare_eeg_noise(50, par.trial_dur);    
 
 end
 
