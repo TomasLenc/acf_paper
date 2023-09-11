@@ -59,13 +59,18 @@ n_events = 12;
 n_sounds = 7; 
 max_group_size = 4; 
 
-all_good_pats = find_all_patterns(n_events, n_sounds, max_group_size); 
+% all_good_pats = find_all_patterns(n_events, n_sounds, max_group_size); 
+% 
+% idx = randsample(size(all_good_pats, 1), n_pats); 
+% 
+% all_pats = all_good_pats(idx, :); 
 
-idx = randsample(size(all_good_pats, 1), n_pats); 
-
-all_pats = all_good_pats(idx, :); 
-
-
+all_pats = ...
+    [1     1     0     1     1     1     0     1     0     1     0     0
+     1     1     1     1     0     1     0     1     0     1     0     0
+     1     1     1     0     1     0     1     1     0     1     0     0
+     1     1     1     1     0     1     1     0     1     0     0     0
+     1     1     1     0     1     1     0     1     0     1     0     0];
 
 %%
 
