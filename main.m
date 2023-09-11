@@ -27,7 +27,43 @@ n_rep_only_noise = 1000;
 
 %% 
 
-sel_name = 'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4'; 
+% sel_name = 'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4'; 
+% 
+% par = get_par(); 
+% 
+% par.data_path = fullfile(par.data_path, sel_name); 
+% par.fig_path = par.data_path; 
+% mkdir(par.data_path); 
+% 
+% % frequencies of interst
+% par.max_freq = 5; 
+% par.max_freq_plot = 5.1; 
+% par.f0_to_excl = 5; 
+% [par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+%                                                 par.max_freq, ...
+%                                                 'f0_to_excl', par.f0_to_excl);
+% 
+% % lags of interest 
+% par.max_lag = par.trial_dur / 2; 
+% 
+% par.lag_base_incl_meter_rel = [0.8]; 
+% par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
+% 
+% par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
+% par.lag_base_excl_meter_unrel = [0.8]; 
+% 
+% [par.lags_meter_rel, par.lags_meter_unrel] = get_meter_lags(...
+%             par.max_lag, ...
+%             par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
+%             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
+%             );
+%         
+% run_scripts
+% 
+
+%% 
+
+sel_name = 'maxlag-11lags_meterUnrel-0.6_1.0_1.4'; 
 
 par = get_par(); 
 
@@ -57,46 +93,57 @@ par.lag_base_excl_meter_unrel = [0.8];
             par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
             );
+       
+% take only firsst 11 lags
+lags = [par.lags_meter_rel, par.lags_meter_unrel]; 
+
+mask_meter_rel = zeros(1, length(lags), 'logical'); 
+mask_meter_rel(1 : length(par.lags_meter_rel)) = 1; 
+
+[l, idx] = sort(lags); 
+idx = idx(1 : length(par.frex)); 
+
+par.lags_meter_rel = lags( idx(ismember(idx, find(mask_meter_rel))) ); 
+par.lags_meter_unrel = lags( idx(ismember(idx, find(~mask_meter_rel))) ); 
+        
         
 run_scripts
-
 
 
 %% 
 
-sel_name = 'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4_ignore-0.4'; 
-
-par = get_par(); 
-
-par.data_path = fullfile(par.data_path, sel_name); 
-par.fig_path = par.data_path; 
-mkdir(par.data_path); 
-
-% frequencies of interst
-par.max_freq = 5; 
-par.max_freq_plot = 5.1; 
-par.f0_to_excl = 5; 
-[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
-                                                par.max_freq, ...
-                                                'f0_to_excl', par.f0_to_excl);
-
-% lags of interest 
-par.max_lag = par.trial_dur / 2; 
-
-par.lag_base_incl_meter_rel = [0.8]; 
-par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
-
-par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
-par.lag_base_excl_meter_unrel = [0.4]; 
-
-[par.lags_meter_rel, par.lags_meter_unrel] = get_meter_lags(...
-            par.max_lag, ...
-            par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
-            par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
-            );
-        
-run_scripts
-
+% sel_name = 'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4_ignore-0.4'; 
+% 
+% par = get_par(); 
+% 
+% par.data_path = fullfile(par.data_path, sel_name); 
+% par.fig_path = par.data_path; 
+% mkdir(par.data_path); 
+% 
+% % frequencies of interst
+% par.max_freq = 5; 
+% par.max_freq_plot = 5.1; 
+% par.f0_to_excl = 5; 
+% [par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+%                                                 par.max_freq, ...
+%                                                 'f0_to_excl', par.f0_to_excl);
+% 
+% % lags of interest 
+% par.max_lag = par.trial_dur / 2; 
+% 
+% par.lag_base_incl_meter_rel = [0.8]; 
+% par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
+% 
+% par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
+% par.lag_base_excl_meter_unrel = [0.4]; 
+% 
+% [par.lags_meter_rel, par.lags_meter_unrel] = get_meter_lags(...
+%             par.max_lag, ...
+%             par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
+%             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
+%             );
+%         
+% run_scripts
 
 
 
