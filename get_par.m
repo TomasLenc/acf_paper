@@ -50,6 +50,8 @@ ap_fit_method = 'irasa';
 
 f0_to_ignore = 1/2.4; 
 
+only_use_f0_harmonics = false; 
+
 ap_fit_flims = [0.1, 9]; 
 
 

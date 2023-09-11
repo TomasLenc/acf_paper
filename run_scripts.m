@@ -47,19 +47,25 @@ if strcmpi(hostname, 'tux')
     
 elseif strcmpi(hostname, 'tomo-office-desktop')   
     
-    main_only_noise(par,...
-        'prepared_noise', noise_all_samples(1:n_rep_only_noise, :)); 
+%     main_only_noise(par,...
+%         'prepared_noise', noise_all_samples(1:n_rep_only_noise, :)); 
     
-    % update maximum lag of interest according to eeg trial duration (40.8 s)
-    par.max_lag = 20.4; 
-    par.lags_meter_rel = par.lags_meter_rel(par.lags_meter_rel < par.max_lag); 
-    par.lags_meter_unrel = par.lags_meter_unrel(par.lags_meter_unrel < par.max_lag); 
+    par.ap_fit_method = 'irasa'; 
+    main_noise_effect_acf_fft(par, ...
+        'ir_type', 'square', ...
+        'prepared_noise', noise_all_samples(1:50, :));
     
-    main_syncrange_eeg_boot(par); 
-    
-    main_syncrange_eeg(par); 
-    
-    main_syncrange_tapping(par); 
+
+%     % update maximum lag of interest according to eeg trial duration (40.8 s)
+%     par.max_lag = 20.4; 
+%     par.lags_meter_rel = par.lags_meter_rel(par.lags_meter_rel < par.max_lag); 
+%     par.lags_meter_unrel = par.lags_meter_unrel(par.lags_meter_unrel < par.max_lag); 
+%     
+%     main_syncrange_eeg_boot(par); 
+%     
+%     main_syncrange_eeg(par); 
+%     
+%     main_syncrange_tapping(par); 
     
     close all
     

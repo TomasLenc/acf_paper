@@ -97,13 +97,68 @@ fun_plot <- function(fname, yvar) {
     df$pat <- factor(df$pat)
     df <- filter(df, z_snr > 0)
     ggplot(df, aes(log10(z_snr), .data[[yvar]])) +
-    # geom_point(alpha=0.1, color='#701d85') + 
-    geom_point(aes(color=pat), alpha=0.1) + 
+        # geom_point(alpha=0.1, color='#701d85') + 
+        geom_point(aes(color=pat), alpha=0.1) + 
+        geom_hline(yintercept = 0, color='#5e5e5e') + 
+        # coord_cartesian(xlim=c(0,100)) + 
+        scale_x_reverse() +
+        theme_cowplot()
+}
+
+```
+
+
+```{r}
+
+fname <- 'irType-square_apFitMethod-fooof_nrep-50_noiseEffectACFvsFFT.csv'
+df <- read.csv(file.path(data_path, fname))
+df$pat <- factor(df$pat)
+
+df$z_meter_fft_subtr_err <- (df$z_meter_fft_subtr - df$z_meter_fft_orig)
+df$z_meter_acf_subtr_err <- (df$z_meter_acf_subtr - df$z_meter_acf_orig)
+
+
+ggplot(filter(df, selected_for=='fft'), aes(log10(z_snr), z_meter_fft_subtr_err)) +
+    geom_point(alpha=0.1, color='#701d85') +
     geom_hline(yintercept = 0, color='#5e5e5e') + 
-    # coord_cartesian(xlim=c(0,100)) + 
     scale_x_reverse() +
     theme_cowplot()
-}
+
+ggplot(filter(df, selected_for=='fft'), aes(log10(z_snr), z_meter_fft_subtr)) +
+    geom_point(aes(color=pat), alpha=0.1) + 
+    geom_hline(yintercept = 0, color='#5e5e5e') + 
+    scale_x_reverse() +
+    theme_cowplot()
+
+
+
+ggplot(filter(df, selected_for=='acf'), aes(log10(z_snr), z_meter_acf_subtr_err)) +
+    geom_point(alpha=0.1, color='#701d85') +
+    geom_hline(yintercept = 0, color='#5e5e5e') + 
+    scale_x_reverse() +
+    theme_cowplot()
+
+ggplot(filter(df, selected_for=='acf'), aes(log10(z_snr), z_meter_acf_subtr)) +
+    geom_point(aes(color=pat), alpha=0.1) + 
+    geom_hline(yintercept = 0, color='#5e5e5e') + 
+    scale_x_reverse() +
+    theme_cowplot()
+
+
+df_fft <- filter(df, selected_for=='fft')
+df_fft$z_meter_subtr_err <- df_fft$z_meter_fft_subtr_err
+    
+df_acf <- filter(df, selected_for=='acf')
+df_acf$z_meter_subtr_err <- df_acf$z_meter_acf_subtr_err
+
+df <- rbind(df_fft, df_acf)
+df$selected_for <- factor(df$selected_for, levels=(c('fft', 'acf')))
+ggplot(df, aes(log10(z_snr), z_meter_subtr_err)) +
+    geom_point(alpha=0.2, aes(color=selected_for)) +
+    geom_hline(yintercept = 0, color='#5e5e5e') + 
+    scale_x_reverse() +
+    theme_cowplot()
+
 
 ```
 
@@ -165,7 +220,7 @@ df$z_snr_log <- log10(df$z_snr)
 ```
 
 ```{r}
-m <- lm(z_meter_acf_raw ~ z_snr_log * z_meter_acf_orig, data=df)
+m <- lm(z_meter_acf_subtr ~ z_snr_log * z_meter_acf_orig, data=df)
 summary(m)
 visreg(m, xvar='z_snr_log', by='z_meter_acf_orig', overlay=T)
 ```
