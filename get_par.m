@@ -25,6 +25,11 @@ else
     
 end
 
+addpath(genpath(acf_tools_path)); 
+addpath(genpath(rnb_tools_path)); 
+addpath(genpath(lw_path)); 
+addpath(genpath('lib'));
+
 fig_path = fullfile(experiment_path, 'figures'); 
 data_path = fullfile(experiment_path, 'data'); 
 coch_data_path = fullfile(experiment_path, 'data', 'coch'); 
