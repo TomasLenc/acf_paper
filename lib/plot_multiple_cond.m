@@ -1,8 +1,9 @@
-function [f, pnl] = plot_multiple_cond(varargin)
+function [f, pnl] = plot_multiple_cond(tbl, varargin)
 
 parser = inputParser; 
 
 addParameter(parser, 'ax',  []); 
+addParameter(parser, 'colors',  []); 
 addParameter(parser, 'plot_legend',  true); 
 addParameter(parser, 'ytick_at_means',  false); 
 addParameter(parser, 'zero_line',  false); 
@@ -10,26 +11,36 @@ addParameter(parser, 'ylim_quantile_cutoff',  0); % between 0 and 1
 addParameter(parser, 'prec',  3); % number decimal places 
 addParameter(parser, 'point_alpha',  0.4); % opacity of the individual datapoints
 
-addParameter(parser, 'feat',  []); 
-addParameter(parser, 'feat_orig',  []); 
-addParameter(parser, 'feat_thr',  []); 
+addParameter(parser, 'cond_column',  []); 
+addParameter(parser, 'feat_column',  []); 
+addParameter(parser, 'feat_orig_column',  []); 
+addParameter(parser, 'feat_thr_column',  []); 
 
 parse(parser, varargin{:});
 
 ax = parser.Results.ax; 
+colors = parser.Results.colors; 
 plot_legend = parser.Results.plot_legend; 
 ytick_at_means = parser.Results.ytick_at_means; 
 zero_line = parser.Results.zero_line; 
 prec = parser.Results.prec; 
 point_alpha = parser.Results.point_alpha; 
 
-feat = parser.Results.feat; 
-feat_orig = parser.Results.feat_orig; 
-feat_thr = parser.Results.feat_thr; 
+% feat = parser.Results.feat; 
+% feat_orig = parser.Results.feat_orig; 
+% feat_thr = parser.Results.feat_thr; 
+cond_column = parser.Results.cond_column; 
+feat_column = parser.Results.feat_column; 
+feat_orig_column = parser.Results.feat_orig_column; 
+feat_thr_column = parser.Results.feat_thr_column; 
+
 ylim_quantile_cutoff = parser.Results.ylim_quantile_cutoff; 
 
+%% 
 
-n_cond = length(feat); 
+conds = unique(tbl{:, cond_column}); 
+
+n_cond = length(conds); 
 
 ylims = [Inf, -Inf]; 
 
@@ -47,7 +58,7 @@ end
 
 hold(ax, 'on'); 
 
-if ~isempty(feat_thr)
+if ~isempty(feat_thr_column)
     
     plot(ax, [0, n_cond+1], [feat_thr.data, feat_thr.data], ...
          '-', 'color', 'red', 'linew', 3)
@@ -56,28 +67,23 @@ if ~isempty(feat_thr)
     
 end
 
-if length(feat_orig) == 1
-    
-    plot(ax, [0, n_cond+1], [feat_orig, feat_orig], ...
-         '-', 'color', [0.5, 0.5, 0.5], 'linew', 3)
-    ylims(1) = feat_orig - abs(feat_orig)*0.1;
-    ylims(2) = feat_orig + abs(feat_orig)*0.1;
-    
-elseif length(feat_orig) == length(feat)
+if ~isempty(feat_orig_column)
     
     for i_cond=1:n_cond
-        % check if we have info about color
-        if isfield(feat_orig, 'color')
-            col = feat_orig(i_cond).color; 
-        else
-            col = [0.5, 0.5, 0.5];
-        end
+        
+        col = [0.5, 0.5, 0.5];
+        
+        data = tbl{tbl{:, cond_column} == conds(i_cond), feat_orig_column}; 
+
+        data = unique(data); 
+        
+        assert(length(data) == 1); 
+        
         plot(ax, ...
-             [i_cond-0.4, i_cond+0.4], ...
-             [feat_orig(i_cond).data, feat_orig(i_cond).data], ...
+             [i_cond-0.4, i_cond+0.4], [data, data], ...
              '-', 'color', col, 'linew', 3)
-        ylims(1) = min(feat_orig(i_cond).data - abs(feat_orig(i_cond).data)*0.1, ylims(1)); 
-        ylims(2) = max(feat_orig(i_cond).data  + abs(feat_orig(i_cond).data)*0.1, ylims(2)); 
+        ylims(1) = min(data - abs(data)*0.1, ylims(1)); 
+        ylims(2) = max(data  + abs(data)*0.1, ylims(2)); 
     end
     
 end
@@ -85,16 +91,24 @@ end
 h = []; 
 means = nan(1, n_cond);
 
-if ~isempty(feat)
+if ~isempty(feat_column)
     for i_cond=1:n_cond
-        h(i_cond) = plot_points(ax, i_cond, feat(i_cond).data, ...
+        
+        data = tbl{tbl{:, cond_column} == conds(i_cond), feat_column}; 
+        
+        if ~isempty(colors)
+            col = colors{i_cond}; 
+        else
+            col = [120, 20, 166]/255;  
+        end
+        h(i_cond) = plot_points(ax, i_cond, data, ...
                                 'opacity', point_alpha, ...
-                                'col', feat(i_cond).color); 
+                                'col', col); 
 
-        ylims(1) = min(quantile(feat(i_cond).data, ylim_quantile_cutoff), ylims(1)); 
-        ylims(2) = max(quantile(feat(i_cond).data, 1-ylim_quantile_cutoff), ylims(2)); 
+        ylims(1) = min(quantile(data, ylim_quantile_cutoff), ylims(1)); 
+        ylims(2) = max(quantile(data, 1-ylim_quantile_cutoff), ylims(2)); 
 
-        means(i_cond) = mean(feat(i_cond).data);
+        means(i_cond) = mean(data);
     end
 
     ax.XLim = [0.5, n_cond+0.5]; 
@@ -114,9 +128,9 @@ if ~isempty(feat)
     
 end
 
-if plot_legend && ~isempty(feat)
-    leg = legend(h, {feat.name}); 
+if plot_legend && ~isempty(feat_column)
+    leg = legend(h, cellfun(@num2str, num2cell(conds), 'uni', 0)); 
     leg.Box = 'off'; 
-    leg.Position(1) = 0; 
-    leg.Position(2) = 0.8; 
+    leg.Position(1) = 0.9278; 
+    leg.Position(2) = 0.7700; 
 end

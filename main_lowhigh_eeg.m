@@ -1,17 +1,5 @@
-% function main_syncrange_eeg(par)
-clear 
-par = get_par(); 
-
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
-addpath(genpath(par.lw_path)); 
-addpath(genpath('lib'))
-
-
-%% parameters
-
-% percent extreme values omitted for plotting
-ylim_quantile_cutoff = 0.05; 
+function main_lowhigh_eeg(par)
+% Re-analysis of the XPLowHigh data at individual subject level. 
 
 load_path = '/datadisk/projects/XPLowHigh'; 
 
@@ -28,7 +16,6 @@ par.roi_name = 'frontocentral';
 par.roi_chans = {'F1', 'Fz', 'F2', 'FC1', 'FCz', 'FC2', 'C1', 'Cz', 'C2'}; 
 
 par.ref_name = 'all'; 
-% par.ref_chans = 'all'; 
 
 
 %% allocate table
@@ -43,69 +30,26 @@ col_names = {
 
 tbl = cell2table(cell(0, length(col_names)), 'VariableNames', col_names);
 
-
-%% lags of interest 
-
-% autocorrelation lags (in seconds) that are considered meter-related and
-% meter-unrelated
-par.max_lag = par.trial_dur / 2; 
-
-par.lag_base_incl_meter_rel = [0.8]; 
-par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
-
-par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
-par.lag_base_excl_meter_unrel = [0.4]; 
-
-par.lags_meter_rel = get_lag_harmonics(...
-                            par.lag_base_incl_meter_rel, ...
-                            par.max_lag,...
-                            'lag_harm_to_exclude', par.lag_base_excl_meter_rel ...
-                            ); 
-                        
-par.lags_meter_unrel = get_lag_harmonics(...
-                            par.lag_base_incl_meter_unrel, ...
-                            par.max_lag,...
-                            'lag_harm_to_exclude', par.lag_base_excl_meter_unrel ...
-                            ); 
-
-
-%% allocate
-
-feat_acf_coch = struct(...
-    'z_meter_rel', [], 'ratio_meter_rel', [], ...
-    'contrast_meter_rel', []); 
-
-feat_acf = struct(...
-    'z_meter_rel', [], 'ratio_meter_rel', [], ...
-    'contrast_meter_rel', []); 
-
-feat_acf_subtracted = struct(...
-    'z_meter_rel', [], 'ratio_meter_rel', [], ...
-    'contrast_meter_rel', []); 
-
-feat_fft_coch = struct('z_meter_rel', []); 
-
-feat_fft = struct('z_meter_rel', []); 
-
-feat_fft_subtracted = struct('z_meter_rel', []); 
+data_to_plot = []; 
 
 %% run
+
+c = 1; 
 
 for i_rhythm=1:n_rhythms
     
     for i_tone=1:2
 
-        rhythm_id = rhythms{i_rhythm};
-        tone_id = tones{i_tone}; 
+        rhythm = rhythms{i_rhythm};
+        tone = tones{i_tone}; 
 
-        fprintf('processing rhythm: %s-%s\n', tone_id, rhythm_id);
-
+        fprintf('processing rhythm: %s-%s\n', tone, rhythm);
 
         %% load data
 
         fname = fullfile(load_path, 'preprocessed', ...
             sprintf('avgRef_timeAvg_mergedParticipants %s_%s(19).lw6', ...
-                    tone_id, rhythm_id));
+                    tone, rhythm));
 
         [header, data] = CLW_load(fname); 
         
@@ -143,13 +87,15 @@ for i_rhythm=1:n_rhythms
                                                 'filter_type', 'lowpass', ...
                                                 'high_cutoff', 30, ...
                                                 'filter_order', 2); 
+                                            
+        offset = 0; 
 
-        % if is unsyncopated, shift the ERP by 3 events!!!
-        if strcmpi(rhythm_id, 'unsyncopated')
-            offset = 3 * 0.2; 
-        else
-            offset = 0; 
-        end
+%         % if is unsyncopated, shift the ERP by 3 events (it's okay)
+%         if strcmpi(rhythm_id, 'unsyncopated')
+%             offset = 3 * 0.2; 
+%         else
+%             offset = 0; 
+%         end
 
         [header, data] = RLW_segmentation(header, data, {'trig'}, ...
                             'x_start', 0+offset, 'x_duration', par.trial_dur); 
@@ -174,7 +120,7 @@ for i_rhythm=1:n_rhythms
         coch_output = load(fname); % variables: freq, res_all, rowNames
 
         idx = ~cellfun(@isempty, ...
-            strfind(coch_output.cond_names, [tone_id, '_standard_', rhythm_id])); 
+            strfind(coch_output.cond_names, [tone, '_standard_', rhythm])); 
 
         coch = coch_output.slaney(idx, :); 
 
@@ -204,12 +150,12 @@ for i_rhythm=1:n_rhythms
         [acf_coch, lags_coch, ~, mX_coch, freq_coch] = get_acf(coch, fs_coch);    
 
         % get ACF features
-        feat_acf_coch(i_rhythm) = get_acf_features(...
+        feat_acf_coch = get_acf_features(...
                                     acf_coch, lags_coch, ...
                                     par.lags_meter_rel, par.lags_meter_unrel);    
 
         % get features for the raw spectra                                    
-        feat_fft_coch(i_rhythm) = get_fft_features(mX_coch, freq_coch, ...
+        feat_fft_coch = get_fft_features(mX_coch, freq_coch, ...
                                          par.freq_meter_rel, par.freq_meter_unrel); 
 
 
@@ -227,11 +173,12 @@ for i_rhythm=1:n_rhythms
 
         % with aperiodic subtraction    
         acf_subtracted = nan(size(acf)); 
-        ap = nan(size(acf)); 
+        optim_exitflag = nan(size(data, 1), 1); 
+        
         parfor i_sub=1:size(data, 1)
             fprintf('sub-%02d\n', i_sub); 
             [acf_subtracted(i_sub, :, 1, 1, 1, :), ~, ...
-             ap(i_sub, :, 1, 1, 1, :), ~, ~, ~, ~, ...
+             ~, ~, ~, ~, ~, ...
              optim_exitflag(i_sub, :)] = ...
                                 get_acf(data(i_sub, :, 1, 1, 1, :), fs, ...
                                        'rm_ap', true, ...
@@ -241,139 +188,84 @@ for i_rhythm=1:n_rhythms
                                        'verbose', false);
         end
         
-%         chan_idx = find(strcmp({header.chanlocs.labels}, 'Fz'));
-%         [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr, optim_exitflag] = ...
-%                                     get_acf(data(5, 1, 1, 1, 1, :), ...
-%                                             fs, ...
-%                                            'ap_fit_method', 'irasa', ...
-%                                            'plot_diagnostic', true, ...
-%                                            'rm_ap', true, ...
-%                                            'f0_to_ignore', 1 / 2.4, ...
-%                                            'ap_fit_flims', [0.1, 9]);                                   
-
         if strcmp(par.ap_fit_method, 'fooof') && any(~optim_exitflag)
             warning('ap-fit didnt converge %d/%d reps', sum(~optim_exitflag), n_rhythms); 
         end
 
-        % average across channels 
+        % average across ROI channels 
         mX = squeeze(mean(mX, 2)); 
         mX_subtracted = squeeze(mean(mX_subtracted, 2)); 
         acf = squeeze(mean(acf, 2)); 
         acf_subtracted = squeeze(mean(acf_subtracted, 2)); 
 
-
         % get features
         % ------------
 
-        feat_acf(i_rhythm) = get_acf_features(acf, lags, ...
+        feat_acf = get_acf_features(acf, lags, ...
                                     par.lags_meter_rel, par.lags_meter_unrel);    
 
-        feat_acf_subtracted(i_rhythm) = get_acf_features(acf_subtracted, lags, ...
+        feat_acf_subtracted = get_acf_features(acf_subtracted, lags, ...
                                      par.lags_meter_rel, par.lags_meter_unrel); 
 
         % get features for the raw spectra                                    
         tmp = get_fft_features(mX, freq, par.freq_meter_rel, par.freq_meter_unrel); 
-        feat_fft(i_rhythm).z_meter_rel = tmp.z_meter_rel; 
+        feat_fft.z_meter_rel = tmp.z_meter_rel; 
 
-        feat_fft(i_rhythm).z_snr = get_z_snr(mX, freq, par.frex, ...
+        feat_fft.z_snr = get_z_snr(mX, freq, par.frex, ...
                                            par.noise_bins_snr(1), ...
                                            par.noise_bins_snr(2)); 
 
         % get features for the 1/f-subtracted spectra                                    
-        feat_fft_subtracted(i_rhythm) = get_fft_features(mX_subtracted, freq, ...
+        feat_fft_subtracted = get_fft_features(mX_subtracted, freq, ...
                                                par.freq_meter_rel, par.freq_meter_unrel);
-
-
-    %     f = figure('color','white','Position', [944 481 173 179]); 
-    %     topoplot(mean(feat_fft.z_snr, 1), ...
-    %              header.chanlocs,  ...
-    %              'style', 'map', ...
-    %              'maplimits', [0, 5], ...
-    %              'colormap', parula, ...
-    %              'gridscale', 256, ...
-    %              'electrodes','off'); 
-    %     
-    %     f = figure('color','white','Position', [944 481 173 179]); 
-    %     topoplot(mean(feat_fft.z_meter_rel, 1), ...
-    %              header.chanlocs,  ...
-    %              'style', 'map', ...
-    %              'maplimits', [-1, 1], ...
-    %              'colormap', jet, ...
-    %              'gridscale', 256, ...
-    %              'electrodes','off');          
-    %          
-    %     f = figure('color','white','Position', [944 481 173 179]); 
-    %     topoplot(mean(feat_acf_subtracted.z_meter_rel, 1), ...
-    %              header.chanlocs,  ...
-    %              'style', 'map', ...
-    %              'maplimits', [-1.5, 1.5], ...
-    %              'colormap', jet, ...
-    %              'gridscale', 256, ...
-    %              'electrodes','off');            
 
 
         % add features to table
         rows = [...
             num2cell([1 : n_sub]'), ...
-            repmat({rhythm_id}, n_sub, 1), ...
-            repmat({tone_id}, n_sub, 1), ...
-            num2cell(feat_fft(i_rhythm).z_meter_rel), ...
-            num2cell(feat_acf(i_rhythm).z_meter_rel), ...
-            num2cell(feat_fft_subtracted(i_rhythm).z_meter_rel), ...
-            num2cell(feat_acf_subtracted(i_rhythm).z_meter_rel), ...
-            repmat({feat_fft_coch(i_rhythm).z_meter_rel}, n_sub, 1), ...
-            repmat({feat_acf_coch(i_rhythm).z_meter_rel}, n_sub, 1), ...
-            num2cell(feat_fft(i_rhythm).z_snr) ...
+            repmat({rhythm}, n_sub, 1), ...
+            repmat({tone}, n_sub, 1), ...
+            num2cell(feat_fft.z_meter_rel), ...
+            num2cell(feat_acf.z_meter_rel), ...
+            num2cell(feat_fft_subtracted.z_meter_rel), ...
+            num2cell(feat_acf_subtracted.z_meter_rel), ...
+            repmat({feat_fft_coch.z_meter_rel}, n_sub, 1), ...
+            repmat({feat_acf_coch.z_meter_rel}, n_sub, 1), ...
+            num2cell(feat_fft.z_snr) ...
             ];
 
         tbl = [tbl; rows];
         
+       
+        data_to_plot(c).rhythm = rhythm; 
+        data_to_plot(c).tone = tone; 
+        data_to_plot(c).mX = mX; 
+        data_to_plot(c).mX_subtr = mX_subtracted;  
+        data_to_plot(c).freq = freq; 
+        data_to_plot(c).acf = acf; 
+        data_to_plot(c).acf_subtr = acf_subtracted;
+        data_to_plot(c).lags = lags; 
+
+        c = c+1; 
+
     end
 
 
 end
     
-%%
 
-% % colors
-% cmap_name = 'Set1'; 
-% colors = num2cell(brewermap(n_rhythms, cmap_name), 2); 
-% 
-% feat = RenameField(feat_acf_subtracted, 'z_meter_rel', 'data');
-% feat_orig = RenameField(feat_acf_coch, 'z_meter_rel', 'data');
-% 
-% % assign labels
-% [feat.name] = deal(rhythms{:}); 
-% [feat_orig.name] = deal(rhythms{:}); 
-% % assign colors
-% [feat.color] = deal(colors{:}); 
-% [feat_orig.color] = deal(colors{:}); 
-% 
-% feat(1).data = squeeze(mean(feat(1).data, 2)); 
-% feat(2).data = squeeze(mean(feat(2).data, 2)); 
-% 
-% plot_multiple_cond('plot_legend', false, ...
-%                   'zero_line', true, ...
-%                   'feat', feat, ...
-%                   'feat_orig', feat_orig,...
-%                   'ylim_quantile_cutoff', ylim_quantile_cutoff); 
-% 
-% 
-% [H, P, CI, STATS] = ttest(feat(1).data, feat_orig(1).data, 'tail', 'right');
-% STATS
-% P
-% 
-% [H, P, CI, STATS] = ttest(feat(2).data, feat_orig(2).data, 'tail', 'right');
-% STATS
-% P
-% 
+%% save
 
+fname = sprintf('exp-lowhigh_apFitMethod-%s_onlyHarm-%s_roi-%s_eegIndividual', ...
+                par.ap_fit_method, ...
+                jsonencode(par.only_use_f0_harmonics),...
+                par.roi_name); 
 
-%% save table
-
-fname = sprintf('exp-lowhigh_apFitMethod-%s_roi-%s_eegIndividual', ...
-                par.ap_fit_method, par.roi_name); 
+% save table
 writetable(tbl, fullfile(par.data_path, [fname, '.csv'])); 
+
+% save data 
+save(fullfile(par.data_path, [fname, '.mat']), 'data_to_plot', 'par'); 
 
 % save parameters 
 save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 

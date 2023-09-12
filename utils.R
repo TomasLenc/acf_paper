@@ -153,3 +153,48 @@ get_boot_summary <- function(df, grouping_val, feature_name){
         ci_high = quantile(df[, feature_name] %>% pull(), 1-0.025)
     )
 }
+
+
+r_to_z <- function(r){
+    # fisher-transform
+    .5 * (log(1+r) - log(1-r))
+}
+
+
+# sigm <- function(x, params) {
+#     {params['min_'] + (params['max_'] - params['min_']) / (1 + 10.^((params['x50_'] - x) * params['slope_']))}
+# }
+sigm <- function(x, min_, max_, x50_, slope_) {
+    # sigmoid function 
+    {min_ + (max_ - min_) / (1 + 10.^((x50_ - x) * slope_))}
+}
+
+fit_sigm <- function(x, y, init_params=NULL) {
+    # fit sigmoid function to data and return fitted model object
+    df <- data.frame(x=x, y=y)
+    if (is_empty(init_params)){
+        init_params <- c(quantile(y, 0.05), quantile(y, 0.95), NA, 1)
+        if (sum(y == quantile(y, 0.5)) == 0){
+            temp <- x[y == quantile(y[2:length(y)], 0.5)]
+        } else {
+            temp <- x[y == quantile(y, 0.5)]
+        }
+        init_params[3] <- temp[1]
+        names(init_params) <- c('min_', 'max_', 'x50_', 'slope_')
+        init_params <- as.list(init_params)        
+    }
+    m <- nls(y ~ I(min_ + (max_ - min_) / (1 + 10.^((x50_ - x) * slope_))), 
+             data=df,
+             start=init_params)
+    return(m)
+}
+# ## TEST ##
+# x <- runif(100)
+# y <- sigm(x, 0, 1, 0.3, 10) + rnorm(100)*0.04
+# df <- data.frame(x=x, y=y)
+# plot(df)
+# params <- fit_sigm(x, y)
+
+
+
+

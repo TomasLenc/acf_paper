@@ -8,49 +8,17 @@ addParameter(parser, 'prepared_noise', []);
 
 parse(parser, varargin{:});
 
-x = parser.Results.prepared_noise;
-
-
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
-addpath(genpath(par.lw_path)); 
-addpath(genpath('lib'))
-
-%% simulate
-
-noise_exponent = -1.5; 
-
-noise_type = 'eeg'; % eeg, fractal
-
-% number of simulated repetitions 
-n_rep = 1000; % 1000
+noise = parser.Results.prepared_noise;
 
 %% generate noise
 
-N = round(par.trial_dur * par.fs); 
 
-
-if ~isempty(x)
-
-    n_rep = size(x, 1); 
-    
+if size(noise, 1) < par.n_rep
+    error('you requested %d samples but provided only noise for %s...', ...
+          par.n_rep, size(noise, 1)); 
 else
- 
-    % generate noisy signal (simulataneously for all repetitions) 
-    if strcmp(noise_type, 'fractal')
-
-        x = get_colored_noise2([n_rep, N], par.fs, noise_exponent); 
-
-    elseif strcmp(noise_type, 'eeg')
-
-        x = prepare_eeg_noise(n_rep, par.trial_dur); 
-
-    else
-        error('noise type "%s" not implemented', noise_type);
-    end
-
+    noise = noise(1:par.n_rep, :); 
 end
-
 
 %% analyse
 
@@ -58,19 +26,23 @@ end
 % -------
 
 % withuout aperiodic subtraction    
-[acf, lags, ~, mX, freq] = get_acf(x, par.fs);    
+[acf, lags, ~, mX, freq] = get_acf(noise, par.fs);    
 
 mX_subtracted = subtract_noise_bins(mX, par.noise_bins(1),  par.noise_bins(2)); 
 
 % with aperiodic subtraction    
-[acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, par.fs, ...
-                                   'rm_ap', true, ...
-                                   'f0_to_ignore', 1/2.4, ...
-                                   'min_freq', 0.1, ...
-                                   'max_freq', 9);  
+acf_subtracted = nan(size(acf)); 
 
-feat_ap.offset = cellfun(@(x) x(1), par_ap);            
-feat_ap.exponent = cellfun(@(x) x(2), par_ap);            
+parfor i_rep=1:par.n_rep
+    fprintf('analysing %d/%d\n', i_rep, par.n_rep); 
+    
+    [acf_subtracted(i_rep, :)] = get_acf(noise(i_rep, :), par.fs, ...
+                                       'rm_ap', true, ...
+                                       'ap_fit_method', par.ap_fit_method, ...
+                                       'f0_to_ignore', par.f0_to_ignore, ...
+                                       'ap_fit_flims', par.ap_fit_flims ...
+                                       ); 
+end
 
 % get features
 % ------------
@@ -93,20 +65,13 @@ feat_fft.z_snr = get_z_snr(mX, freq, par.frex, ...
 feat_fft_subtracted = get_fft_features(mX_subtracted, freq, ...
                                        par.freq_meter_rel, par.freq_meter_unrel);
 
-
-
-
 %% save 
 
-if strcmp(noise_type, 'fractal')
-    fname = sprintf('onlyNoise_noise-fractal_exp-%.1f_nrep-%d', ...
-                   noise_exponent, n_rep); 
-elseif strcmp(noise_type, 'eeg')
-    fname = sprintf('onlyNoise_noise-eeg_nrep-%d', ...
-                   n_rep); 
-else
-    error('noise type "%s" not implemented', noise_type);
-end
+fname = sprintf('ir-%s_noise-%s_apFitMethod-%s_onlyHarm-%s_onlyNoise', ...
+               par.ir_type, ...
+               par.noise_type, ...
+               par.ap_fit_method, ...
+               jsonencode(par.only_use_f0_harmonics)); 
 
 tbl = [
     num2cell(feat_fft.z_meter_rel), ...

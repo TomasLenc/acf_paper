@@ -1,31 +1,25 @@
 function main_emph_vs_noise(par, varargin)
-% clear 
-% par = get_par(); 
+% Simulate the effect of noise on meter zscores, depending on the periodicity
+% of the original (clean) signal. We will simulate signals based on a range of
+% patterns (some very strongly periodic, some weakly periodic). On top of that,
+% we will add various amounts of periodic emphais to the simulated signals for
+% each pattern, resulting in a set of signals with a wide range of periodicities. 
 
 parser = inputParser; 
 
-addParameter(parser, 'ir_type', 'square'); % square, erp, erp2
-addParameter(parser, 'prepared_noise', []); % square, erp, erp2
+addParameter(parser, 'prepared_noise', []); 
 
 parse(parser, varargin{:});
 
-ir_type = parser.Results.ir_type;
 noise = parser.Results.prepared_noise;
-
-
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
-addpath(genpath('lib'))
 
 %% simulate
 
-n_rep = 50; 
+par.emph_levels = 0; % linspace(0, 2, 4)
 
-emph_levels = 0; % linspace(0, 2, 4)
+par.snrs = logspace(log10(0.01), log10(8), 10); 
 
-snrs = logspace(log10(0.01), log10(8), 10); 
-
-% pats = {
+% par.pats = {
 %    % 1       1       1    
 %     [1 1 1 0 1 1 1 0 1 1 0 0]
 %     [1 0 1 1 1 1 0 1 1 1 0 0]
@@ -33,65 +27,35 @@ snrs = logspace(log10(0.01), log10(8), 10);
 %     [1 1 0 1 1 0 0 1 1 0 1 1]
 % };
 
-pats = {
-[1 0 1 1 1 1 0 0 1 0 1 0]
-[1 0 1 1 1 1 0 0 1 0 0 1]
-[1 1 1 1 0 0 0 1 1 0 1 0]
-[1 1 1 0 1 1 1 0 1 0 0 0]
-[1 1 1 1 0 1 1 0 1 0 0 0]
-[1 1 1 0 1 1 0 0 1 0 1 0]
-[1 1 1 0 1 0 1 0 1 1 0 0]
-[1 1 1 0 1 0 0 1 1 0 1 0]
-[1 1 1 0 1 0 0 1 0 1 1 0]
-[1 0 1 1 1 0 0 1 1 1 0 0]
-[1 0 1 1 1 0 0 1 1 0 0 1]
-[1 1 1 0 0 1 0 1 1 0 1 0]
-[1 1 0 1 1 1 0 0 1 0 1 0]
-[1 1 0 1 1 0 0 1 1 0 1 0]
-[1 1 0 1 0 1 1 0 1 0 1 0]
-[1 0 0 1 0 1 1 1 1 0 1 0]
+par.pats = {
+    [1 0 1 1 1 1 0 0 1 0 1 0]
+    [1 0 1 1 1 1 0 0 1 0 0 1]
+    [1 1 1 1 0 0 0 1 1 0 1 0]
+    [1 1 1 0 1 1 1 0 1 0 0 0]
+    [1 1 1 1 0 1 1 0 1 0 0 0]
+    [1 1 1 0 1 1 0 0 1 0 1 0]
+    [1 1 1 0 1 0 1 0 1 1 0 0]
+    [1 1 1 0 1 0 0 1 1 0 1 0]
+    [1 1 1 0 1 0 0 1 0 1 1 0]
+    [1 0 1 1 1 0 0 1 1 1 0 0]
+    [1 0 1 1 1 0 0 1 1 0 0 1]
+    [1 1 1 0 0 1 0 1 1 0 1 0]
+    [1 1 0 1 1 1 0 0 1 0 1 0]
+    [1 1 0 1 1 0 0 1 1 0 1 0]
+    [1 1 0 1 0 1 1 0 1 0 1 0]
+    [1 0 0 1 0 1 1 1 1 0 1 0]
 };
 
 
-%%
+%% prepare noise
 
-if ~isempty(noise)
-
-    n_rep = size(noise, 1); 
-    
+if size(noise, 1) < par.n_rep
+    error('you requested %d samples but provided only noise for %s...', ...
+          par.n_rep, size(noise, 1)); 
 else
- 
-    noise = prepare_eeg_noise(n_rep, par.trial_dur);    
-
+    noise = noise(1:par.n_rep, :); 
 end
 
-
-
-%%
-
-if strcmp(ir_type, 'square')
-    ir = get_square_kernel(par.fs, ...
-        'duration', 0.100, ...
-        'rampon', 0, ...
-        'rampoff', 0 ...
-        ); 
-elseif strcmp(ir_type, 'erp')
-    ir = get_erp_kernel(par.fs,...
-        'amplitudes', 1,...
-        't0s', 0, ...
-        'taus', 0.050, ...
-        'f0s', 7, ...
-        'duration', 0.2 ...
-        ); 
-elseif strcmp(ir_type, 'erp2')
-    ir = get_erp_kernel(par.fs,...
-        'amplitudes', [0.4, 0.75],...
-        't0s', [0, 0], ...
-        'taus', [0.2, 0.050], ...
-        'f0s', [1, 7], ...
-        'duration', 0.5 ...
-        ); 
-end
 
 %%
 
@@ -105,27 +69,27 @@ col_names = {
 
 tbl = cell2table(cell(0, length(col_names)), 'VariableNames', col_names); 
 
-for i_pat=1:length(pats)
+for i_pat=1:length(par.pats)
 
-    for i_emph=1:length(emph_levels)
+    for i_emph=1:length(par.emph_levels)
 
-        emph = emph_levels(i_emph); 
+        emph = par.emph_levels(i_emph); 
 
         % make whole signal 
         [x_clean, t] = get_s(...
-                            pats{i_pat}, ...
+                            par.pats{i_pat}, ...
                             par.grid_ioi, ...
                             par.fs, ...
                             'n_cycles', par.n_cycles, ...
-                            'ir', ir, ...
+                            'ir', par.ir, ...
                             'emph_period', 4, ...
                             'emph_phase', 0, ...
                             'emph_magn', emph ...
                             );
 
-        for i_snr=1:length(snrs)
+        for i_snr=1:length(par.snrs)
 
-            snr = snrs(i_snr); 
+            snr = par.snrs(i_snr); 
 
             fprintf('pat %d emph %.1f, snr %.1f\n', i_pat, emph, snr); 
 
@@ -145,14 +109,28 @@ for i_pat=1:length(pats)
                                     par.noise_bins(1), par.noise_bins(2)); 
 
             % with aperiodic subtraction    
-            [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, par.fs, ...
-                                               'rm_ap', true, ...
-                                               'f0_to_ignore', 1/2.4, ...
-                                               'ap_fit_flims', [0.1, 9]);  
+            acf_subtracted = nan(size(acf)); 
+            ap = nan(size(acf)); 
+            par_ap = cell(par.n_rep, 1); 
+
+            parfor i_rep=1:par.n_rep
+                [acf_subtracted(i_rep, :), ~, ap(i_rep, :), ~, ~, par_ap(i_rep)] = ...
+                                            get_acf(x(i_rep, :), par.fs, ...
+                                                   'rm_ap', true, ...
+                                                   'ap_fit_method', par.ap_fit_method, ...
+                                                   'f0_to_ignore', par.f0_to_ignore, ...
+                                                   'ap_fit_flims', par.ap_fit_flims); 
+            end
 
             feat_ap = []; 
-            feat_ap.offset = cellfun(@(x) x(1), par_ap);            
-            feat_ap.exponent = cellfun(@(x) x(2), par_ap);            
+            if strcmp(par.ap_fit_method, 'fooof')
+                feat_ap.offset = cellfun(@(x) x(1), par_ap);            
+                feat_ap.exponent = cellfun(@(x) x(2), par_ap);            
+            else
+                feat_ap.offset = nan(par.n_rep, 1);        
+                feat_ap.exponent = nan(par.n_rep, 1);         
+            end
+
 
             % get features
             % ------------
@@ -186,16 +164,16 @@ for i_pat=1:length(pats)
                                     par.freq_meter_rel, par.freq_meter_unrel);
 
             rows = [...
-                repmat({i_pat}, n_rep, 1), ...
-                repmat({emph}, n_rep, 1), ...
-                repmat({snr}, n_rep, 1), ...
-                num2cell([1:n_rep]'), ...
+                repmat({i_pat}, par.n_rep, 1), ...
+                repmat({emph}, par.n_rep, 1), ...
+                repmat({snr}, par.n_rep, 1), ...
+                num2cell([1:par.n_rep]'), ...
                 num2cell(feat_fft.z_meter_rel), ...
                 num2cell(feat_acf.z_meter_rel), ...
                 num2cell(feat_fft_subtracted.z_meter_rel), ...
                 num2cell(feat_acf_subtracted.z_meter_rel), ...
-                repmat({feat_fft_orig.z_meter_rel}, n_rep, 1), ...
-                repmat({feat_acf_orig.z_meter_rel}, n_rep, 1), ...
+                repmat({feat_fft_orig.z_meter_rel}, par.n_rep, 1), ...
+                repmat({feat_acf_orig.z_meter_rel}, par.n_rep, 1), ...
                 num2cell(feat_fft.z_snr), ...
                 num2cell(feat_ap.offset), ...
                 num2cell(feat_ap.exponent) ...
@@ -210,10 +188,15 @@ end
 
 
 % save table
-fname = sprintf('irType-%s_nrep-%d_emphVsNoise', ir_type, n_rep); 
+fname = sprintf('ir-%s_noise-%s_apFitMethod-%s_onlyHarm-%s_emphVsNoise', ...
+               par.ir_type,...
+               par.noise_type, ...
+               par.ap_fit_method, ...
+               jsonencode(par.only_use_f0_harmonics)); 
+           
 writetable(tbl, fullfile(par.data_path, [fname, '.csv'])); 
 
 % save parameters 
-save(fullfile(par.data_path, [fname, '_par.mat']), 'par', 'pats', 'snrs', 'emph_levels'); 
+save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 
 
 

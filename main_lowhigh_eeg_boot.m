@@ -1,4 +1,5 @@
-% function main_syncrange_eeg(par)
+% Re-analysis of the XPLowHigh data at group level (i.e. analysing the
+% grand-average time-domain response, and bootstrapping confidence intervals). 
 clear 
 par = get_par(); 
 

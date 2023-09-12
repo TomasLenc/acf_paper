@@ -1,54 +1,22 @@
 function main_noiseEffectZscore_ACFvsFFT(par, varargin)
-% clear 
-% par = get_par(); 
+% This code first finds generates patterns separately for FFT and ACF, such
+% that their resulting meter zscore (under the selected impulse response and
+% frex/lags of interest) is near pre-defined values. Then it simulates how the
+% meter zscore is affected by noise. The goal is to show how adding more and
+% more noise pulls the estimate to zero. 
 
 parser = inputParser; 
 
-addParameter(parser, 'ir_type', 'square'); % square, erp, erp2
-addParameter(parser, 'prepared_noise', []); % square, erp, erp2
+addParameter(parser, 'prepared_noise', []); 
 
 parse(parser, varargin{:});
 
-ir_type = parser.Results.ir_type;
 noise = parser.Results.prepared_noise;
 
 
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
-addpath(genpath('lib'))
-
 %% simulate
 
-n_rep = 50; 
-
-snrs = logspace(log10(0.01), log10(8), 10); 
-
-
-%% get IR 
-
-if strcmp(ir_type, 'square')
-    ir = get_square_kernel(par.fs, ...
-        'duration', par.grid_ioi, ...
-        'rampon', 0.010, ...
-        'rampoff', 0.010 ...
-        ); 
-elseif strcmp(ir_type, 'erp')
-    ir = get_erp_kernel(par.fs,...
-        'amplitudes', 1,...
-        't0s', 0, ...
-        'taus', 0.050, ...
-        'f0s', 7, ...
-        'duration', 0.2 ...
-        ); 
-elseif strcmp(ir_type, 'erp2')
-    ir = get_erp_kernel(par.fs,...
-        'amplitudes', [0.4, 0.75],...
-        't0s', [0, 0], ...
-        'taus', [0.2, 0.050], ...
-        'f0s', [1, 7], ...
-        'duration', 0.5 ...
-        ); 
-end
+par.snrs = logspace(log10(0.01), log10(8), 10); 
 
 
 %% find patterns 
@@ -71,7 +39,7 @@ for i_pat=1:size(all_good_pats, 1)
                         par.grid_ioi, ...
                         par.fs, ...
                         'n_cycles', par.n_cycles, ...
-                        'ir', ir ...
+                        'ir', par.ir ...
                         );
 
     [acf_clean, lags, ~, mX_clean, freq] = get_acf(x_clean, par.fs);    
@@ -86,7 +54,6 @@ for i_pat=1:size(all_good_pats, 1)
     z_fft_all_good_pats(i_pat) = feat_fft_orig.z_meter_rel; 
 
 end
-
 
 % figure
 % [z, idx] = sort(z_acf_all_good_pats); 
@@ -116,6 +83,7 @@ end
 
 
 target_z = [-0.5, 0, 0.5]; 
+
 n_pat_per_z = 3; 
 
 pat_idx_acf = []; 
@@ -133,18 +101,17 @@ z_fft_all_good_pats(pat_idx_fft)
 
 %%
 
-all_pats = all_good_pats([pat_idx_acf, pat_idx_fft], :); 
+n_rep = par.n_rep; 
 
-%%
+par.all_pats = all_good_pats([pat_idx_acf, pat_idx_fft], :); 
 
-if ~isempty(noise)
 
-    n_rep = size(noise, 1); 
-    
+%% prepare noise
+if size(noise, 1) < n_rep
+    error('you requested %d samples but provided only noise for %s...', ...
+          n_rep, size(noise, 1)); 
 else
- 
-    noise = prepare_eeg_noise(n_rep, par.trial_dur);    
-
+    noise = noise(1:n_rep, :); 
 end
 
 %%
@@ -159,19 +126,19 @@ col_names = {
 
 tbl = cell2table(cell(0, length(col_names)), 'VariableNames', col_names); 
 
-for i_pat=1:size(all_pats, 1)
+for i_pat=1:size(par.all_pats, 1)
     
     % make whole signal 
     [x_clean, t] = get_s(...
-                        all_pats(i_pat, :), ...
+                        par.all_pats(i_pat, :), ...
                         par.grid_ioi, ...
                         par.fs, ...
                         'n_cycles', par.n_cycles, ...
-                        'ir', ir);
+                        'ir', par.ir);
 
-    parfor i_snr=1:length(snrs)
+    parfor i_snr=1:length(par.snrs)
 
-        snr = snrs(i_snr); 
+        snr = par.snrs(i_snr); 
 
         fprintf('pat %d, snr %.1f\n', i_pat, snr); 
 
@@ -191,7 +158,7 @@ for i_pat=1:size(all_pats, 1)
                                 par.noise_bins(1), par.noise_bins(2)); 
 
         % with aperiodic subtraction    
-        [acf_subtracted, ~, ap, ~, ~, par_ap, x_subtr] = get_acf(x, par.fs, ...
+        [acf_subtracted] = get_acf(x, par.fs, ...
                        'rm_ap', true, ...
                        'ap_fit_method', par.ap_fit_method, ...
                        'f0_to_ignore', par.f0_to_ignore, ...
@@ -257,15 +224,14 @@ end
 %%
 
 % save table
-fname = sprintf('irType-%s_apFitMethod-%s_onlyHarm-%s_nrep-%d_noiseEffectZscoreACFvsFFT', ...
-                ir_type, ...
+fname = sprintf('irType-%s_apFitMethod-%s_onlyHarm-%s_noiseEffectZscoreACFvsFFT', ...
+                par.ir_type, ...
                 par.ap_fit_method, ...
-                jsonencode(par.only_use_f0_harmonics), ...
-                n_rep); 
+                jsonencode(par.only_use_f0_harmonics)); 
             
 writetable(tbl, fullfile(par.data_path, [fname, '.csv'])); 
 
 % save parameters 
-save(fullfile(par.data_path, [fname, '_par.mat']), 'par', 'all_pats', 'snrs'); 
+save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 
 
 

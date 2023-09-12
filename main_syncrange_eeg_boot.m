@@ -1,6 +1,6 @@
 function main_syncrange_eeg_boot(par)
-% clear 
-% par = get_par(); 
+% Re-analysis of the XPsyncRange data at group level (i.e. analysing the
+% grand-average time-domain response, and bootstrapping confidence intervals).
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 

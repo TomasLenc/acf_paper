@@ -1,16 +1,9 @@
-% function main_syncrange_eeg(par)
-clear 
-par = get_par(); 
-
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
-addpath(genpath(par.lw_path)); 
-addpath(genpath('lib'))
-
+function main_infant_eeg(par)
+% Re-analysis of the XPInfant data at individual subject level. 
 
 %% parameters
 
-deriv_path = '/datadisk/projects/InfantRhythm/derivatives'; 
+load_path = fullfile(par.eeg_path, 'infant'); 
 
 rhythms = {'unsync', 'sync'}; 
 tones = {'low', 'high'}; 
@@ -52,36 +45,14 @@ tbl = cell2table(cell(0, length(col_names)), 'VariableNames', col_names);
 
 %% frequencies of interest 
 
+% exclude first two harmonics as in the original paper
 par.freq_meter_rel = par.freq_meter_rel(par.freq_meter_rel > 1/2.4); 
 par.freq_meter_unrel = par.freq_meter_unrel(par.freq_meter_unrel > 1/2.4); 
 par.frex = par.frex(par.frex > 1/2.4); 
 
-
-%% lags of interest 
-
-% autocorrelation lags (in seconds) that are considered meter-related and
-% meter-unrelated
-par.max_lag = par.trial_dur / 2; 
-
-par.lag_base_incl_meter_rel = [0.8]; 
-par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
-
-par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
-par.lag_base_excl_meter_unrel = [0.4]; 
-
-par.lags_meter_rel = get_lag_harmonics(...
-                            par.lag_base_incl_meter_rel, ...
-                            par.max_lag,...
-                            'lag_harm_to_exclude', par.lag_base_excl_meter_rel ...
-                            ); 
-                        
-par.lags_meter_unrel = get_lag_harmonics(...
-                            par.lag_base_incl_meter_unrel, ...
-                            par.max_lag,...
-                            'lag_harm_to_exclude', par.lag_base_excl_meter_unrel ...
-                            ); 
-
 %% run
+
+c = 1; 
 
 for i_rhythm=1:n_rhythms
     
@@ -105,7 +76,7 @@ for i_rhythm=1:n_rhythms
             
             fprintf('preprocessing: %s\n', fname); 
             
-            d = dir(fullfile(deriv_path, 'preprocessed_AB', fname)); 
+            d = dir(fullfile(load_path, 'derivatives', 'preprocessed_AB', fname)); 
             
             [header, data] =  CLW_load(fullfile(d.folder, d.name)); 
 
@@ -187,7 +158,7 @@ for i_rhythm=1:n_rhythms
 
         %% load stimulus
 
-        fname = '/datadisk/projects/InfantRhythm/stimuli/Slaney_128coch_meddis_timeDomain_meanAcrossCF.mat'; 
+        fname = fullfile(load_path, 'Slaney_128coch_meddis_timeDomain_meanAcrossCF.mat'); 
 
         coch_output = load(fname); % variables: freq, res_all, rowNames
 
@@ -255,6 +226,7 @@ for i_rhythm=1:n_rhythms
         % with aperiodic subtraction    
         acf_subtracted = nan(size(acf)); 
         ap = nan(size(acf)); 
+        optim_exitflag = []; 
         
         parfor i_sub=1:size(data, 1)
             
@@ -280,7 +252,6 @@ for i_rhythm=1:n_rhythms
         mX_subtracted = squeeze(mean(mX_subtracted, 2)); 
         acf = squeeze(mean(acf, 2)); 
         acf_subtracted = squeeze(mean(acf_subtracted, 2)); 
-
 
         % get features
         % ------------
@@ -318,19 +289,42 @@ for i_rhythm=1:n_rhythms
 
         tbl = [tbl; rows];
         
+       
+        data_to_plot(c).rhythm = rhythm; 
+        data_to_plot(c).tone = tone; 
+        data_to_plot(c).mX = mX; 
+        data_to_plot(c).mX_subtr = mX_subtracted;  
+        data_to_plot(c).freq = freq; 
+        data_to_plot(c).acf = acf; 
+        data_to_plot(c).acf_subtr = acf_subtracted;
+        data_to_plot(c).lags = lags; 
+
+        c = c+1; 
+        
+        
+        
     end
 
 
 end
     
 
-%% save table
+%% save
 
-fname = sprintf('exp-infant_apFitMethod-%s_eegIndividual', par.ap_fit_method); 
+fname = sprintf('exp-infant_apFitMethod-%s_onlyHarm-%s_roi-%s_eegIndividual', ...
+                par.ap_fit_method, ...
+                jsonencode(par.only_use_f0_harmonics),...
+                par.roi_name); 
+
+% save table
 writetable(tbl, fullfile(par.data_path, [fname, '.csv'])); 
+
+% save data 
+save(fullfile(par.data_path, [fname, '.mat']), 'data_to_plot', 'par'); 
 
 % save parameters 
 save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 
+
 
 
 

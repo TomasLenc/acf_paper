@@ -32,7 +32,7 @@ addpath(genpath('lib'));
 
 fig_path = fullfile(experiment_path, 'figures'); 
 data_path = fullfile(experiment_path, 'data'); 
-coch_data_path = fullfile(experiment_path, 'data', 'coch'); 
+coch_data_path = fullfile(experiment_path, 'eeg', 'coch'); 
 eeg_path = fullfile(experiment_path, 'eeg'); 
 resting_eeg_path = fullfile(eeg_path, 'resting_eeg', 'ds004148'); 
 
@@ -48,6 +48,14 @@ grid_ioi = 0.2;
 
 trial_dur = n_cycles * length(pat) * grid_ioi; 
 
+ir_type = 'square'; 
+
+ir = get_ir(ir_type, fs); 
+
+noise_type = 'eeg'; 
+
+n_rep = 30; 
+
 
 %% acf parameters 
 
@@ -55,7 +63,7 @@ ap_fit_method = 'irasa';
 
 f0_to_ignore = 1/2.4; 
 
-only_use_f0_harmonics = false; 
+only_use_f0_harmonics = true; 
 
 ap_fit_flims = [0.1, 9]; 
 
@@ -133,6 +141,9 @@ noise_bins_snr = [3, 13];
 save_figs = true; 
 
 fontsize = 14; 
+
+%% 
+
 
 
 %% return structure 

@@ -1,6 +1,5 @@
 function main_syncrange_eeg(par)
-% clear 
-% par = get_par(); 
+% Re-analysis of the XPSyncRange data at individual subject level. 
 
 addpath(genpath(par.acf_tools_path)); 
 addpath(genpath(par.rnb_tools_path)); 

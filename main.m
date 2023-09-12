@@ -4,64 +4,85 @@ clear
 [~, hostname] = system('hostname');
 hostname = deblank(hostname);
 
-
 par = get_par(); 
 
-%%
+%% noies
 
 if strcmpi(hostname, 'tux')
-
-    noise_all_samples = prepare_eeg_noise(500, par.trial_dur);    
-
+    n_noise_samples = 30; 
 elseif strcmpi(hostname, 'tomo-office-desktop')
+    n_noise_samples = 500; 
+end
 
-    noise_all_samples = prepare_eeg_noise(50, par.trial_dur);    
+% genarate noies
+if strcmp(par.noise_type, 'eeg')
+
+    noise_all_samples = prepare_eeg_noise(n_noise_samples, par.trial_dur);    
+
+elseif strcmp(par.noise_type, 'fractal')
+
+    noise_all_samples = get_colored_noise2(...
+        [n_noise_samples, round(par.trial_dur*par.fs)], ...
+        par.fs, par.noise_exponent); 
+
+else
+    
+    error('noise type "%s" not implemented', par.noise_type);
 
 end
 
-n_rep_snr = 200; 
-n_rep_emph_vs_noise = 100; 
-n_rep_snr_vs_nlags = 500; 
-n_rep_only_noise = 1000; 
+
+%%
+
+% this one is independent on the frex/lags selection 
+par = get_par(); 
+
+par.data_path = fullfile(par.data_path); 
+
+main_snr_vs_nlags(par,...
+    'prepared_noise', noise_all_samples); 
 
 
 %% 
 
-% sel_name = 'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4'; 
-% 
-% par = get_par(); 
-% 
-% par.data_path = fullfile(par.data_path, sel_name); 
-% par.fig_path = par.data_path; 
-% mkdir(par.data_path); 
-% 
-% % frequencies of interst
-% par.max_freq = 5; 
-% par.max_freq_plot = 5.1; 
-% par.f0_to_excl = 5; 
-% [par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
-%                                                 par.max_freq, ...
-%                                                 'f0_to_excl', par.f0_to_excl);
-% 
-% % lags of interest 
-% par.max_lag = par.trial_dur / 2; 
-% 
-% par.lag_base_incl_meter_rel = [0.8]; 
-% par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
-% 
-% par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
-% par.lag_base_excl_meter_unrel = [0.8]; 
-% 
-% [par.lags_meter_rel, par.lags_meter_unrel] = get_meter_lags(...
-%             par.max_lag, ...
-%             par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
-%             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
-%             );
-%         
-% run_scripts
-% 
+sel_name = 'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4'; 
+
+par.data_path = fullfile(par.data_path, sel_name); 
+par.fig_path = par.data_path; 
+mkdir(par.data_path); 
+
+% frequencies of interst
+par.max_freq = 5; 
+par.max_freq_plot = 5.1; 
+par.f0_to_excl = 5; 
+[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+                                                par.max_freq, ...
+                                                'f0_to_excl', par.f0_to_excl);
+
+% lags of interest 
+par.max_lag = par.trial_dur / 2; 
+
+par.lag_base_incl_meter_rel = [0.8]; 
+par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
+
+par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
+par.lag_base_excl_meter_unrel = [0.8]; 
+
+[par.lags_meter_rel, par.lags_meter_unrel] = get_meter_lags(...
+            par.max_lag, ...
+            par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
+            par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
+            );
+        
+run_scripts
+
 
 %% 
+
+% This one is only to double check that the better robustnesss of ACF to noise
+% is not simply because we're taking more values (lags of interest). So let's
+% equalize the number of frex and lags of interest and re-run only the relevant
+% scripts. 
 
 sel_name = 'maxlag-11lags_meterUnrel-0.6_1.0_1.4'; 
 
@@ -106,44 +127,51 @@ idx = idx(1 : length(par.frex));
 par.lags_meter_rel = lags( idx(ismember(idx, find(mask_meter_rel))) ); 
 par.lags_meter_unrel = lags( idx(ismember(idx, find(~mask_meter_rel))) ); 
         
-        
-run_scripts
+% run only what we need
+par.n_rep = 50; 
+
+main_noiseEffectZscore_ACFvsFFT(par, ...
+    'prepared_noise', noise_all_samples);
+
+main_noiseEffectDist_ACFvsFFT(par, ...
+    'prepared_noise', noise_all_samples);
+
 
 
 %% 
 
-% sel_name = 'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4_ignore-0.4'; 
-% 
-% par = get_par(); 
-% 
-% par.data_path = fullfile(par.data_path, sel_name); 
-% par.fig_path = par.data_path; 
-% mkdir(par.data_path); 
-% 
-% % frequencies of interst
-% par.max_freq = 5; 
-% par.max_freq_plot = 5.1; 
-% par.f0_to_excl = 5; 
-% [par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
-%                                                 par.max_freq, ...
-%                                                 'f0_to_excl', par.f0_to_excl);
-% 
-% % lags of interest 
-% par.max_lag = par.trial_dur / 2; 
-% 
-% par.lag_base_incl_meter_rel = [0.8]; 
-% par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
-% 
-% par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
-% par.lag_base_excl_meter_unrel = [0.4]; 
-% 
-% [par.lags_meter_rel, par.lags_meter_unrel] = get_meter_lags(...
-%             par.max_lag, ...
-%             par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
-%             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
-%             );
-%         
-% run_scripts
+sel_name = 'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4_ignore-0.4'; 
+
+par = get_par(); 
+
+par.data_path = fullfile(par.data_path, sel_name); 
+par.fig_path = par.data_path; 
+mkdir(par.data_path); 
+
+% frequencies of interst
+par.max_freq = 5; 
+par.max_freq_plot = 5.1; 
+par.f0_to_excl = 5; 
+[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+                                                par.max_freq, ...
+                                                'f0_to_excl', par.f0_to_excl);
+
+% lags of interest 
+par.max_lag = par.trial_dur / 2; 
+
+par.lag_base_incl_meter_rel = [0.8]; 
+par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
+
+par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
+par.lag_base_excl_meter_unrel = [0.4]; 
+
+[par.lags_meter_rel, par.lags_meter_unrel] = get_meter_lags(...
+            par.max_lag, ...
+            par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
+            par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
+            );
+        
+run_scripts
 
 
 

@@ -1,4 +1,4 @@
-% function main_syncrange_eeg(par)
+% Re-analysis of the XPAttention data at individual subject level. 
 clear 
 par = get_par(); 
 
