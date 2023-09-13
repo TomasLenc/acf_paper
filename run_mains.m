@@ -1,8 +1,8 @@
-% 
-% 
-% par.ir_type = 'square'; 
-% par.ir = get_ir(par.ir_type, par.fs); 
-% 
+
+
+par.ir_type = 'square'; 
+par.ir = get_ir(par.ir_type, par.fs); 
+
 % main_ir(par);
 % 
 % main_emph(par);
@@ -11,12 +11,12 @@
 % 
 % main_jitter(par);
 % 
-% 
-% 
-% %% effect of noise 
-% 
-% par.n_rep = 50; 
-% 
+
+
+%% effect of noise 
+
+par.n_rep = 50; 
+
 % 
 % main_snr(par,...
 %     'prepared_noise', noise_all_samples);
@@ -33,9 +33,9 @@
 % main_noiseEffectDist_ACFvsFFT(par, ...
 %     'prepared_noise', noise_all_samples);
 % 
-% 
-% main_noiseEffectDist_allVsOnlyHarm(par, ...
-%     'prepared_noise', noise_all_samples); 
+
+main_noiseEffectDist_allVsOnlyHarm(par, ...
+    'prepared_noise', noise_all_samples); 
 % 
 % 
 % 
@@ -56,7 +56,7 @@
 
 % main_lowhigh_eeg(par); 
 
-main_lowhigh_tap(par); 
+% main_lowhigh_tap(par); 
 
 % main_infant_eeg(par); 
 
