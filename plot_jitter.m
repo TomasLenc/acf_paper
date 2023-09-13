@@ -1,8 +1,10 @@
-
-clear
-
-par = get_par(); 
-
+function plot_jitter(par)
+  
+fname = sprintf('ir-%s_apFitMethod-%s_onlyHarm-%s_jitter', ...
+               par.ir_type, ...
+               par.ap_fit_method, ...
+               jsonencode(par.only_use_f0_harmonics)); 
+           
 cmap_name = 'YlGn'; 
 
 cond_colname = 'jitter'; 
@@ -12,9 +14,7 @@ feat_to_plot = {
     'z_meter_acf_raw'
     }; 
 
-fname = '10_jitter';
-
-[f, pnl] = plot_multi_figure(fname, cmap_name, cond_colname, feat_to_plot, ...
+[f, pnl] = plot_multi_figure(par.data_path, fname, cmap_name, cond_colname, feat_to_plot, ...
                              'plot_subtr', false, ...
                              'varargin_for_points', {'zero_line', true});
  

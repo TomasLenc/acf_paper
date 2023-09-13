@@ -1,6 +1,6 @@
-clear
+function plot_ir(par)
 
-par = get_par(); 
+fname = sprintf('ir-%s_ir', par.ir_type);
 
 cmap_name = 'RdPu'; 
 
@@ -11,8 +11,6 @@ feat_to_plot = {
     'z_meter_acf'
     }; 
 
-fname = '03_ir';
-
-f = plot_multi_figure(fname, cmap_name, cond_colname, feat_to_plot);
+f = plot_multi_figure(par.data_path, fname, cmap_name, cond_colname, feat_to_plot);
 
 save_fig(f, fullfile(par.data_path, [fname, '.svg']));

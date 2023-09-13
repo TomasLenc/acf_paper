@@ -1,4 +1,4 @@
-function [f, pnl] = plot_multi_figure(fname, cmap_name, cond_colname, feat_to_plot, varargin)
+function [f, pnl] = plot_multi_figure(data_path, fname, cmap_name, cond_colname, feat_to_plot, varargin)
 
 parser = inputParser; 
 
@@ -12,12 +12,13 @@ plot_subtr = parser.Results.plot_subtr;
 varargin_for_examples = parser.Results.varargin_for_examples; 
 varargin_for_points = parser.Results.varargin_for_points; 
 
+%% load 
 
-par = get_par(); 
+res = load(fullfile(data_path, [fname, '.mat'])); 
+data_to_plot = res.data_to_plot; 
+par = res.par; 
 
-load(fullfile(par.data_path, [fname, '.mat'])); 
-
-tbl = readtable(fullfile(par.data_path, [fname, '.csv'])); 
+tbl = readtable(fullfile(data_path, [fname, '.csv'])); 
 
 n_cond = length(data_to_plot); 
 
@@ -101,7 +102,7 @@ for i_cond=1:n_cond
                  varargin_for_examples{:});              
              
     if ~isempty(mX_subtr) || ~isempty(acf_subtr)
-        pnl(2, i_cond).maraxgintop = 25; 
+        pnl(2, i_cond).margintop = 25; 
     else
         pnl(2, i_cond).margintop = 15; 
     end
