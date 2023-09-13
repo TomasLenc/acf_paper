@@ -1,7 +1,7 @@
 function main_lowhigh_eeg(par)
 % Re-analysis of the XPLowHigh data at individual subject level. 
 
-load_path = '/datadisk/projects/XPLowHigh'; 
+load_path = fullfile(par.eeg_path, 'lowhigh'); 
 
 rhythms = {'unsyncopated', 'syncopated'}; 
 tones = {'L', 'H'}; 

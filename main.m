@@ -8,11 +8,7 @@ par = get_par();
 
 %% noies
 
-if strcmpi(hostname, 'tux')
-    n_noise_samples = 30; 
-elseif strcmpi(hostname, 'tomo-office-desktop')
-    n_noise_samples = 500; 
-end
+n_noise_samples = 500; 
 
 % genarate noies
 if strcmp(par.noise_type, 'eeg')
@@ -37,6 +33,8 @@ end
 % this one is independent on the frex/lags selection 
 par = get_par(); 
 
+par.n_rep = 50; 
+
 par.data_path = fullfile(par.data_path); 
 
 main_snr_vs_nlags(par,...
@@ -46,6 +44,8 @@ main_snr_vs_nlags(par,...
 %% 
 
 sel_name = 'maxlag-halfTrial_meterUnrel-0.6_1.0_1.4'; 
+
+par = get_par(); 
 
 par.data_path = fullfile(par.data_path, sel_name); 
 par.fig_path = par.data_path; 
@@ -74,7 +74,7 @@ par.lag_base_excl_meter_unrel = [0.8];
             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
             );
         
-run_scripts
+run_mains
 
 
 %% 
@@ -171,7 +171,7 @@ par.lag_base_excl_meter_unrel = [0.4];
             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
             );
         
-run_scripts
+run_mains
 
 
 
@@ -199,7 +199,7 @@ run_scripts
 %             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
 %             );
 %         
-% run_scripts
+% run_mains
 % 
 % %%
 % 
@@ -225,7 +225,7 @@ run_scripts
 %             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
 %             );
 %         
-% run_scripts
+% run_mains
 % 
 % 
 
@@ -249,7 +249,7 @@ run_scripts
 %                                                 'f0_to_excl', par.f0_to_excl);
 % 
 % 
-% run_scripts
+% run_mains
 % 
 % 
 % %% 
@@ -270,7 +270,7 @@ run_scripts
 %                                                 'f0_to_excl', par.f0_to_excl);
 % 
 % 
-% run_scripts
+% run_mains
 
 % 
 % %% 
@@ -291,7 +291,7 @@ run_scripts
 % par.freq_meter_rel(par.freq_meter_rel < 1) = []; 
 % par.freq_meter_unrel(par.freq_meter_unrel < 1) = []; 
 %                                             
-% run_scripts
+% run_mains
 % 
 
 

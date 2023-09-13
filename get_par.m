@@ -54,7 +54,7 @@ ir = get_ir(ir_type, fs);
 
 noise_type = 'eeg'; 
 
-n_rep = 30; 
+n_rep = 50; 
 
 
 %% acf parameters 
