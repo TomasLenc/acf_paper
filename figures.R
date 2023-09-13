@@ -184,7 +184,8 @@ plot_marginal_distribution <- function(df, var, color, alpha=0.5, bins=30) {
 }
 
 
-plot_correlation_scatter <- function(df, var_x, var_y, corr_result=NULL, color=col_eeg){
+plot_correlation_scatter <- function(df, var_x, var_y, corr_result=NULL, color=col_eeg, ...){
+    # ... are kwargs for the marginal plot
     
     label_pos_x <- max(df[,var_x])
     label_pos_y <- max(df[,var_y])
@@ -207,8 +208,8 @@ plot_correlation_scatter <- function(df, var_x, var_y, corr_result=NULL, color=c
         annotate('text', x=label_pos_x, y=label_pos_y, label=label_text, hjust='right') + 
         theme_cowplot() 
     # prepare marginal histograms
-    x_hist <- plot_marginal_distribution(df, var_x, color, alpha=0.8)
-    y_hist <- plot_marginal_distribution(df, var_y, color, alpha=0.8) + coord_flip()
+    x_hist <- plot_marginal_distribution(df, var_x, color, alpha=0.8, ...)
+    y_hist <- plot_marginal_distribution(df, var_y, color, alpha=0.8, ...) + coord_flip()
     # align histograms with scatterplot
     aligned_x_hist <- align_plots(x_hist, scatterplot, align = "v")[[1]]
     aligned_y_hist <- align_plots(y_hist, scatterplot, align = "h")[[1]]

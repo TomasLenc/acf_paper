@@ -1,0 +1,905 @@
+---
+title: "ACF report"
+author: "Tomas Lenc"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document: 
+    code_folding: hide
+    toc: true
+    toc_float: 
+      collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source('config.R')
+source('figures.R')
+source('utils.R')
+
+```
+
+
+This report puts all the simulation and analysis results together! 
+
+
+
+<br><br><br><br>  
+
+---  
+# Effect of noise  
+
+<br> 
+
+
+Noise is bad because it distorts the shape of the FFT or ACF, creating a bias in the estimated 
+meter zscore. 
+
+This can be easily demonstrated by applying the estiamation method to pure noise without any signal. 
+
+When we repeat this simulation many times, we see that simply applying the frequency-tagging or 
+periodicity-tagging method leads to, on average, non-zero meter zscore. 
+
+To address this issue, there are ways to account for the noise and minimize the bias:   
+
+* FFT -> subtracting neighboring bins in the magnitude spectrum.  
+* ACF -> estimating the 1/f noise and subtracting this estimate from the spectrum before computing the ACF.  
+
+
+```{r}
+
+fname <- 'ir-square_noise-eeg_apFitMethod-irasa_onlyHarm-true_onlyNoise.csv'
+
+df_only_noise <- read.csv(file.path(data_path, fname))
+
+df_only_noise$sample <- seq(1, nrow(df_only_noise))
+    
+df_only_noise_long <- pivot_longer(df_only_noise,
+                                   !sample, 
+                                   names_to='method',
+                                   values_to='z_meter')
+
+get_bf <- function(df) {
+       bf <- BayesFactor::ttestBF(df$z_meter, mu=0)
+       data.frame(bf10 = sprintf('BF10=%.3g', as.vector(bf)),
+                  z_meter=0.05 + max(df$z_meter))
+}
+
+df_bf <- df_only_noise_long %>% 
+    group_by(method) %>%
+    group_modify(~ get_bf(.x))
+
+df_summary <- summarySE(data=df_only_noise_long, measurevar='z_meter', groupvars=c('method'))
+
+p <- ggplot(df_only_noise_long, aes(x=1, y=z_meter)) + 
+    geom_hline(yintercept=0, color='black', linetype='dashed') + 
+    geom_half_violin(side='l', scale='width', fill='grey70', color=NA) + 
+    geom_half_point(side='r', color='grey50', alpha=0.1) + 
+    geom_point(data=df_summary, size=2, color='black') + 
+    geom_errorbar(data=df_summary, aes(ymin=z_meter-sd, ymax=z_meter+sd),
+                  color='black', linewidth=0.8, width=0) + 
+    geom_text(data=df_bf, aes(label=bf10)) + 
+    scale_x_continuous(breaks=c()) + 
+    facet_wrap(~method, nrow=1, scales='free_y') + 
+    theme_cowplot() + 
+    theme(
+        axis.title.x = element_blank(),
+        axis.line.x = element_blank()
+    )
+
+
+save_fig(file.path(data_path, fname), p, width=6, height=3)
+p
+```
+
+
+
+
+<br><br>
+
+## Zscore: pulled to zero by noise
+
+This is problematic, since systematically different magnitude of noise across conditions can lead to 
+spurious statistical differences in the estimated meter zscores. 
+
+We have to minimize the effect of noise as much as possible (in reality there is no way to simply get 
+rid of the influence of noise - we can only suppress it to greater/lesser degree).  
+
+```{r}
+
+fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectZscoreACFvsFFT.csv'
+
+df_noise_effect_z <- read.csv(file.path(data_path, fname))
+
+# convert to factors
+df_noise_effect_z$pat <- factor(df_noise_effect_z$pat)
+df_noise_effect_z$selected_for <- factor(df_noise_effect_z$selected_for,
+                                         levels=(c('fft', 'acf')))
+
+# convert to long format so that we can use the method and/or whether noise was subtracted as an
+# independent variable 
+df <- pivot_longer(df_noise_effect_z,
+                   !c(pat, selected_for, snr, sample, z_snr, z_meter_fft_orig, z_meter_acf_orig), 
+                   names_to='var_name',
+                   values_to='z_meter')
+
+# some magic to create new variable columns about the method 
+df$method <- ifelse(str_detect(df$var_name, 'fft'), 'fft', 'acf')
+df$subtr <- ifelse(str_detect(df$var_name, 'subtr'), 'yes', 'no')
+df$subtr <- factor(df$subtr, levels=c('no', 'yes'))
+
+# more factors
+df$snr <- factor(df$snr)
+df$snr <- factor(df$snr, levels=rev(levels(df$snr)))
+
+mask_fft <- df$selected_for == 'fft'
+df$z_meter_orig <- rep(NA, 1, nrow(df))
+df$z_meter_orig[mask_fft] <- df$z_meter_fft_orig[mask_fft]
+df$z_meter_orig[!mask_fft] <- df$z_meter_acf_orig[!mask_fft]
+
+# function that plots meter zscore to compare the estimate without/with noise subtraction
+plot_subtr_effect <- function(df, pats, method) {
+    df <- filter(df, pat %in% {{pats}})
+    df_summary <- summarySE(data=df,
+                            measurevar='z_meter', 
+                            groupvars=c('selected_for', 'method', 'snr', 'pat', 'subtr'))
+    pd_summary <- position_dodge(0.5)
+    cols <- c('no'='#2b7557', 'yes'='#711885')
+    ggplot(filter(df, selected_for=={{method}} & method=={{method}}), aes(snr, z_meter, color=subtr)) +
+        geom_hline(yintercept = 0, color='#000000') + 
+        geom_hline(aes(yintercept=z_meter_orig), color='#5e5e5e', linetype='dotted', linewidth=1) + 
+        geom_point(alpha=0.05, position=position_jitter(height=0, width=0.1)) + 
+        geom_point(data=filter(df_summary, selected_for=={{method}} & method=={{method}}), 
+                   size=2, position=pd_summary) + 
+        geom_errorbar(data=filter(df_summary, selected_for=={{method}} & method=={{method}}), 
+                      aes(ymin=z_meter-ci, ymax=z_meter+ci), position=pd_summary, width=0, linewidth=1) + 
+        scale_color_manual(name='subtracted', values=cols) + 
+        scale_x_discrete(labels=round(as.numeric(levels(df$snr)), 2)) + 
+        scale_y_continuous(limits=c(-1, 1)) + 
+        theme_cowplot()
+}
+
+
+# # confirm that it works with different patterns too
+# p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=c(7, 17))
+# p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=c(7, 17))
+# 
+# p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=c(2, 11))
+# p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(2, 11))
+
+# pick a pattern with high positive true zscore
+p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=c(8, 18))
+p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=c(8, 18))
+# pick a pattern with low negative true zscore
+p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=c(1, 10))
+p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(1, 10))
+
+# extract a legend that is laid out horizontally
+legend <- get_legend(p_fft_high_z + 
+                         guides(color = guide_legend(nrow = 1)) +
+                         theme(legend.position="top"))
+# merge plots 
+p_merged <- plot_grid(
+    p_fft_high_z + theme(legend.position="none"), 
+    p_acf_high_z + theme(legend.position="none"), 
+    p_fft_low_z + theme(legend.position="none"), 
+    p_acf_low_z + theme(legend.position="none"), 
+    nrow=2, ncol=2)
+
+p <- plot_grid(legend, p_merged, ncol=1, rel_heights=c(0.1, 1))
+
+save_fig(file.path(data_path, fname), p, width=7, height=5)
+p
+
+
+
+
+# library(ggsci)
+# 
+# alpha <- 0.4
+# x_var <- 'snr'
+# 
+# p_fft_raw <- ggplot(filter(df_noise_effect_z, selected_for=='fft'), aes(log10(.data[[x_var]]), z_meter_fft_raw)) +
+#     geom_point(aes(color=pat), alpha=alpha) + 
+#     geom_hline(yintercept = 0, color='#5e5e5e') + 
+#     scale_color_aaas() + 
+#     scale_x_reverse() +
+#     scale_y_continuous(limits=c(-1, 1)) + 
+#     theme_cowplot()
+# 
+# p_acf_raw <- ggplot(filter(df_noise_effect_z, selected_for=='acf'), aes(log10(.data[[x_var]]), z_meter_acf_raw)) +
+#     geom_point(aes(color=pat), alpha=alpha) + 
+#     geom_hline(yintercept = 0, color='#5e5e5e') + 
+#     scale_color_jco() + 
+#     scale_x_reverse() +
+#     scale_y_continuous(limits=c(-1, 1)) + 
+#     theme_cowplot()
+# 
+# p_fft_subtr <- ggplot(filter(df_noise_effect_z, selected_for=='fft'), aes(log10(.data[[x_var]]), z_meter_fft_subtr)) +
+#     geom_point(aes(color=pat), alpha=alpha) + 
+#     geom_hline(yintercept = 0, color='#5e5e5e') + 
+#     scale_color_aaas() + 
+#     scale_x_reverse() +
+#     scale_y_continuous(limits=c(-1, 1)) + 
+#     theme_cowplot()
+# 
+# p_acf_subtr <- ggplot(filter(df_noise_effect_z, selected_for=='acf'), aes(log10(.data[[x_var]]), z_meter_acf_subtr)) +
+#     geom_point(aes(color=pat), alpha=alpha) + 
+#     geom_hline(yintercept = 0, color='#5e5e5e') + 
+#     scale_color_jco() + 
+#     scale_x_reverse() +
+#     scale_y_continuous(limits=c(-1, 1)) + 
+#     theme_cowplot()
+# 
+# plot_grid(p_fft_raw, p_acf_raw, p_fft_subtr, p_acf_subtr, nrow=2, ncol=2)
+
+```
+
+
+In the analysis above, we have picked a pattern that yielded a high (or low) meter zscore separately
+for the FFT and for the ACF. This is because it turns out quite difficult to find a pattern that 
+yields very similar zscore (in absolute terms) between the FFT and ACF. 
+
+The zscores yielded by the two methods are still higly correlated though, but the absolute scale of 
+meter zscores obtained from the $ method is smaller. 
+
+Nevertheless, the next question is: which is more sensitive to noise, FFT or ACF?  
+
+
+<br><br>
+
+## Sensitivity to noise: FFT vs. ACF
+
+
+A better way than looking at meter zscores (which are sensitive to the selection of frequencies/lags 
+of interest as meter-related), we can look at the values across all freqs/lags of interest.  
+
+simply assess the distance from the ground truth
+
+This way, we can use the exact same patterns for the FFT and ACF (no need to worry about the actual 
+value of meter zscore in he ground truth signal).
+
+
+```{r}
+
+plot_dist_to_truth <- function(df, init_params=list('min_'=0, 'max_'=1, 'x50_'=1, 'slope_'=1.5)){
+    # convert to factors
+    df$pat <- factor(df$pat)
+    
+    # log transform SNR values 
+    df$snr_log <- log10(df$snr)
+    
+    # fix negative values before taking log 
+    df <- filter(df, z_snr > 0)
+    df$z_snr_log <- log10(df$z_snr)
+    
+    # # fisher-transform the correlation coefficients
+    # df$r_acf_raw <- r_to_z(df$r_acf_raw)
+    # df$r_acf_subtr <- r_to_z(df$r_acf_subtr)
+    # df$r_fft_raw <- r_to_z(df$r_fft_raw)
+    # df$r_fft_subtr <- r_to_z(df$r_fft_subtr)
+    
+    var_name <- 'z_snr_log'
+    
+    # fit sigmoids
+    m_acf <- fit_sigm(df[,var_name], df$r_acf_subtr, init_params=init_params)
+    m_fft <- fit_sigm(df[,var_name], df$r_fft_subtr, init_params=init_params)
+    
+    # print confidence intervals on paramter estimates 
+    confint(m_acf)
+    confint(m_fft)
+    
+    # plot 
+    ggplot() +
+        geom_hline(yintercept = 0, color='#000000') + 
+        geom_point(data=df, aes(.data[[var_name]], r_acf_subtr), color='#bd3a3a', alpha=0.2) + 
+        geom_point(data=df, aes(.data[[var_name]], r_fft_subtr), color='#2987b3', alpha=0.2) + 
+        geom_function(fun=sigm, args=coef(m_acf), aes(color='acf'), linewidth=2) +
+        geom_function(fun=sigm, args=coef(m_fft), aes(color='fft'), linewidth=2) +
+        scale_color_manual(name='method', values=c('acf'='#802626', 'fft'='#164961')) + 
+        ylab('r with ground truth') + 
+        theme_cowplot() +
+        scale_x_reverse() 
+}
+
+fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
+
+df <- read.csv(file.path(data_path, fname))
+
+p <- plot_dist_to_truth(df)
+
+save_fig(file.path(data_path, fname), p, width=5, height=3)
+p
+
+
+```
+
+
+The correlation above was done with a different number of frequencies vs. lags (much more lags of 
+interest). Perhaps this may "disadvantage" the FFT in some way? Let's try the same but fixing the 
+number of frequencies and lags of interest to 11. That is, we take the first 11 frequencies or lags
+of interest and re-do the correlation analysis under different amounts of noise.  
+
+```{r}
+
+fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
+
+df <- read.csv(file.path(experiment_path, 'data', 
+                         'maxlag-11lags_meterRel-0.8_meterUnrel-0.6_1.0_1.4', 
+                         fname))
+
+plot_dist_to_truth(df)
+```
+
+
+<br><br>
+
+## ACF: raw, subtr, only harmonics
+
+
+```{r}
+
+fname <- 'irType-square_apFitMethod-irasa_noiseEffectDistAllVsOnlyHarm.csv'
+
+df <- read.csv(file.path(data_path, fname))
+
+# convert to factors
+df$pat <- factor(df$pat)
+df$method <- factor(df$method, levels=c('raw', 'subtr', 'subtr_only_harm'))
+
+# fix negative values before taking log 
+df <- filter(df, z_snr > 0)
+
+# # fisher-transform the correlation coefficients
+df$z <- r_to_z(df$r)
+
+# fit sigmoids
+df_raw <- filter(df, method=='raw')
+m_raw <- fit_sigm(log10(df_raw$z_snr), df_raw$r)
+
+df_subtr <- filter(df, method=='subtr')
+m_subtr <- fit_sigm(log10(df_subtr$z_snr), df_subtr$r)
+
+df_subtr_only_harm <- filter(df, method=='subtr_only_harm')
+m_subtr_only_harm <- fit_sigm(log10(df_subtr_only_harm$z_snr), df_subtr_only_harm$r)
+
+cols <- c('raw'='#711885', 
+          'subtr'='#d18624', 
+          'subtr_only_harm'='#2b7557')
+
+# plot 
+p <- ggplot() +
+    geom_point(data=df_subtr, aes(log10(z_snr), r), 
+               color=lighten(cols['raw'], 0.2), alpha=0.2) + 
+    geom_point(data=df_subtr, aes(log10(z_snr), r), 
+               color=lighten(cols['subtr'], 0.2), alpha=0.2) + 
+    geom_point(data=df_subtr_only_harm, aes(log10(z_snr), r), 
+               color=lighten(cols['subtr_only_harm'], 0.2), alpha=0.2) + 
+    geom_function(fun=sigm, args=coef(m_raw), aes(color='raw'), linewidth=2) +
+    geom_function(fun=sigm, args=coef(m_subtr), aes(color='subtr'), linewidth=2) +
+    geom_function(fun=sigm, args=coef(m_subtr_only_harm), aes(color='subtr_only_harm'), linewidth=2) +
+    geom_hline(yintercept = 0, color='#000000') + 
+    scale_color_manual(name='method', values=cols) + 
+    scale_y_continuous(limits=c(-1, 1), breaks=c(-1, 0, 1)) + 
+    ylab('r with ground truth') + 
+    theme_cowplot() +
+    scale_x_reverse() 
+
+save_fig(file.path(data_path, fname), p, width=7, height=4)
+p
+
+```
+
+
+And here are the parameter estimates for the model fitted to the raw ACF:  
+
+<br> 
+
+
+```{r}
+render_sigmoid_fit <- function(m){
+    tmp <- as.data.frame(confint(m))
+    tmp <- rownames_to_column(tmp, 'parameter')
+    tmp$parameter <- str_replace(tmp$parameter, '_', '')
+    tmp
+}
+
+render_sigmoid_fit(m_raw)
+```
+
+To the noise-subtracted ACF:  
+
+```{r}
+render_sigmoid_fit(m_subtr)
+```
+
+And to the noise-subtracted ACF after only pattern harmonics were taken:  
+
+```{r}
+render_sigmoid_fit(m_subtr_only_harm)
+```
+
+
+<br><br><br>
+
+
+# Real data 
+
+Let's test how the method works on real data now.  
+
+
+<br><br>
+
+## EEG: LowHigh experiment
+
+
+```{r}
+
+rhythms <- c('unsyncopated', 'syncopated')
+tones <- c('L', 'H')
+
+fname_lowhigh <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-frontocentral_eegIndividual.csv'
+
+df_eeg_ind <- read.csv(file.path(data_path, fname_lowhigh))
+
+df_eeg_ind$rhythm <- factor(df_eeg_ind$rhythm,  levels=rhythms)
+df_eeg_ind$tone <- factor(df_eeg_ind$tone,  levels=tones)
+
+cols <- c(L='red', H='blue')
+cols_individual <- lighten(cols, amount=0.7)
+names(cols_individual) <- names(cols)
+
+```
+
+
+```{r}
+
+# some functions we'll reuse
+
+# df <- df_eeg_ind
+# col_name_eeg='z_meter_acf_subtr'
+# col_name_coch='z_meter_acf_sound'
+
+plot_feat_ind <- function(df, 
+                         col_name_eeg='z_meter_fft_subtr', col_name_coch='z_meter_fft_sound'){
+    
+    df$x <- as.numeric(df$tone)
+    df$x_coch_start <- df$x-0.3
+    df$x_coch_end <- df$x+0.3
+    
+    df_summary <- summarySE(df, groupvars=c('rhythm', 'tone'), measurevar=col_name_eeg)
+    
+    df_summary$x <- as.numeric(df_summary$tone)
+    
+    p <- ggplot(df, aes(x, .data[[col_name_eeg]], color=tone)) + 
+        geom_segment(data=df[df$subject==df$subject[1],],
+                     inherit.aes=FALSE,
+                     aes(x=x_coch_start, xend=x_coch_end,
+                         y=.data[[col_name_coch]], yend=.data[[col_name_coch]],
+                         color=tone),
+                     linewidth=3, alpha=0.5) +
+        scale_color_manual(name='tone', values=cols) +
+        scale_x_continuous(breaks=c(1:length(levels(df$tone))), 
+                           labels=levels(df$tone)) +  
+        new_scale_color() + new_scale_fill() +
+        geom_point(aes(color=tone), size=2, position=position_jitter(width=0.1, height=0)) +
+        scale_color_manual(name='tone', values=cols_individual) + 
+        geom_hline(yintercept=0) +
+        new_scale_color() + new_scale_fill() + 
+        geom_point(data=df_summary, aes(color=tone), size=3) + 
+        geom_errorbar(data=df_summary, 
+                      aes(color=tone, ymin=.data[[col_name_eeg]]-ci,
+                          ymax=.data[[col_name_eeg]]+ci), 
+                      linewidth=1, width=0.2) + 
+        scale_color_manual(name='tone', values=cols) + 
+        facet_wrap(~rhythm, nrow=1) + 
+        theme_cowplot() + 
+        my_theme()
+    
+    return(p)
+}
+
+
+posthoc_ttest_low_vs_high <- function(df, var_name_eeg){
+    vals_L <- df %>% 
+        filter(tone=='L') %>% 
+        arrange(subject) %>%
+        pull(.data[[var_name_eeg]])
+    vals_H <- df %>% 
+        filter(tone=='H') %>% 
+        arrange(subject) %>%
+        pull(.data[[var_name_eeg]])
+    res <- t.test(vals_L, vals_H, paired=TRUE)
+    data.frame(mean_L_minus_H = unname(res$estimate), 
+               t = unname(res$statistic),
+               df = unname(res$parameter),
+               p = unname(res$p.value))
+}
+
+ttest_0 <- function(df, var_name){
+    vals_eeg <- df %>% pull(.data[[var_name]])
+    res <- t.test(vals_eeg, mu=0, alternative='greater')
+    data.frame(t=res$statistic, p=res$p.value)
+}
+
+
+```
+
+### FFT
+
+Analysis performed on a frontal cluster of channels to get better SNR.   
+
+```{r}
+plot_feat_ind(df_eeg_ind, 
+              col_name_eeg='z_meter_fft_subtr',
+              col_name_coch='z_meter_fft_sound')
+```
+<br> 
+
+Mixed model (factors: rhythm x tone)
+
+```{r}
+m <- lmer(z_meter_fft_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
+a <- Anova(m)
+(a)
+```
+<br> 
+
+Posthoc tests low vs. high tone: 
+
+```{r}
+if (a[which(rownames(a) == 'rhythm:tone'), "Pr(>Chisq)"] < 0.05){
+    
+    df_posthoc <- df_eeg_ind %>% 
+        group_by(rhythm) %>%
+        group_modify(~posthoc_ttest_low_vs_high(.x, var_name_eeg='z_meter_fft_subtr'))
+    
+    df_posthoc$p <- p.adjust(df_posthoc$p, 'bonferroni')
+    (df_posthoc)
+    
+} else if (a[which(rownames(a) == 'tone'), "Pr(>Chisq)"] < 0.05) {
+    
+    m_posthoc <- lmer(z_meter_fft_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
+    emm <- emmeans(m_posthoc, 'tone')
+    c <- contrast(emm, 'pairwise', adjust='bonferroni')
+    (as.data.frame(c))
+    
+} else {
+    
+    print('no effect including tone signifianct...')
+
+}
+```
+<br> 
+
+T-test against 0 (fdr corrected): 
+```{r}
+
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm, tone) %>% 
+    group_modify(~ttest_0(.x, var_name='z_meter_fft_subtr'))
+
+df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
+
+(df_posthoc)
+```
+
+
+
+<br><br><br> 
+
+### ACF
+
+Noise-subtracted acf was computed and averaged across **frontocentral** channels, separately for each participant.  
+
+The zscore at meter-related lags was computed from the channel-averaged ACF, separately for each participant and condition.  
+
+```{r}
+plot_feat_ind(df_eeg_ind, 
+              col_name_eeg='z_meter_acf_subtr',
+              col_name_coch='z_meter_acf_sound')
+```
+<br> 
+
+Mixed model (factors: rhythm x tone)
+
+```{r}
+m <- lmer(z_meter_acf_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
+a <- Anova(m)
+(a)
+```
+<br> 
+
+Posthoc tests low vs. high tone: 
+
+```{r}
+if (a[which(rownames(a) == 'rhythm:tone'), "Pr(>Chisq)"] < 0.05){
+    
+    df_posthoc <- df_eeg_ind %>% 
+        group_by(rhythm) %>%
+        group_modify(~posthoc_ttest_low_vs_high(.x, var_name_eeg='z_meter_acf_subtr'))
+    
+    df_posthoc$p <- p.adjust(df_posthoc$p, 'bonferroni')
+    (df_posthoc)
+    
+} else if (a[which(rownames(a) == 'tone'), "Pr(>Chisq)"] < 0.05) {
+    
+    m_posthoc <- lmer(z_meter_acf_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
+    emm <- emmeans(m_posthoc, 'tone')
+    c <- contrast(emm, 'pairwise', adjust='bonferroni')
+    (as.data.frame(c))
+
+} else {
+    
+    print('no effect including tone signifianct...')
+    
+}
+
+```
+
+<br> 
+
+T-test against 0 (fdr corrected): 
+```{r}
+
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm, tone) %>% 
+    group_modify(~ttest_0(.x, var_name='z_meter_acf_subtr'))
+
+df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
+
+(df_posthoc)
+```
+
+
+### Correlation FFT~ACF
+
+```{r}
+
+res <- cor.test(df_eeg_ind$z_meter_fft_subtr, 
+                df_eeg_ind$z_meter_acf_subtr, 
+                method='pearson')
+
+p <- plot_correlation_scatter(df_eeg_ind, 
+                              'z_meter_fft_subtr',
+                              'z_meter_acf_subtr',
+                              corr_result=res, 
+                              bins=15)
+
+
+fname <- sprintf('%s_corrFftAcf', tools::file_path_sans_ext(fname_lowhigh))
+save_fig(file.path(data_path, fname), p, width=2, height=2)
+p
+
+```
+
+
+
+
+<br><br>
+
+## TAPPING: LowHigh experiment
+
+
+```{r}
+fname_lowhigh <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_tapIndividual.csv'
+
+df_tap_ind <- read.csv(file.path(data_path, fname_lowhigh))
+
+df_tap_ind$rhythm <- factor(df_tap_ind$rhythm,  levels=rhythms)
+df_tap_ind$tone <- factor(df_tap_ind$tone,  levels=tones)
+
+```
+
+
+### Correlation FFT~ACF
+
+```{r}
+
+res <- cor.test(df_tap_ind$z_meter_fft_subtr, 
+                df_tap_ind$z_meter_acf_subtr, 
+                method='pearson')
+
+p <- plot_correlation_scatter(df_tap_ind, 
+                              'z_meter_fft_subtr',
+                              'z_meter_acf_subtr',
+                              corr_result=res, 
+                              bins=15)
+
+
+fname <- sprintf('%s_corrFftAcf', tools::file_path_sans_ext(fname_lowhigh))
+save_fig(file.path(data_path, fname), p, width=2, height=2)
+p
+
+```
+
+
+
+
+
+<br><br>
+
+## EEG: Infant experiment
+
+```{r}
+
+rhythms <- c('unsync', 'sync')
+tones <- c('low', 'high')
+
+fname_lowhigh <- 'exp-infant_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
+
+df_eeg_ind <- read.csv(file.path(data_path, fname_lowhigh))
+
+df_eeg_ind$rhythm <- factor(df_eeg_ind$rhythm,  levels=rhythms)
+df_eeg_ind$tone <- factor(df_eeg_ind$tone,  levels=tones)
+
+cols <- c(low='red', high='blue')
+cols_individual <- lighten(cols, amount=0.7)
+names(cols_individual) <- names(cols)
+```
+
+
+### FFT
+
+Analysis performed on a frontal cluster of channels to get better SNR.   
+
+```{r}
+plot_feat_ind(df_eeg_ind, 
+              col_name_eeg='z_meter_fft_subtr',
+              col_name_coch='z_meter_fft_sound')
+```
+<br> 
+
+Mixed model (factors: rhythm x tone)
+
+```{r}
+m <- lmer(z_meter_fft_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
+a <- Anova(m)
+(a)
+```
+<br> 
+
+Posthoc tests low vs. high tone: 
+
+```{r}
+if (a[which(rownames(a) == 'rhythm:tone'), "Pr(>Chisq)"] < 0.05){
+    
+    df_posthoc <- df_eeg_ind %>% 
+        group_by(rhythm) %>%
+        group_modify(~posthoc_ttest_low_vs_high(.x, var_name_eeg='z_meter_fft_subtr'))
+    
+    df_posthoc$p <- p.adjust(df_posthoc$p, 'bonferroni')
+    (df_posthoc)
+    
+} else if (a[which(rownames(a) == 'tone'), "Pr(>Chisq)"] < 0.05) {
+    
+    m_posthoc <- lmer(z_meter_fft_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
+    emm <- emmeans(m_posthoc, 'tone')
+    c <- contrast(emm, 'pairwise', adjust='bonferroni')
+    (as.data.frame(c))
+    
+} else {
+    
+    print('no effect including tone signifianct...')
+
+}
+```
+<br> 
+
+T-test against 0 (fdr corrected): 
+```{r}
+
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm, tone) %>% 
+    group_modify(~ttest_0(.x, var_name='z_meter_fft_subtr'))
+
+df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
+
+(df_posthoc)
+```
+
+
+
+<br><br><br> 
+
+### ACF
+
+Noise-subtracted acf was computed and averaged across **frontocentral** channels, separately for each participant.  
+
+The zscore at meter-related lags was computed from the channel-averaged ACF, separately for each participant and condition.  
+
+```{r}
+plot_feat_ind(df_eeg_ind, 
+              col_name_eeg='z_meter_acf_subtr',
+              col_name_coch='z_meter_acf_sound')
+```
+<br> 
+
+Mixed model (factors: rhythm x tone)
+
+```{r}
+m <- lmer(z_meter_acf_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
+a <- Anova(m)
+(a)
+```
+<br> 
+
+Posthoc tests low vs. high tone: 
+
+```{r}
+if (a[which(rownames(a) == 'rhythm:tone'), "Pr(>Chisq)"] < 0.05){
+    
+    df_posthoc <- df_eeg_ind %>% 
+        group_by(rhythm) %>%
+        group_modify(~posthoc_ttest_low_vs_high(.x, var_name_eeg='z_meter_acf_subtr'))
+    
+    df_posthoc$p <- p.adjust(df_posthoc$p, 'bonferroni')
+    (df_posthoc)
+    
+} else if (a[which(rownames(a) == 'tone'), "Pr(>Chisq)"] < 0.05) {
+    
+    m_posthoc <- lmer(z_meter_acf_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
+    emm <- emmeans(m_posthoc, 'tone')
+    c <- contrast(emm, 'pairwise', adjust='bonferroni')
+    (as.data.frame(c))
+
+} else {
+    
+    print('no effect including tone signifianct...')
+    
+}
+
+```
+
+<br> 
+
+T-test against 0 (fdr corrected): 
+```{r}
+
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm, tone) %>% 
+    group_modify(~ttest_0(.x, var_name='z_meter_acf_subtr'))
+
+df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
+
+(df_posthoc)
+```
+
+
+### Correlation FFT~ACF
+
+```{r}
+
+res <- cor.test(df_eeg_ind$z_meter_fft_subtr, 
+                df_eeg_ind$z_meter_acf_subtr, 
+                method='pearson')
+
+p <- plot_correlation_scatter(df_eeg_ind, 
+                              'z_meter_fft_subtr',
+                              'z_meter_acf_subtr',
+                              corr_result=res, 
+                              bins=15)
+
+
+fname <- sprintf('%s_corrFftAcf', tools::file_path_sans_ext(fname_lowhigh))
+save_fig(file.path(data_path, fname), p, width=2, height=2)
+p
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,11 +1,14 @@
 ####################################################################################################
 # PACKAGES
+library(plyr)
+library(dplyr)
 library(readxl)
 library(xml2)
 library(stringr)
 library(Rmisc)
 library(doBy)
 library(tidyverse)
+library(tidyr)
 library(lubridate)
 
 library(lme4)
@@ -13,6 +16,7 @@ library(car)
 library(lmerTest)
 library(pbkrtest)
 library(emmeans)
+library(BayesFactor)
 
 library(colorspace)
 library(ggplot2)
@@ -22,7 +26,6 @@ library(visreg)
 library(gghalves)
 library(ggpubr)
 library(ggsci)
-
 
 library(pander)
 library(huxtable)

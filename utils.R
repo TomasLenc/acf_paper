@@ -198,3 +198,12 @@ fit_sigm <- function(x, y, init_params=NULL) {
 
 
 
+save_fig <- function(fname, plt, width, height){
+    # strip file extension
+    fname <- tools::file_path_sans_ext(fname)
+    # save as png
+    # ggsave(paste(fname, '.png', sep=''), plt, width=width, height=height, bg='white')
+    # save as svg
+    ggsave(paste(fname, '.pdf', sep=''), plt, width=width, height=height)
+}
+
