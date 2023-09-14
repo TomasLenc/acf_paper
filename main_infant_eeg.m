@@ -298,7 +298,10 @@ for i_rhythm=1:n_rhythms
         data_to_plot(c).acf = acf; 
         data_to_plot(c).acf_subtr = acf_subtracted;
         data_to_plot(c).lags = lags; 
-
+        data_to_plot(c).freq_coch = freq_coch; 
+        data_to_plot(c).mX_coch = mX_coch; 
+        data_to_plot(c).lags_coch = lags_coch; 
+        data_to_plot(c).acf_coch = acf_coch; 
         c = c+1; 
         
         
