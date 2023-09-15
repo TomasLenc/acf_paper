@@ -1,45 +1,38 @@
 % testing sensitivity of ACF to shift and scale of the input signal
-
-clear 
+clear
 
 par = get_par(); 
 
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
-addpath(genpath('lib'))
 
-%% simulate
+% make clean signal for the whole trial 
+[x_clean, t] = get_s(...
+                    par.pat, ...
+                    par.grid_ioi, ...
+                    par.fs, ...
+                    'n_cycles', par.n_cycles, ...
+                    'ir', par.ir ...
+                    );
+                
+noise = get_colored_noise2(...
+    [1, round(par.trial_dur*par.fs)], ...
+    par.fs, -1.5); 
 
-fs = 200; 
+x = add_signal_noise(x_clean, noise, 2);
 
-exponent = -1.5; 
+% x = x + min(x); 
 
 lags_meter_rel = [0.4, 0.8]; 
 
-lags_meter_unrel = [0.2, 0.6, 1.0, 1.2]; 
+lags_meter_unrel = [0.6, 1.0, 1.4]; 
 
-% make x mean 0 var 1
-normalize_x = false; 
-
-% shift x to be positive before calculating acf
-force_x_positive = false; 
-
-% scale whole acf between 0 and 1
-normalize_acf = false; 
-
-% whether to normalize acf values extracted at lags of interest between 0 and 1
-normalize_acf_vals = false; 
-
-save_figs = false; 
+xlims = [0, 1.6]; 
 
 %%
-
-x = get_colored_noise(round(fs * 2.4), fs, exponent); 
 
 n = 10; 
 
 % ==================================
-param_name = 'shift'; % scale, shift
+param_name = 'scale'; % scale, shift
 % ==================================
 
 if strcmp(param_name, 'scale')
@@ -51,10 +44,10 @@ if strcmp(param_name, 'scale')
     
 elseif strcmp(param_name, 'shift')
     
-    param_vals = [1:n] / n; 
+    param_vals = [1:n] / n * range(x)/2; 
     % param_vals = logspace(log10(1/n), log10(1), n); 
     fun = @(x, a) a + x;  
-    cmap_name = 'Purples'; 
+    cmap_name = 'Blues'; 
     
 end
 
@@ -78,28 +71,15 @@ acf_z = nan(1, length(param_vals));
 for i_cond=1:length(param_vals)
     
     x_current = fun(x, param_vals(i_cond)); 
-    
-%     % % make vector length 1
-%     x_current = x_current ./ norm(x_current); 
 
-    [acf, lags] = get_acf(x_current, fs, ...
+    [acf, lags] = get_acf(x_current, par.fs, ...
                        'normalize_x', false, ...
                        'force_x_positive', false, ...
                        'normalize_acf_to_1', false, ...
                        'normalize_acf_z', false ...
                        );    
                    
-    
-%     % % normalize resulting acf between 0 and 1 (this will be sensitive to outliers
-%     % % though...and does this make sense given the values of acf are normally
-%     % % negative as well???)
-%     acf = (acf - min(acf)) ./ (max(acf) - min(acf)); 
-
-%     % zscore resulting acf (this may be quite robust to outliers, but we end up 
-%     % with negative values -> problem taking ratios or contrasts...)
-%     acf = zscore(acf, 1); 
-
-    plot(acf, 'linew', 1, 'color', colors{i_cond}); 
+    plot(lags, acf, 'linew', 1, 'color', colors{i_cond}); 
     hold on
     
     % Notice that when we just take Pearson correlation with a lagged version
@@ -133,20 +113,23 @@ end
 
 %% 
 
+prec = 1000; 
+
 ylims = ax.YLim; 
-y_to_plot = [floor(ylims(1)), ceil(ylims(2))]; 
-h = plot([lags_meter_rel_idx; lags_meter_rel_idx], y_to_plot, ...
+y_to_plot = [floor(ylims(1)*prec)/prec, ceil(ylims(2)*prec)/prec]; 
+h = plot([lags_meter_rel; lags_meter_rel], y_to_plot, ...
          'linew', 3, 'color', [0.8706    0.1765    0.1490]); 
 for i=1:length(h)
      h(i).Color(4) = 0.3; 
 end
-h = plot([lags_meter_unrel_idx; lags_meter_unrel_idx], y_to_plot, ...
+h = plot([lags_meter_unrel; lags_meter_unrel], y_to_plot, ...
          'linew', 3, 'color',  [0.1922    0.5098    0.7412]); 
 for i=1:length(h)
      h(i).Color(4) = 0.3; 
 end
 
 ax.YLim = ylims; 
+ax.XLim = xlims; 
 
 cbar = colorbar('WestOutside'); 
 colormap(cell2mat(colors)); 
@@ -167,20 +150,35 @@ pnl(1).ylabel('autocorrelation')
 
 pnl(2).pack('v', 3); 
 
+prec = 1e6; 
+ylim_buffer = 0.5; 
+
 ax = pnl(2, 1).select(); 
 scatter(param_vals, r_mean, 15, cell2mat(colors), 'filled')
+ylims = [floor(ax.YLim(1)*prec)/prec, ...
+         ceil(ax.YLim(2)*prec)/prec]; 
+ylims = [ylims(1) - range(ylims)*ylim_buffer, ylims(2) + range(ylims)*ylim_buffer]; 
+ax.YLim = ylims; 
 ax.XTick = []; 
 ax.YTick = []; 
 ax.Title.String = 'Pearson r'; 
 
 ax = pnl(2, 2).select(); 
 scatter(param_vals, acf_ratio, 15, cell2mat(colors), 'filled')
+ylims = [floor(ax.YLim(1)*prec)/prec, ...
+         ceil(ax.YLim(2)*prec)/prec]; 
+ylims = [ylims(1) - range(ylims)*ylim_buffer, ylims(2) + range(ylims)*ylim_buffer]; 
+ax.YLim = ylims; 
 ax.XTick = []; 
 ax.YTick = []; 
 ax.Title.String = 'ratio of acf'; 
 
 ax = pnl(2, 3).select(); 
 scatter(param_vals, acf_z, 15, cell2mat(colors), 'filled')
+ylims = [floor(ax.YLim(1)*prec)/prec, ...
+         ceil(ax.YLim(2)*prec)/prec]; 
+ylims = [ylims(1) - range(ylims)*ylim_buffer, ylims(2) + range(ylims)*ylim_buffer]; 
+ax.YLim = ylims; 
 ax.XTick = []; 
 ax.YTick = []; 
 ax.Title.String = 'zscore of acf'; 
@@ -191,11 +189,12 @@ pnl.fontsize = 16;
 
 %% 
 
-if save_figs
-   fname = sprintf('figures/acf_normalization_%s', param_name); 
-   print(fname, '-dsvg', '-painters', f);  
-   print(fname, '-dpng', '-painters', '-r300', f);  
-end
+save_path = fullfile(par.fig_path, 'general', 'acf_normalization'); 
+mkdir(save_path); 
+
+fname = sprintf('acf_normalization_%s', param_name); 
+print(fullfile(save_path, fname), '-dsvg', '-painters', f);  
+print(fullfile(save_path, fname), '-dpng', '-painters', '-r300', f);  
 
 %% 
 
