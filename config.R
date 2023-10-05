@@ -27,6 +27,7 @@ library(gghalves)
 library(ggpubr)
 library(ggsci)
 
+library(knitr)
 library(pander)
 library(huxtable)
 library(flextable)

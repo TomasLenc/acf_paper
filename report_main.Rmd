@@ -24,12 +24,38 @@ This report puts all the simulation and analysis results together!
 
 
 
+```{r, fig.align="center"}
+fname <- file.path(data_path, 'ir-square_ir.svg')
+knitr::include_graphics(fname)
+```
+
+
+```{r, fig.align="center"}
+fname <- file.path(data_path, 'ir-square_emph.svg')
+knitr::include_graphics(fname)
+```
+
+
+```{r, fig.align="center"}
+fname <- file.path(data_path, 'ir-square_apFitMethod-irasa_onlyHarm-true_jitter.svg')
+knitr::include_graphics(fname)
+```
+
+
+
 <br><br><br><br>  
 
 ---  
 # Effect of noise  
 
 <br> 
+
+
+
+```{r, fig.align="center"}
+fname <- file.path(data_path, 'ir-square_noise-eeg_apFitMethod-irasa_onlyHarm-true_snr.svg')
+knitr::include_graphics(fname)
+```
 
 
 Noise is bad because it distorts the shape of the FFT or ACF, creating a bias in the estimated 
@@ -262,7 +288,9 @@ value of meter zscore in he ground truth signal).
 
 ```{r}
 
-plot_dist_to_truth <- function(df, init_params=list('min_'=0, 'max_'=1, 'x50_'=1, 'slope_'=1.5)){
+plot_dist_to_truth <- function(df, 
+                               init_params_fft=list('min_'=0, 'max_'=1, 'x50_'=1, 'slope_'=1.5),
+                               init_params_acf=list('min_'=0, 'max_'=1, 'x50_'=0.4, 'slope_'=1.2)){
     # convert to factors
     df$pat <- factor(df$pat)
     
@@ -282,8 +310,8 @@ plot_dist_to_truth <- function(df, init_params=list('min_'=0, 'max_'=1, 'x50_'=1
     var_name <- 'z_snr_log'
     
     # fit sigmoids
-    m_acf <- fit_sigm(df[,var_name], df$r_acf_subtr, init_params=init_params)
-    m_fft <- fit_sigm(df[,var_name], df$r_fft_subtr, init_params=init_params)
+    m_acf <- fit_sigm(df[,var_name], df$r_acf_subtr, init_params=init_params_acf)
+    m_fft <- fit_sigm(df[,var_name], df$r_fft_subtr, init_params=init_params_fft)
     
     # print confidence intervals on paramter estimates 
     confint(m_acf)
@@ -322,13 +350,30 @@ of interest and re-do the correlation analysis under different amounts of noise.
 
 ```{r}
 
+if (str_detect(data_path, 'meterUnrel-0.6_1.0_1.4')){
+    ctrl_selection_dir <- 'maxlag-11lags_meterRel-0.8_meterUnrel-0.6_1.0_1.4'
+} else if (str_detect(data_path, 'meterUnrel-0.2')){
+    ctrl_selection_dir <- 'maxlag-11lags_meterRel-0.8_meterUnrel-0.2'
+} else {
+    stop('cannot figure out selection dir for 11 lags control analysis....')
+}
+
 fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
 
 df <- read.csv(file.path(experiment_path, 'data', 
-                         'maxlag-11lags_meterRel-0.8_meterUnrel-0.6_1.0_1.4', 
+                         ctrl_selection_dir, 
                          fname))
 
-plot_dist_to_truth(df)
+p <- plot_dist_to_truth(df, 
+                   init_params_acf=list('min_'=0, 'max_'=1, 'x50_'=0.4, 'slope_'=1.2))
+
+fpath <- file.path(experiment_path, 'data', 'maxlag-11lags_meterRel-0.8_meterUnrel-0.6_1.0_1.4')
+fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
+
+save_fig(file.path(fpath, fname), p, width=5, height=3)
+
+p
+
 ```
 
 
@@ -355,13 +400,19 @@ df$z <- r_to_z(df$r)
 
 # fit sigmoids
 df_raw <- filter(df, method=='raw')
-m_raw <- fit_sigm(log10(df_raw$z_snr), df_raw$r)
+m_raw <- fit_sigm(log10(df_raw$z_snr), df_raw$r,
+                  init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=2)
+                  )
 
 df_subtr <- filter(df, method=='subtr')
-m_subtr <- fit_sigm(log10(df_subtr$z_snr), df_subtr$r)
+m_subtr <- fit_sigm(log10(df_subtr$z_snr), df_subtr$r, 
+                    init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=2)
+                    )
 
 df_subtr_only_harm <- filter(df, method=='subtr_only_harm')
-m_subtr_only_harm <- fit_sigm(log10(df_subtr_only_harm$z_snr), df_subtr_only_harm$r)
+m_subtr_only_harm <- fit_sigm(log10(df_subtr_only_harm$z_snr), df_subtr_only_harm$r, 
+                              init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=3)
+                              )
 
 cols <- c('raw'='#711885', 
           'subtr'='#d18624', 
@@ -369,7 +420,7 @@ cols <- c('raw'='#711885',
 
 # plot 
 p <- ggplot() +
-    geom_point(data=df_subtr, aes(log10(z_snr), r), 
+    geom_point(data=df_raw, aes(log10(z_snr), r), 
                color=lighten(cols['raw'], 0.2), alpha=0.2) + 
     geom_point(data=df_subtr, aes(log10(z_snr), r), 
                color=lighten(cols['subtr'], 0.2), alpha=0.2) + 
@@ -404,19 +455,19 @@ render_sigmoid_fit <- function(m){
     tmp
 }
 
-render_sigmoid_fit(m_raw)
+knitr::kable(render_sigmoid_fit(m_raw))
 ```
 
 To the noise-subtracted ACF:  
 
 ```{r}
-render_sigmoid_fit(m_subtr)
+knitr::kable(render_sigmoid_fit(m_subtr))
 ```
 
 And to the noise-subtracted ACF after only pattern harmonics were taken:  
 
 ```{r}
-render_sigmoid_fit(m_subtr_only_harm)
+knitr::kable(render_sigmoid_fit(m_subtr_only_harm))
 ```
 
 
@@ -445,7 +496,7 @@ df_eeg_ind <- read.csv(file.path(data_path, fname_lowhigh))
 df_eeg_ind$rhythm <- factor(df_eeg_ind$rhythm,  levels=rhythms)
 df_eeg_ind$tone <- factor(df_eeg_ind$tone,  levels=tones)
 
-cols <- c(L='red', H='blue')
+cols <- c(L='#b52c0d', H='#1058b0')
 cols_individual <- lighten(cols, amount=0.7)
 names(cols_individual) <- names(cols)
 
@@ -471,6 +522,8 @@ plot_feat_ind <- function(df,
     
     df_summary$x <- as.numeric(df_summary$tone)
     
+    pd <- position_dodge(0.1)
+    
     p <- ggplot(df, aes(x, .data[[col_name_eeg]], color=tone)) + 
         geom_segment(data=df[df$subject==df$subject[1],],
                      inherit.aes=FALSE,
@@ -482,7 +535,8 @@ plot_feat_ind <- function(df,
         scale_x_continuous(breaks=c(1:length(levels(df$tone))), 
                            labels=levels(df$tone)) +  
         new_scale_color() + new_scale_fill() +
-        geom_point(aes(color=tone), size=2, position=position_jitter(width=0.1, height=0)) +
+        geom_point(aes(color=tone, group=paste(subject, rhythm)), size=2, position=pd) +
+        geom_line(aes(group=paste(subject, rhythm)), color='grey80', position=pd) + 
         scale_color_manual(name='tone', values=cols_individual) + 
         geom_hline(yintercept=0) +
         new_scale_color() + new_scale_fill() + 
@@ -530,9 +584,14 @@ ttest_0 <- function(df, var_name){
 Analysis performed on a frontal cluster of channels to get better SNR.   
 
 ```{r}
-plot_feat_ind(df_eeg_ind, 
+p <- plot_feat_ind(df_eeg_ind, 
               col_name_eeg='z_meter_fft_subtr',
               col_name_coch='z_meter_fft_sound')
+
+fname <- sprintf('%s_FFT', tools::file_path_sans_ext(fname_lowhigh))
+save_fig(file.path(data_path, fname), p, width=4.4, height=2.5)
+p
+
 ```
 <br> 
 
@@ -541,7 +600,7 @@ Mixed model (factors: rhythm x tone)
 ```{r}
 m <- lmer(z_meter_fft_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
 a <- Anova(m)
-(a)
+knitr::kable(a)
 ```
 <br> 
 
@@ -555,14 +614,14 @@ if (a[which(rownames(a) == 'rhythm:tone'), "Pr(>Chisq)"] < 0.05){
         group_modify(~posthoc_ttest_low_vs_high(.x, var_name_eeg='z_meter_fft_subtr'))
     
     df_posthoc$p <- p.adjust(df_posthoc$p, 'bonferroni')
-    (df_posthoc)
+    knitr::kable(df_posthoc)
     
 } else if (a[which(rownames(a) == 'tone'), "Pr(>Chisq)"] < 0.05) {
     
     m_posthoc <- lmer(z_meter_fft_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
     emm <- emmeans(m_posthoc, 'tone')
     c <- contrast(emm, 'pairwise', adjust='bonferroni')
-    (as.data.frame(c))
+    knitr::kable(as.data.frame(c))
     
 } else {
     
@@ -595,9 +654,13 @@ Noise-subtracted acf was computed and averaged across **frontocentral** channels
 The zscore at meter-related lags was computed from the channel-averaged ACF, separately for each participant and condition.  
 
 ```{r}
-plot_feat_ind(df_eeg_ind, 
+p <- plot_feat_ind(df_eeg_ind, 
               col_name_eeg='z_meter_acf_subtr',
               col_name_coch='z_meter_acf_sound')
+
+fname <- sprintf('%s_ACF', tools::file_path_sans_ext(fname_lowhigh))
+save_fig(file.path(data_path, fname), p, width=4.4, height=2.5)
+p
 ```
 <br> 
 
@@ -606,7 +669,7 @@ Mixed model (factors: rhythm x tone)
 ```{r}
 m <- lmer(z_meter_acf_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
 a <- Anova(m)
-(a)
+knitr::kable(a)
 ```
 <br> 
 
@@ -620,14 +683,14 @@ if (a[which(rownames(a) == 'rhythm:tone'), "Pr(>Chisq)"] < 0.05){
         group_modify(~posthoc_ttest_low_vs_high(.x, var_name_eeg='z_meter_acf_subtr'))
     
     df_posthoc$p <- p.adjust(df_posthoc$p, 'bonferroni')
-    (df_posthoc)
+    knitr::kable(df_posthoc)
     
 } else if (a[which(rownames(a) == 'tone'), "Pr(>Chisq)"] < 0.05) {
     
     m_posthoc <- lmer(z_meter_acf_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
     emm <- emmeans(m_posthoc, 'tone')
     c <- contrast(emm, 'pairwise', adjust='bonferroni')
-    (as.data.frame(c))
+    knitr::kable(as.data.frame(c))
 
 } else {
     
@@ -648,7 +711,7 @@ df_posthoc <- df_eeg_ind %>%
 
 df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 
-(df_posthoc)
+knitr::kable(df_posthoc)
 ```
 
 
@@ -668,7 +731,7 @@ p <- plot_correlation_scatter(df_eeg_ind,
 
 
 fname <- sprintf('%s_corrFftAcf', tools::file_path_sans_ext(fname_lowhigh))
-save_fig(file.path(data_path, fname), p, width=2, height=2)
+save_fig(file.path(data_path, fname), p, width=4, height=4)
 p
 
 ```
@@ -706,9 +769,8 @@ p <- plot_correlation_scatter(df_tap_ind,
                               corr_result=res, 
                               bins=15)
 
-
 fname <- sprintf('%s_corrFftAcf', tools::file_path_sans_ext(fname_lowhigh))
-save_fig(file.path(data_path, fname), p, width=2, height=2)
+save_fig(file.path(data_path, fname), p, width=4, height=4)
 p
 
 ```
@@ -733,7 +795,7 @@ df_eeg_ind <- read.csv(file.path(data_path, fname_lowhigh))
 df_eeg_ind$rhythm <- factor(df_eeg_ind$rhythm,  levels=rhythms)
 df_eeg_ind$tone <- factor(df_eeg_ind$tone,  levels=tones)
 
-cols <- c(low='red', high='blue')
+cols <- c(low='#b52c0d', high='#1058b0')
 cols_individual <- lighten(cols, amount=0.7)
 names(cols_individual) <- names(cols)
 ```
@@ -744,9 +806,13 @@ names(cols_individual) <- names(cols)
 Analysis performed on a frontal cluster of channels to get better SNR.   
 
 ```{r}
-plot_feat_ind(df_eeg_ind, 
+p <- plot_feat_ind(df_eeg_ind, 
               col_name_eeg='z_meter_fft_subtr',
               col_name_coch='z_meter_fft_sound')
+
+fname <- sprintf('%s_FFT', tools::file_path_sans_ext(fname_lowhigh))
+save_fig(file.path(data_path, fname), p, width=4.4, height=2.5)
+p
 ```
 <br> 
 
@@ -755,7 +821,7 @@ Mixed model (factors: rhythm x tone)
 ```{r}
 m <- lmer(z_meter_fft_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
 a <- Anova(m)
-(a)
+knitr::kable(a)
 ```
 <br> 
 
@@ -769,14 +835,14 @@ if (a[which(rownames(a) == 'rhythm:tone'), "Pr(>Chisq)"] < 0.05){
         group_modify(~posthoc_ttest_low_vs_high(.x, var_name_eeg='z_meter_fft_subtr'))
     
     df_posthoc$p <- p.adjust(df_posthoc$p, 'bonferroni')
-    (df_posthoc)
+    knitr::kable(df_posthoc)
     
 } else if (a[which(rownames(a) == 'tone'), "Pr(>Chisq)"] < 0.05) {
     
     m_posthoc <- lmer(z_meter_fft_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
     emm <- emmeans(m_posthoc, 'tone')
     c <- contrast(emm, 'pairwise', adjust='bonferroni')
-    (as.data.frame(c))
+    knitr::kable(as.data.frame(c))
     
 } else {
     
@@ -795,7 +861,7 @@ df_posthoc <- df_eeg_ind %>%
 
 df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 
-(df_posthoc)
+knitr::kable(df_posthoc)
 ```
 
 
@@ -809,9 +875,14 @@ Noise-subtracted acf was computed and averaged across **frontocentral** channels
 The zscore at meter-related lags was computed from the channel-averaged ACF, separately for each participant and condition.  
 
 ```{r}
-plot_feat_ind(df_eeg_ind, 
+p <- plot_feat_ind(df_eeg_ind, 
               col_name_eeg='z_meter_acf_subtr',
               col_name_coch='z_meter_acf_sound')
+
+fname <- sprintf('%s_ACF', tools::file_path_sans_ext(fname_lowhigh))
+save_fig(file.path(data_path, fname), p, width=4.4, height=2.5)
+p
+
 ```
 <br> 
 
@@ -820,7 +891,7 @@ Mixed model (factors: rhythm x tone)
 ```{r}
 m <- lmer(z_meter_acf_subtr ~ rhythm * tone + (1|subject), data=df_eeg_ind)
 a <- Anova(m)
-(a)
+knitr::kable(a)
 ```
 <br> 
 
@@ -834,14 +905,14 @@ if (a[which(rownames(a) == 'rhythm:tone'), "Pr(>Chisq)"] < 0.05){
         group_modify(~posthoc_ttest_low_vs_high(.x, var_name_eeg='z_meter_acf_subtr'))
     
     df_posthoc$p <- p.adjust(df_posthoc$p, 'bonferroni')
-    (df_posthoc)
+    knitr::kable(df_posthoc)
     
 } else if (a[which(rownames(a) == 'tone'), "Pr(>Chisq)"] < 0.05) {
     
     m_posthoc <- lmer(z_meter_acf_subtr ~ rhythm + tone + (1|subject), data=df_eeg_ind)
     emm <- emmeans(m_posthoc, 'tone')
     c <- contrast(emm, 'pairwise', adjust='bonferroni')
-    (as.data.frame(c))
+    knitr::kable(as.data.frame(c))
 
 } else {
     
@@ -862,7 +933,7 @@ df_posthoc <- df_eeg_ind %>%
 
 df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 
-(df_posthoc)
+knitr::kable(df_posthoc)
 ```
 
 
@@ -882,7 +953,7 @@ p <- plot_correlation_scatter(df_eeg_ind,
 
 
 fname <- sprintf('%s_corrFftAcf', tools::file_path_sans_ext(fname_lowhigh))
-save_fig(file.path(data_path, fname), p, width=2, height=2)
+save_fig(file.path(data_path, fname), p, width=4, height=4)
 p
 
 ```

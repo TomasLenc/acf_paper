@@ -4,7 +4,10 @@ rm(list=ls())
 source('config.R')
 
 data_dirs <- c(
-    'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4'
+    # 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.2'
+    # 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4'
+    'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4'
+    # 'maxlag-halfTrial_meterRel-0.4_meterUnrel-0.6_1.0_1.4'
 )
 
 i_data_dir <- 1
