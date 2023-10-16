@@ -1,6 +1,6 @@
 
 
-par.ir_type = 'erp2'; 
+par.ir_type = 'square'; 
 par.ir = get_ir(par.ir_type, par.fs); 
 
 main_ir(par);
