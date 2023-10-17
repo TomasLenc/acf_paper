@@ -185,7 +185,6 @@ plot_subtr_effect <- function(df, pats, method) {
         theme_cowplot()
 }
 
-
 # # confirm that it works with different patterns too
 # p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=c(7, 17))
 # p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=c(7, 17))
@@ -218,47 +217,6 @@ save_fig(file.path(data_path, fname), p, width=7, height=5)
 p
 
 
-
-
-# library(ggsci)
-# 
-# alpha <- 0.4
-# x_var <- 'snr'
-# 
-# p_fft_raw <- ggplot(filter(df_noise_effect_z, selected_for=='fft'), aes(log10(.data[[x_var]]), z_meter_fft_raw)) +
-#     geom_point(aes(color=pat), alpha=alpha) + 
-#     geom_hline(yintercept = 0, color='#5e5e5e') + 
-#     scale_color_aaas() + 
-#     scale_x_reverse() +
-#     scale_y_continuous(limits=c(-1, 1)) + 
-#     theme_cowplot()
-# 
-# p_acf_raw <- ggplot(filter(df_noise_effect_z, selected_for=='acf'), aes(log10(.data[[x_var]]), z_meter_acf_raw)) +
-#     geom_point(aes(color=pat), alpha=alpha) + 
-#     geom_hline(yintercept = 0, color='#5e5e5e') + 
-#     scale_color_jco() + 
-#     scale_x_reverse() +
-#     scale_y_continuous(limits=c(-1, 1)) + 
-#     theme_cowplot()
-# 
-# p_fft_subtr <- ggplot(filter(df_noise_effect_z, selected_for=='fft'), aes(log10(.data[[x_var]]), z_meter_fft_subtr)) +
-#     geom_point(aes(color=pat), alpha=alpha) + 
-#     geom_hline(yintercept = 0, color='#5e5e5e') + 
-#     scale_color_aaas() + 
-#     scale_x_reverse() +
-#     scale_y_continuous(limits=c(-1, 1)) + 
-#     theme_cowplot()
-# 
-# p_acf_subtr <- ggplot(filter(df_noise_effect_z, selected_for=='acf'), aes(log10(.data[[x_var]]), z_meter_acf_subtr)) +
-#     geom_point(aes(color=pat), alpha=alpha) + 
-#     geom_hline(yintercept = 0, color='#5e5e5e') + 
-#     scale_color_jco() + 
-#     scale_x_reverse() +
-#     scale_y_continuous(limits=c(-1, 1)) + 
-#     theme_cowplot()
-# 
-# plot_grid(p_fft_raw, p_acf_raw, p_fft_subtr, p_acf_subtr, nrow=2, ncol=2)
-
 ```
 
 
@@ -290,7 +248,8 @@ value of meter zscore in he ground truth signal).
 
 plot_dist_to_truth <- function(df, 
                                init_params_fft=list('min_'=0, 'max_'=1, 'x50_'=1, 'slope_'=1.5),
-                               init_params_acf=list('min_'=0, 'max_'=1, 'x50_'=0.4, 'slope_'=1.2)){
+                               init_params_acf=list('min_'=0, 'max_'=1, 'x50_'=0.4, 'slope_'=1.2),
+                               df_eeg_z_snr=NULL){
     # convert to factors
     df$pat <- factor(df$pat)
     
@@ -318,7 +277,7 @@ plot_dist_to_truth <- function(df,
     confint(m_fft)
     
     # plot 
-    ggplot() +
+    p <- ggplot() +
         geom_hline(yintercept = 0, color='#000000') + 
         geom_point(data=df, aes(.data[[var_name]], r_acf_subtr), color='#bd3a3a', alpha=0.2) + 
         geom_point(data=df, aes(.data[[var_name]], r_fft_subtr), color='#2987b3', alpha=0.2) + 
@@ -328,13 +287,41 @@ plot_dist_to_truth <- function(df,
         ylab('r with ground truth') + 
         theme_cowplot() +
         scale_x_reverse() 
+    
+    if (!is.null(df_eeg_z_snr)) {
+        df_eeg_z_snr$z_snr_log <- log10(df_eeg_z_snr$z_snr)
+        df_summary <- summarySE(df_eeg_z_snr, measurevar='z_snr_log', na.rm=TRUE)
+        # df_summary$z_snr_log <- log10(df_summary$z_snr_log)
+        # df_summary$ci <- log10(df_summary$ci)
+        p <- p + 
+            geom_vline(xintercept=df_summary$z_snr_log, color='black', linewidth=1, linetype='dotted') + 
+            annotate('rect', 
+                     xmin=df_summary$z_snr_log-df_summary$ci, 
+                     xmax=df_summary$z_snr_log+df_summary$ci, 
+                     ymin=-Inf, 
+                     ymax=Inf, 
+                     alpha=0.1, 
+                     fill='black')
+    }    
+    
+    return(p)
 }
 
-fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
+```
 
+```{r}
+
+# load simulated data
+fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
 df <- read.csv(file.path(data_path, fname))
 
-p <- plot_dist_to_truth(df)
+# load lowhigh data to get the z_snr in read EEG data
+fname_eeg <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-frontocentral_eegIndividual.csv'
+fname_eeg <- 'exp-infant_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
+df_eeg_ind <- read.csv(file.path(data_path, fname_eeg))
+
+p <- plot_dist_to_truth(df, 
+                        df_eeg_z_snr=NULL)
 
 save_fig(file.path(data_path, fname), p, width=5, height=3)
 p
@@ -350,13 +337,7 @@ of interest and re-do the correlation analysis under different amounts of noise.
 
 ```{r}
 
-if (str_detect(data_path, 'meterUnrel-0.6_1.0_1.4')){
-    ctrl_selection_dir <- 'maxlag-11lags_meterRel-0.8_meterUnrel-0.6_1.0_1.4'
-} else if (str_detect(data_path, 'meterUnrel-0.2')){
-    ctrl_selection_dir <- 'maxlag-11lags_meterRel-0.8_meterUnrel-0.2'
-} else {
-    stop('cannot figure out selection dir for 11 lags control analysis....')
-}
+ctrl_selection_dir <- str_replace( data_dirs[i_data_dir], '(?<=maxlag-)[a-zA-Z]+', '11lags')
 
 fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
 
