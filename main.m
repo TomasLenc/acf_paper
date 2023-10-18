@@ -8,24 +8,24 @@ par = get_par();
 
 %% noies
 
-n_noise_samples = 500; 
-
-% genarate noies
-if strcmp(par.noise_type, 'eeg')
-
-    noise_all_samples = prepare_eeg_noise(n_noise_samples, par.trial_dur);    
-
-elseif strcmp(par.noise_type, 'fractal')
-
-    noise_all_samples = get_colored_noise2(...
-        [n_noise_samples, round(par.trial_dur*par.fs)], ...
-        par.fs, par.noise_exponent); 
-
-else
-    
-    error('noise type "%s" not implemented', par.noise_type);
-
-end
+% n_noise_samples = 500; 
+% 
+% % genarate noies
+% if strcmp(par.noise_type, 'eeg')
+% 
+%     noise_all_samples = prepare_eeg_noise(n_noise_samples, par.trial_dur);    
+% 
+% elseif strcmp(par.noise_type, 'fractal')
+% 
+%     noise_all_samples = get_colored_noise2(...
+%         [n_noise_samples, round(par.trial_dur*par.fs)], ...
+%         par.fs, par.noise_exponent); 
+% 
+% else
+%     
+%     error('noise type "%s" not implemented', par.noise_type);
+% 
+% end
 
 
 %%
@@ -168,11 +168,16 @@ par.lag_base_excl_meter_unrel = [0.4];
             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
             );
        
-% also run the script that direcrly compares sensitivity to noise between
-% taking the whole trial and when taking averaged erp chunks
-main_noiseEffectDist_erpVsTrial(par, 'prepared_noise', noise_all_samples);
+% % also run the script that direcrly compares sensitivity to noise between
+% % taking the whole trial and when taking averaged erp chunks
+% main_noiseEffectDist_erpVsTrial(par, 'prepared_noise', noise_all_samples);
 
-run_mains
+% alternative script to analyse lowhigh EEG data after chunking and averaging
+% erp segments within each trial - this may give higher SNR than simply taking
+% the full trial? Can compare in R. 
+main_lowhigh_eeg_chunk(par); 
+
+% run_mains
 
 
 %% 
