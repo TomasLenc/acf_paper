@@ -23,13 +23,13 @@ par.n_rep = 50;
 % 
 % main_emph_vs_noise(par, ...
 %     'prepared_noise', noise_all_samples);
-
-
-
-main_noiseEffectZscore_ACFvsFFT(par, ...
-    'prepared_noise', noise_all_samples);
-
-
+% 
+% 
+% 
+% main_noiseEffectZscore_ACFvsFFT(par, ...
+%     'prepared_noise', noise_all_samples);
+% 
+% 
 % main_noiseEffectDist_ACFvsFFT(par, ...
 %     'prepared_noise', noise_all_samples);
 % 
@@ -43,12 +43,12 @@ main_noiseEffectZscore_ACFvsFFT(par, ...
 %     'prepared_noise', noise_all_samples); 
 % 
 % 
-% 
-% % need loads of samples for this one... 
-% par.n_rep = 500; 
-% 
-% main_only_noise(par,...
-%     'prepared_noise', noise_all_samples); 
+
+% need loads of samples for this one... 
+par.n_rep = 500; 
+
+main_only_noise(par,...
+    'prepared_noise', noise_all_samples); 
 
 
 
