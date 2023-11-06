@@ -126,6 +126,8 @@ col_names = {
 
 tbl = cell2table(cell(0, length(col_names)), 'VariableNames', col_names); 
 
+data_to_plot = []; 
+
 for i_pat=1:size(par.all_pats, 1)
     
     % make whole signal 
@@ -136,6 +138,11 @@ for i_pat=1:size(par.all_pats, 1)
                         'n_cycles', par.n_cycles, ...
                         'ir', par.ir);
 
+    data_to_plot(i_pat).t = t; 
+    data_to_plot(i_pat).x_clean = x_clean; 
+
+    x_noisy_to_plot = cell(1, length(par.snrs)); 
+                    
     parfor i_snr=1:length(par.snrs)
 
         snr = par.snrs(i_snr); 
@@ -217,8 +224,15 @@ for i_pat=1:size(par.all_pats, 1)
             ];
 
         tbl = [tbl; rows]; 
+        
+        x_noisy_to_plot{i_snr} = x(randsample(n_rep, 1), :); 
 
+        
     end
+
+    data_to_plot(i_pat).snr = par.snrs; 
+    data_to_plot(i_pat).x_noisy = x_noisy_to_plot; 
+    
 end
 
 %%
@@ -231,7 +245,7 @@ fname = sprintf('irType-%s_apFitMethod-%s_onlyHarm-%s_noiseEffectZscoreACFvsFFT'
             
 writetable(tbl, fullfile(par.data_path, [fname, '.csv'])); 
 
-% save parameters 
-save(fullfile(par.data_path, [fname, '_par.mat']), 'par'); 
+% save data 
+save(fullfile(par.data_path, [fname, '.mat']), 'par', 'data_to_plot'); 
 
 
