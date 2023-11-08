@@ -44,17 +44,17 @@ par.n_rep = 50;
 % 
 % 
 
-% need loads of samples for this one... 
-par.n_rep = 500; 
-
-main_only_noise(par,...
-    'prepared_noise', noise_all_samples); 
-
+% % need loads of samples for this one... 
+% par.n_rep = 500; 
+% 
+% main_only_noise(par,...
+%     'prepared_noise', noise_all_samples); 
+% 
 
 
 %% real EEG and tapping data 
 
-% main_lowhigh_eeg(par); 
+main_lowhigh_eeg(par); 
 % 
 % main_lowhigh_tap(par); 
 % 

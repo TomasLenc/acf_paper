@@ -12,8 +12,8 @@ rm_id = [1,4,6,11,14];
 
 par.trial_dur = 50.4;  
 
-par.roi_name = 'frontocentral'; 
-par.roi_chans = {'F1', 'Fz', 'F2', 'FC1', 'FCz', 'FC2', 'C1', 'Cz', 'C2'}; 
+par.roi_name = 'all'; 
+% par.roi_chans = {'F1', 'Fz', 'F2', 'FC1', 'FCz', 'FC2', 'C1', 'Cz', 'C2'}; 
 
 par.ref_name = 'all'; 
 
