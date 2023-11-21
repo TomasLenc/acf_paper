@@ -1,44 +1,4 @@
 
-read_features_file <- function(response, suffix=NA, area=NA, func_rois=NA){
-    fname <- sprintf('response-%s', response)
-    if (!is.na(area)) fname <- sprintf('%s_area-%s', fname, area)
-    if (any(!is.na(func_rois))){
-        if (!is.list(func_rois)) func_rois <- list(func_rois)
-        for (fr in func_rois) {
-            fname <- sprintf('%s_funcROI-%s', fname, fr)
-        }
-    }    
-    if (!is.na(suffix)) fname <- sprintf('%s_%s', fname, suffix)
-    fname <- sprintf('%s.tsv', fname)
-    df <- fix_factors(read.csv(file.path(csv_path, fname), sep='\t'))
-    return(df)
-}
-
-fix_factors <- function(df){
-    # This function takes care of 
-    # (1) changing char columns to factors
-    # (2) renaming factor names and levels
-    # (3) reordering factor levels if needed
-    if ('subject' %in% names(df)){
-        df$subject <- factor(df$subject)
-    }
-    if ('response' %in% names(df)){
-        df$response <- factor(df$response)
-    }
-    if ('ses' %in% names(df)){
-        df$ses <- factor(df$ses)
-    }
-    if ('rhythm' %in% names(df)){
-        # recode_factor() remaps factor levels, and also changes their order 
-        df$rhythm <- recode_factor(df$rhythm, !!!rhythm_label_map)
-    }
-    if ('area' %in% names(df)){
-        df$area <- factor(df$area)
-    }
-    return(df)
-}
-
-
 make_frex_table <- function(df_frex){
     # This function takes a dataframe with frequencies of interest, and returns a formatted table 
     # that can be printed with pander. 
@@ -81,79 +41,6 @@ save_fig <- function(fname, plt, width, height){
 }
 
 
-get_intercept_from_lm <- function(m_summary) {
-    if ('t value' %in% colnames(m_summary$coefficients)) {
-        t <- round(m_summary$coefficients['(Intercept)', 't value'], 2)
-    } else {
-        t <- NA
-    }
-    if ('df' %in% colnames(m_summary$coefficients)) {
-        df <- round(m_summary$coefficients['(Intercept)', 'df'], 2)
-    } else {
-        df <- NA
-    }
-    if ('Estimate' %in% colnames(m_summary$coefficients)) {
-        beta <- round(m_summary$coefficients['(Intercept)', 'Estimate'], 2)
-    } else {
-        beta <- NA
-    }
-    if ('Pr(>|t|)' %in% colnames(m_summary$coefficients)) {
-        p <- round(m_summary$coefficients['(Intercept)', 'Pr(>|t|)'], 6)
-    } else {
-        p <- NA
-    }
-    
-    return(c(t=t, df=df, beta=beta, p=p))
-}
-
-
-ses_to_date <- function(ses) {
-    
-    ses_split <- str_split(ses, '_')
-    
-    ses_split <- lapply(ses_split, function(x) x[1])
-    
-    ses_dates <- lapply(ses_split, function(x) {
-            if (nchar(x) != 8) return(NA)
-            return(as_date(x, format='%d%m%Y'))
-            }
-        )
-    
-    return(as_date(unlist(ses_dates)))
-}
-
-
-get_min_n_responsive <- function(df, min_over_factor=NULL){
-    # Get minimum responsive electrodes per rhythm per session. If one rhythm is completely missing, 
-    # return 0
-    if (is.null(min_over_factor)){
-        min_n_conditions <- 1
-    } else {
-        min_n_conditions <- length(levels(df[, min_over_factor]))
-    }
-    print(sprintf('putting "0" if less than %d values per session found', min_n_conditions))
-    get_min_n <- function(d) {
-        min_n <- min(d$n)
-        if (nrow(d) < min_n_conditions) min_n <- 0
-        return(data.frame(n=min_n))
-    } 
-    return(df %>% 
-               group_by(across(any_of(c('ses', min_over_factor)))) %>% 
-               tally() %>% 
-               group_by(ses) %>% 
-               group_modify(~get_min_n(.x))
-    )
-}
-
-
-get_boot_summary <- function(df, grouping_val, feature_name){
-    # summarize boostrapped samples to get confidence intervals
-    data.frame(
-        ci_low = quantile(df[, feature_name] %>% pull(), 0.025),
-        ci_high = quantile(df[, feature_name] %>% pull(), 1-0.025)
-    )
-}
-
 
 r_to_z <- function(r){
     # fisher-transform
@@ -195,4 +82,35 @@ fit_sigm <- function(x, y, init_params=NULL) {
 # plot(df)
 # params <- fit_sigm(x, y)
 
+
+render_sigmoid_fit <- function(m){
+    tmp <- as.data.frame(confint(m))
+    tmp <- rownames_to_column(tmp, 'parameter')
+    tmp$parameter <- str_replace(tmp$parameter, '_', '')
+    tmp
+}
+
+
+posthoc_ttest_low_vs_high <- function(df, var_name_eeg){
+    vals_L <- df %>% 
+        filter(tone=='L') %>% 
+        arrange(subject) %>%
+        pull(.data[[var_name_eeg]])
+    vals_H <- df %>% 
+        filter(tone=='H') %>% 
+        arrange(subject) %>%
+        pull(.data[[var_name_eeg]])
+    res <- t.test(vals_L, vals_H, paired=TRUE)
+    data.frame(mean_L_minus_H = unname(res$estimate), 
+               t = unname(res$statistic),
+               df = unname(res$parameter),
+               p = unname(res$p.value))
+}
+
+
+ttest_0 <- function(df, var_name){
+    vals_eeg <- df %>% pull(.data[[var_name]])
+    res <- t.test(vals_eeg, mu=0, alternative='greater')
+    data.frame(t=res$statistic, p=res$p.value)
+}
 

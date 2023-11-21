@@ -8,7 +8,7 @@ addParameter(parser, 'pnl', []);
 addParameter(parser, 'mX_subtr', []); 
 addParameter(parser, 'acf_subtr', []); 
 addParameter(parser, 'normalize_acf_for_plotting', true); 
-addParameter(parser, 'max_t', 4.8); 
+addParameter(parser, 'max_t', 7.2); 
 addParameter(parser, 'min_lag', min(lags)); 
 addParameter(parser, 'max_lag', 1.21); 
 addParameter(parser, 'max_freq', 5.2); 

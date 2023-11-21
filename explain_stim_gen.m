@@ -13,13 +13,16 @@ addpath(genpath(par.rnb_tools_path));
 
 fs = 200; 
 
-pat = [1 0 1 1 1 1 0 1 1 1 0 0] % [1 1 1 0 1 1 1 0 1 1 0 0], % [1 0 1 1 1 1 0 1 1 1 0 0]
+pat = [1 0 1 1 1 1 0 1 1 1 0 0 1 0 1 1 1 1 0 1 1 1 0 0] % [1 1 1 0 1 1 1 0 1 1 0 0], % [1 0 1 1 1 1 0 1 1 1 0 0]
     
 grid_ioi = 0.2; 
 
 ir_type = 'erp2'; 
 
-emph_levels = linspace(0, 1, 6); 
+emph_levels = logspace(log10(0.1), log10(10), 5); 
+emph_levels = [0, emph_levels]; 
+    
+% emph_levels = linspace(0, 8, 6); 
 
 n_cond = length(emph_levels); 
 
@@ -62,7 +65,7 @@ end
 
 %%
 
-f = figure('color','white', 'position',[575 1 582 500]); 
+f = figure('color','white', 'position', [536 301 892 500]); 
 pnl = panel(f); 
 pnl.pack('v', n_cond + 1); 
 for i=1:n_cond+1
@@ -74,7 +77,7 @@ t_pattern = [0 : length(pat)-1] * 0.2;
 scatter(t_pattern(logical(pat)), zeros(1, sum(pat)), 100, 'kx', 'LineWidth', 2)
 hold on
 scatter(t_pattern(logical(~pat)), zeros(1, sum(~pat)), 50, 'k.', 'LineWidth', 2)
-ax.XLim = [0, 2.4]; 
+ax.XLim = [0, length(pat)*grid_ioi]; 
 ax.Visible = 'off'; 
 
 ax = pnl(4, 2).select(); 
@@ -108,12 +111,12 @@ for i_cond=1:n_cond
     
     ax = pnl(i_cond + 1, 1).select(); 
     stem(t, x_dirac, 'linew', 3, 'marker', 'none', 'color', colors{i_cond}); 
-    ax.XLim = [0, 2.4-1/fs]; 
+    ax.XLim = [0, length(pat)*grid_ioi-1/fs]; 
     ax.Visible = 'off'; 
     
     ax = pnl(i_cond + 1, 3).select(); 
     plot(t, x, 'linew', 3, 'color', colors{i_cond}); 
-    ax.XLim = [0, 2.4-1/fs]; 
+    ax.XLim = [0, length(pat)*grid_ioi-1/fs]; 
     ax.Visible = 'off'; 
     
 end
@@ -126,7 +129,11 @@ pnl.margin = [5, 5, 5, 5];
 
 pnl.fontsize = 14; 
 
+%%
 
-fname = sprintf('figures/explain_stim_gen_irType-%s.svg', ir_type); 
-% print(fname, '-dsvg', '-painters', f);  
+save_path = fullfile(par.fig_path, 'general', 'stim_gen'); 
+
+fname = sprintf('explain_stim_gen_irType-%s.svg', ir_type); 
+
+print(fullfile(save_path, fname), '-dsvg', '-painters', f);  
 

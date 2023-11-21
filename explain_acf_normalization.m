@@ -19,11 +19,11 @@ noise = get_colored_noise2(...
 
 x = add_signal_noise(x_clean, noise, 2);
 
-% x = x + min(x); 
+x = zscore(x); 
 
-lags_meter_rel = [0.4, 0.8]; 
+lags_meter_rel = [0.8]; 
 
-lags_meter_unrel = [0.6, 1.0, 1.4]; 
+lags_meter_unrel = [0.4, 0.6, 1.0, 1.2]; 
 
 xlims = [0, 1.6]; 
 
@@ -37,7 +37,7 @@ param_name = 'scale'; % scale, shift
 
 if strcmp(param_name, 'scale')
     
-    param_vals = [1:n]; 
+    param_vals = linspace(1, 3, n); 
     % param_vals = logspace(log10(1), log10(n), n); 
     fun = @(x, b) b * x;  
     cmap_name = 'Greys'; 
@@ -56,7 +56,7 @@ end
 colors = num2cell(brewermap(n + round(n/3), cmap_name), 2); 
 colors = colors(end-n+1:end); 
 
-f = figure('color','white', 'position', [778 255 599 324]); 
+f = figure('color','white', 'position', [356 219 716 546]); 
 pnl = panel(f); 
 pnl.pack('h', [80, 20])
 pnl(1).pack({[0, 0, 1, 1]}); 
@@ -65,7 +65,9 @@ ax = pnl(1, 1).select();
 
 r_mean = nan(1, length(param_vals)); 
 r_ratio = nan(1, length(param_vals)); 
+acf_mean = nan(1, length(param_vals)); 
 acf_ratio = nan(1, length(param_vals)); 
+acf_contrast = nan(1, length(param_vals)); 
 acf_z = nan(1, length(param_vals)); 
 
 for i_cond=1:length(param_vals)
@@ -79,7 +81,7 @@ for i_cond=1:length(param_vals)
                        'normalize_acf_z', false ...
                        );    
                    
-    plot(lags, acf, 'linew', 1, 'color', colors{i_cond}); 
+    plot(lags, acf, 'linew', 1.4, 'color', colors{i_cond}); 
     hold on
     
     % Notice that when we just take Pearson correlation with a lagged version
@@ -98,6 +100,7 @@ for i_cond=1:length(param_vals)
         r_meter_unrel(i) = r(2); 
     end
     
+    
     r_mean(i_cond) = mean(r_meter_rel);  
         
     r_ratio(i_cond) = mean(r_meter_rel) / mean(r_meter_unrel); 
@@ -105,15 +108,21 @@ for i_cond=1:length(param_vals)
     acf_meter_rel = acf(lags_meter_rel_idx); 
     acf_meter_unrel = acf(lags_meter_unrel_idx); 
 
+    acf_mean(i_cond) = mean(acf_meter_rel); 
+
     acf_ratio(i_cond) = mean(acf_meter_rel) / mean(acf_meter_unrel); 
+
+    acf_contrast(i_cond) = (mean(acf_meter_rel) - mean(acf_meter_unrel)) /...
+                           (mean(acf_meter_rel) + mean(acf_meter_unrel)); 
     
     z = zscore([acf_meter_rel, acf_meter_unrel]);
     acf_z(i_cond) = mean(z(1:length(acf_meter_rel))); 
 end
 
+
 %% 
 
-prec = 1000; 
+prec = 1e4; 
 
 ylims = ax.YLim; 
 y_to_plot = [floor(ylims(1)*prec)/prec, ceil(ylims(2)*prec)/prec]; 
@@ -148,12 +157,25 @@ ax.TickDir = 'out';
 pnl(1).ylabel('autocorrelation')
 
 
-pnl(2).pack('v', 3); 
 
-prec = 1e6; 
+
+pnl(2).pack('v', 5); 
+
+prec = 1e9; 
 ylim_buffer = 0.5; 
 
+
 ax = pnl(2, 1).select(); 
+scatter(param_vals, acf_mean, 15, cell2mat(colors), 'filled')
+ylims = [floor(ax.YLim(1)*prec)/prec, ...
+         ceil(ax.YLim(2)*prec)/prec]; 
+ylims = [ylims(1) - range(ylims)*ylim_buffer, ylims(2) + range(ylims)*ylim_buffer]; 
+ax.YLim = ylims; 
+ax.XTick = []; 
+ax.YTick = []; 
+ax.Title.String = 'raw acf'; 
+
+ax = pnl(2, 2).select(); 
 scatter(param_vals, r_mean, 15, cell2mat(colors), 'filled')
 ylims = [floor(ax.YLim(1)*prec)/prec, ...
          ceil(ax.YLim(2)*prec)/prec]; 
@@ -163,7 +185,7 @@ ax.XTick = [];
 ax.YTick = []; 
 ax.Title.String = 'Pearson r'; 
 
-ax = pnl(2, 2).select(); 
+ax = pnl(2, 3).select(); 
 scatter(param_vals, acf_ratio, 15, cell2mat(colors), 'filled')
 ylims = [floor(ax.YLim(1)*prec)/prec, ...
          ceil(ax.YLim(2)*prec)/prec]; 
@@ -173,7 +195,17 @@ ax.XTick = [];
 ax.YTick = []; 
 ax.Title.String = 'ratio of acf'; 
 
-ax = pnl(2, 3).select(); 
+ax = pnl(2, 4).select(); 
+scatter(param_vals, acf_contrast, 15, cell2mat(colors), 'filled')
+ylims = [floor(ax.YLim(1)*prec)/prec, ...
+         ceil(ax.YLim(2)*prec)/prec]; 
+ylims = [ylims(1) - range(ylims)*ylim_buffer, ylims(2) + range(ylims)*ylim_buffer]; 
+ax.YLim = ylims; 
+ax.XTick = []; 
+ax.YTick = []; 
+ax.Title.String = 'contrast of acf'; 
+
+ax = pnl(2, 5).select(); 
 scatter(param_vals, acf_z, 15, cell2mat(colors), 'filled')
 ylims = [floor(ax.YLim(1)*prec)/prec, ...
          ceil(ax.YLim(2)*prec)/prec]; 
@@ -210,7 +242,52 @@ disp(struct2table(struct(param_name, param_vals', ...
 
 
 
+%%
 
+f = figure('color','white', 'position',[356 599 835 166]); 
+pnl = panel(f);
+pnl.pack('h', 2); 
+        
+
+ax = pnl(1).select(); 
+
+x_current = fun(x, param_vals(1)); 
+plot(ax, t, x_current, 'color', colors{1}, 'linew', 2); 
+hold(ax, 'on');  
+
+ax.XLim = [0, 4.8]; 
+ax.XAxis.Visible = 'off'; 
+ax.YAxis.Visible = 'off'; 
+ylims = ax.YLim; 
+
+
+ax = pnl(2).select(); 
+
+x_current = fun(x, param_vals(end)); 
+plot(ax, t, x_current, 'color', colors{end}, 'linew', 2); 
+hold(ax, 'on');  
+
+ax.XLim = [0, 4.8]; 
+ax.XAxis.Visible = 'off'; 
+ax.YAxis.Visible = 'off'; 
+ylims(1) = min(ylims(1), ax.YLim(1)); 
+ylims(2) = max(ylims(2), ax.YLim(2)); 
+
+
+ax = pnl(1).select(); 
+ax.YLim = ylims; 
+ax.YTick = []; 
+
+ax = pnl(2).select(); 
+ax.YLim = ylims; 
+ax.YTick = []; 
+
+pnl.de.margin = 1; 
+pnl.margin = 5; 
+
+fname = sprintf('acf_normalization_%s_timeDomain', param_name); 
+print(fullfile(save_path, fname), '-dsvg', '-painters', f);  
+print(fullfile(save_path, fname), '-dpng', '-painters', '-r300', f);  
 
 
                                
