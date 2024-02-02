@@ -118,7 +118,7 @@ for i_pat=1:size(par.all_pats, 1)
         %% average n-cycle erp         
         
         
-        x_chunked = epoch_chunks(x, par.fs, par.chunk_dur); 
+        x_chunked = epoch_chunks(x, par.fs, par.erp_chunk_dur); 
 
         x_erp = squeeze(mean(x_chunked, 1)); 
 
