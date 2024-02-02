@@ -85,7 +85,7 @@ for i_pat=1:size(par.all_pats, 1)
                              par.lags_meter_rel, par.lags_meter_unrel);         
 
         % without aperiodic subtraction    
-        [acf_raw] = get_acf(x, par.fs);    
+        [acf_raw, ~, ~, mX, freq] = get_acf(x, par.fs);    
 
         feat_acf_raw = get_acf_features(...
                              acf_raw, lags, ...
@@ -97,6 +97,9 @@ for i_pat=1:size(par.all_pats, 1)
                                par.noise_bins_snr(2)); 
 
         for i_band=1:length(par.bandwidths)
+
+            fprintf('band bins: %d - %d\n', ...
+                    par.bandwidths{i_band}(1), par.bandwidths{i_band}(2)); 
             
             % get acf with noise correction using the target bandwidth
             [acf_subtracted] = get_acf(x, par.fs, ...

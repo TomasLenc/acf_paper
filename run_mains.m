@@ -37,6 +37,8 @@ par.n_rep = 50;
 % main_noiseEffectDist_allVsOnlyHarm(par, ...
 %     'prepared_noise', noise_all_samples); 
 % 
+main_noiseEffectDist_band(par, ...
+    'prepared_noise', noise_all_samples); 
 % 
 % 
 % main_fooof_irasa(par,...
@@ -54,7 +56,7 @@ par.n_rep = 50;
 
 %% real EEG and tapping data 
 
-main_lowhigh_eeg(par); 
+% main_lowhigh_eeg(par); 
 % 
 % main_lowhigh_tap(par); 
 % 

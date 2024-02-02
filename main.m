@@ -8,24 +8,24 @@ par = get_par();
 
 %% noies
 
-% n_noise_samples = 50; 
-% 
-% % genarate noies
-% if strcmp(par.noise_type, 'eeg')
-% 
-%     noise_all_samples = prepare_eeg_noise(n_noise_samples, par.trial_dur);    
-% 
-% elseif strcmp(par.noise_type, 'fractal')
-% 
-%     noise_all_samples = get_colored_noise2(...
-%         [n_noise_samples, round(par.trial_dur*par.fs)], ...
-%         par.fs, par.noise_exponent); 
-% 
-% else
-%     
-%     error('noise type "%s" not implemented', par.noise_type);
-% 
-% end
+n_noise_samples = 50; 
+
+% genarate noies
+if strcmp(par.noise_type, 'eeg')
+
+    noise_all_samples = prepare_eeg_noise(n_noise_samples, par.trial_dur);    
+
+elseif strcmp(par.noise_type, 'fractal')
+
+    noise_all_samples = get_colored_noise2(...
+        [n_noise_samples, round(par.trial_dur*par.fs)], ...
+        par.fs, par.noise_exponent); 
+
+else
+    
+    error('noise type "%s" not implemented', par.noise_type);
+
+end
 
 
 %%
