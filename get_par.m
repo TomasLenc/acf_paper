@@ -19,6 +19,15 @@ elseif strcmpi(hostname, 'tomo-office-desktop')
     pica_path = ''; 
     experiment_path = '/DATA2/autocorrelation'; 
 
+elseif strcmpi(hostname, 'mac-BX23-117.local')
+    
+    acf_tools_path = '~/projects_git/acf_tools/src'; 
+    rnb_tools_path = '~/projects_git/rnb_tools/src'; 
+    lw_path = '~/projects_git/letswave6'; 
+    pica_path = ''; 
+    experiment_path = '~/projects_backed_up/autocorrelation'; 
+     
+    
 else
 
     error('host %s not set up yet...', hostname);
