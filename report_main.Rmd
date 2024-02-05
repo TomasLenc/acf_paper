@@ -468,31 +468,38 @@ df$bandwidth <- factor(round(df$bandwidth, 2))
 
 bands <- levels(df$bandwidth)
 
-ps <- vector(mode="list", length=length(bands) + 1)
+ps <- vector(mode="list", length=length(bands) + 2)
 
+# raw 
 p <- plot_dist_to_truth_density(filter(df, bandwidth == bands[1]), 
                             y_var_name='r_raw')
-ps[[1]] <- p
+ps[[1]] <- p + 
+    theme(axis.text.x = element_blank())
 
+# subtr 
+p <- plot_dist_to_truth_density(filter(df, bandwidth == bands[1]), 
+                            y_var_name='r_subtr')
+ps[[2]] <- p + 
+    theme(axis.text.x = element_blank())
+
+# subtr + band
+i_offset <- length(ps) - length(bands) 
 for (i_band in c(1:length(bands))){
     p <- plot_dist_to_truth_density(filter(df,  bandwidth == bands[i_band]), 
-                                y_var_name='r_subtr')
+                                y_var_name='r_subtr_band')
     p <- p + 
-        theme(axis.text.x = element_blank(), 
-              axis.title.x <- element_blank()) + 
+        theme(axis.text.x = element_blank()) + 
         ggtitle(sprintf('band: %s Hz', bands[i_band]))
-    ps[[i_band + 1]] <- p
+    ps[[i_band + i_offset]] <- p
 }
 
-do.call(plot_grid, c(ps, ncol=1))
+p <- do.call(plot_grid, c(ps, ncol=1))
 
-
-# fname_fig <- tools::file_path_sans_ext(fname)
-# fname_fig_elems <- unlist(str_split(fname_fig, '_'))
-# fname_fig_elems[length(fname_fig_elems)] <- 'method-raw_exp-lowhigh_noiseEffectDistACF'
-# fname_fig <- paste(fname_fig_elems, collapse='_')
-# save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
-
+fname_fig <- tools::file_path_sans_ext(fname)
+fname_fig_elems <- unlist(str_split(fname_fig, '_'))
+fname_fig <- paste(fname_fig_elems, collapse='_')
+save_fig(file.path(data_path, fname_fig), p, width=5, height=15)
+p
 ```
 
 
