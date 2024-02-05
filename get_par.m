@@ -25,7 +25,7 @@ elseif strcmpi(hostname, 'mac-BX23-117.local')
     rnb_tools_path = '~/projects_git/rnb_tools/src'; 
     lw_path = '~/projects_git/letswave6'; 
     pica_path = ''; 
-    experiment_path = '~/projects_backed_up/autocorrelation'; 
+    experiment_path = '~/projects_backed_up/acf'; 
      
     
 else
