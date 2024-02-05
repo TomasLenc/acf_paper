@@ -261,7 +261,7 @@ plot_dist_to_truth_density <- function(df, y_var_name, z_snr_var_name='z_snr',
     df <- df[!is.na(df$z_snr_log_binned), ]
     
     ggplot(df, aes(x=.data[[y_var_name]], y=z_snr_log_binned, fill=stat(x))) + 
-        geom_density_ridges_gradient(scale=0.9, size=0.3, rel_min_height=0.001, 
+        geom_density_ridges_gradient(scale=0.9, linewidth=0.3, rel_min_height=0.001, 
                                      jittered_points=TRUE,
                                      position=position_points_jitter(width=0.0, height=0.05),
                                      point_size=0.4, point_alpha=0.3, point_shape=20, alpha=0.7) + 

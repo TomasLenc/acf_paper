@@ -233,7 +233,7 @@ Nevertheless, the next question is: which is more sensitive to noise, FFT or ACF
 
 <br><br>
 
-## Sensitivity to noise: FFT vs. ACF
+## Noise: FFT vs. ACF
 
 
 A better way than looking at meter zscores (which are sensitive to the selection of frequencies/lags 
@@ -362,7 +362,7 @@ save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
 
 <br><br>
 
-## ACF: raw, subtr, only harmonics
+## Noise: raw, subtr, only harmonics
 
 
 ```{r}
@@ -446,6 +446,63 @@ And to the noise-subtracted ACF after only pattern harmonics were taken:
 ```{r}
 knitr::kable(render_sigmoid_fit(m_subtr_only_harm))
 ```
+
+
+
+
+
+
+<br><br><br>
+
+
+## Noise: band width
+
+
+
+
+```{r, fig.height=15, fig.width=5}
+
+fname <- 'irType-square_apFitMethod-irasa_noiseEffectDistBand.csv'
+df <- read.csv(file.path(data_path, fname))
+df$bandwidth <- factor(round(df$bandwidth, 2))
+
+bands <- levels(df$bandwidth)
+
+ps <- vector(mode="list", length=length(bands) + 1)
+
+p <- plot_dist_to_truth_density(filter(df, bandwidth == bands[1]), 
+                            y_var_name='r_raw')
+ps[[1]] <- p
+
+for (i_band in c(1:length(bands))){
+    p <- plot_dist_to_truth_density(filter(df,  bandwidth == bands[i_band]), 
+                                y_var_name='r_subtr')
+    p <- p + 
+        theme(axis.text.x = element_blank(), 
+              axis.title.x <- element_blank()) + 
+        ggtitle(sprintf('band: %s Hz', bands[i_band]))
+    ps[[i_band + 1]] <- p
+}
+
+do.call(plot_grid, c(ps, ncol=1))
+
+
+# fname_fig <- tools::file_path_sans_ext(fname)
+# fname_fig_elems <- unlist(str_split(fname_fig, '_'))
+# fname_fig_elems[length(fname_fig_elems)] <- 'method-raw_exp-lowhigh_noiseEffectDistACF'
+# fname_fig <- paste(fname_fig_elems, collapse='_')
+# save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
+
+```
+
+
+
+
+
+
+
+
+---
 
 
 <br><br><br>

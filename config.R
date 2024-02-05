@@ -53,6 +53,8 @@ if (host_name == 'tux'){
     experiment_path <- '/datadisk/projects_backed_up/autocorrelation'
 } else if (host_name == 'tomo-office-desktop'){
     experiment_path <-  '/DATA2/autocorrelation'
+} else if (host_name == 'mac-BX23-117.local'){
+    experiment_path <-  '~/projects_backed_up/acf'
 }
 
 ####################################################################################################
