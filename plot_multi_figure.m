@@ -30,8 +30,18 @@ colors = colors(end-n_cond+1:end, :);
 
 %%
 
+if par.max_lag <= 5
+    fig_size = [146 1340 900 700]; 
+    example_subplot_proportions = [60, 15, 25];
+    min_n_pack_feat_pnl = 4; 
+else
+    fig_size = [146 1340 1329 700]; 
+    example_subplot_proportions = [35, 10, 55];
+    min_n_pack_feat_pnl = 5; 
+end
+
 f = figure('color','white', ...
-           'position', [146 1340 1329 933]); 
+           'position', fig_size); 
        
 pnl = panel(f); 
 
@@ -39,7 +49,6 @@ pnl.pack('v', [20, 80]);
 
 pnl(2).pack('v', n_cond); 
 
-example_subplot_proportions = [35, 10, 55];
 
 ymax_mX = -Inf; 
 ymax_mX_subtr = -Inf; 
@@ -127,7 +136,7 @@ prec = 1e2;
 
 ytick_at_means = false;
 
-pnl(1).pack('h', max(5, length(feat_to_plot))); 
+pnl(1).pack('h', max(min_n_pack_feat_pnl, length(feat_to_plot))); 
 
 for i_feat=1:length(feat_to_plot)
     
