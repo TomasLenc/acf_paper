@@ -1,7 +1,7 @@
 function main_ir(par)
 % Simulates the effect of impulse response shape on meter zscores. 
 
-n_cond = 6; 
+n_cond = 5; 
 
 if strcmp(par.ir_type, 'square')
     par.duty_cycles = linspace(0.050, 0.180, n_cond); 

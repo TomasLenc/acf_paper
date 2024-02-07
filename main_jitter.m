@@ -3,7 +3,7 @@ function main_jitter(par)
 
 par.pat = [1 0 0 0 1 0 0 0 1 0 0 0 ]; 
 
-n_cond = 7; 
+n_cond = 5; 
 
 par.jitters = logspace(log10(0.001), log10(0.200), n_cond); 
 
@@ -72,10 +72,9 @@ for i_cond=1:n_cond
     % with aperiodic subtraction    
     acf_subtracted = nan(size(acf)); 
     ap = nan(size(acf)); 
-    par_ap = cell(n_rep, 1); 
     
     parfor i_rep=1:n_rep
-        [acf_subtracted(i_rep, :), ~, ap(i_rep, :), ~, ~, par_ap(i_rep)] = ...
+        [acf_subtracted(i_rep, :), ~, ap(i_rep, :), ~, ~, ~, ~, par_ap(i_rep)] = ...
                                     get_acf(x(i_rep, :), par.fs, ...
                                            'rm_ap', true, ...
                                            'ap_fit_method', par.ap_fit_method, ...

@@ -1,7 +1,7 @@
 function main_emph(par)
 % simulate effect of periodic emphasis on meter zscores 
 
-n_cond = 6; 
+n_cond = 5; 
 
 par.emph_levels = linspace(0, 2, n_cond); 
 
