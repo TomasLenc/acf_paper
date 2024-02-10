@@ -76,6 +76,8 @@ only_use_f0_harmonics = true;
 
 ap_fit_flims = [0.1, 9]; 
 
+ap_band_around_harmonics = [1, 1]; 
+
 
 %% lags of interest
 
