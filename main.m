@@ -8,7 +8,7 @@ par = get_par();
 
 %% noies
 
-n_noise_samples = 500; 
+n_noise_samples = 50;
 
 % genarate noies
 if strcmp(par.noise_type, 'eeg')
