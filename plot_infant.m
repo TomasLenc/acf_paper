@@ -23,8 +23,16 @@ colors = {
 
 %%
 
+fig_pos = [155 335 1657 484]; 
+subplot_ratio = [15, 85]; 
 
-f = figure('color', 'white', 'Position', [155 335 1657 484]); 
+if par.max_lag < 5
+    fig_pos = [249 201 600 450];
+    subplot_ratio = [40, 60]; 
+end
+
+
+f = figure('color', 'white', 'Position', fig_pos); 
 pnl = panel(f); 
 
 pnl.pack('v', 2); 
@@ -34,8 +42,8 @@ for i_tone=1:2
     for i_rhythm=1:2
         pnl(i_tone, i_rhythm).pack('v', 2); 
         
-        pnl(i_tone, i_rhythm, 1).pack('h', [15, 85]); 
-        pnl(i_tone, i_rhythm, 2).pack('h', [15, 85]); 
+        pnl(i_tone, i_rhythm, 1).pack('h', subplot_ratio); 
+        pnl(i_tone, i_rhythm, 2).pack('h', subplot_ratio); 
     end
 end
 % pnl.select('all'); 
@@ -46,6 +54,8 @@ pnl(1, 2).marginleft = 15;
 pnl(2, 2).marginleft = 15; 
 pnl.margin = [15, 10, 5, 10]; 
 
+xlim_acf = [0, min(par.max_lag, 13.2)]; 
+xtick_acf = [0, min(par.max_lag, 13.2)]; 
 linew_acf = 1; 
 prec = 100; 
 
@@ -107,6 +117,7 @@ for i_tone=1:2
                  'opacity_lagz', 0.5, ...
                  'prec', prec); 
         ax.YTick = []; 
+        ax.XLim = xlim_acf;  
         ax.XAxis.Visible = 'off'; 
 
         
@@ -142,6 +153,7 @@ for i_tone=1:2
                  'opacity_lagz', 0.5, ...
                  'prec', prec); 
         ax.YTick = []; 
+        ax.XLim = xlim_acf;  
         ax.XAxis.Visible = 'off'; 
         
         hold(ax, 'on'); 
@@ -158,7 +170,8 @@ for i_tone=1:2
 end
 
 ax.XAxis.Visible = 'on'; 
-ax.XTick = [min(lags), max(lags)]; 
+ax.XTick = xlim_acf; 
+ax.XTickLabel = xlim_acf; 
 prec = 10; 
 ax.XTickLabel = [floor(min(lags)*prec)/prec, ceil(max(lags)*prec)/prec]; 
 

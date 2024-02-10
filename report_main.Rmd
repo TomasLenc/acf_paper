@@ -1,12 +1,12 @@
 ---
-title: "ACF report"
-author: "Tomas Lenc"
+title: ACF report
+author: Tomas Lenc
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
-  html_document: 
+  html_document:
     code_folding: hide
     toc: true
-    toc_float: 
+    toc_float:
       collapsed: false
 ---
 
@@ -27,6 +27,7 @@ This report puts all the simulation and analysis results together!
 par_matlab <- drop(R.matlab::readMat(file.path(data_path, 'ir-square_ir.mat'), fixNames=FALSE)$par)
 
 ```
+
 
 
 Frequencies of interest for FFT were selected as follows:   
@@ -68,7 +69,8 @@ knitr::include_graphics(fname)
 
 <br><br><br><br>  
 
----  
+
+
 # Effect of noise  
 
 <br> 
@@ -285,7 +287,7 @@ Let's save the output into png files.
 fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
 df <- read.csv(file.path(data_path, fname))
 
-fname_eeg <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-frontocentral_eegIndividual.csv'
+fname_eeg <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
 df_eeg_ind <- read.csv(file.path(data_path, fname_eeg))
 p <- plot_dist_to_truth_density(df, 
                                 y_var_name='r_fft_subtr',
@@ -315,7 +317,7 @@ save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
 fname <- 'irType-square_apFitMethod-irasa_noiseEffectDistAllVsOnlyHarm.csv'
 df <- read.csv(file.path(data_path, fname))
 
-fname_eeg <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-frontocentral_eegIndividual.csv'
+fname_eeg <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
 df_eeg_ind <- read.csv(file.path(data_path, fname_eeg))
 p <- plot_dist_to_truth_density(filter(df, method=='raw'), 
                                 y_var_name='r',
@@ -394,8 +396,8 @@ m_subtr <- fit_sigm(log10(df_subtr$z_snr), df_subtr$r,
 
 df_subtr_only_harm <- filter(df, method=='subtr_only_harm')
 m_subtr_only_harm <- fit_sigm(log10(df_subtr_only_harm$z_snr), df_subtr_only_harm$r, 
-                              init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=3)
-                              # init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=2)
+                              # init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=3)
+                              init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=2)
                               )
 
 cols <- c('raw'='#711885', 
@@ -530,7 +532,7 @@ Let's test how the method works on real data now.
 rhythms <- c('unsyncopated', 'syncopated')
 tones <- c('L', 'H')
 
-fname_lowhigh <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-frontocentral_eegIndividual.csv'
+fname_lowhigh <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
 # fname_lowhigh <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-all_eegIndividual.csv'
 
 df_eeg_ind <- read.csv(file.path(data_path, fname_lowhigh))
@@ -755,7 +757,7 @@ p
 
 ```
 
-
+---
 
 
 

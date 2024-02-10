@@ -6,7 +6,8 @@ source('config.R')
 data_dirs <- c(
     # 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.2'
     # 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4'
-    'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4'
+    # 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4'
+    'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4'
     # 'maxlag-11lags_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4'
     # 'maxlag-4.8_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4'
     # 'maxlag-halfTrial_meterRel-0.4_meterUnrel-0.6_1.0_1.4'

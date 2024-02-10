@@ -123,18 +123,10 @@ plot_jitter(par);
 
 % lowhigh roi-front
 par_eeg = load(fullfile(par.data_path, ...
-    'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-frontocentral_eegIndividual_par')); 
+    'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual_par')); 
 par_eeg.par.data_path = fullfile(par.data_path); 
 
 plot_lowhigh(par_eeg.par); 
-
-% lowhigh roi-all
-par_eeg = load(fullfile(par.data_path, ...
-    'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-all_eegIndividual_par')); 
-par_eeg.par.data_path = fullfile(par.data_path); 
-
-plot_lowhigh(par_eeg.par); 
-
 
 % infant roi-front
 par_eeg = load(fullfile(par.data_path, ...

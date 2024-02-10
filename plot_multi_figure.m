@@ -31,7 +31,7 @@ colors = colors(end-n_cond+1:end, :);
 %%
 
 if par.max_lag <= 5
-    fig_size = [146 1340 900 700]; 
+    fig_size = [146 1340 900 600]; 
     example_subplot_proportions = [60, 15, 25];
     min_n_pack_feat_pnl = 4; 
 else

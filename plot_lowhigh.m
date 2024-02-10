@@ -44,8 +44,11 @@ colors = {
 %%
 
 fig_pos = [155 335 1657 484]; 
-if do_chunk_acf || do_chunk_time
-    fig_pos = [249 201 514 450];
+subplot_ratio = [15, 85]; 
+
+if do_chunk_acf || do_chunk_time || par.max_lag < 5
+    fig_pos = [249 201 600 450];
+    subplot_ratio = [40, 60]; 
 end
 
 
@@ -59,8 +62,8 @@ for i_tone=1:2
     for i_rhythm=1:2
         pnl(i_tone, i_rhythm).pack('v', 2); 
         
-        pnl(i_tone, i_rhythm, 1).pack('h', [15, 85]); 
-        pnl(i_tone, i_rhythm, 2).pack('h', [15, 85]); 
+        pnl(i_tone, i_rhythm, 1).pack('h', subplot_ratio); 
+        pnl(i_tone, i_rhythm, 2).pack('h', subplot_ratio); 
     end
 end
 % pnl.select('all'); 
@@ -71,8 +74,8 @@ pnl(1, 2).marginleft = 15;
 pnl(2, 2).marginleft = 15; 
 pnl.margin = [15, 10, 5, 10]; 
 
-xlim_acf = [0, 13.2]; 
-xtick_acf = [0, 13.2]; 
+xlim_acf = [0, min(par.max_lag, 13.2)]; 
+xtick_acf = [0, min(par.max_lag, 13.2)]; 
 linew_acf = 1; 
 prec = 100; 
 
