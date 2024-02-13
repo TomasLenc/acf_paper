@@ -55,7 +55,7 @@ noise_exponent = -1.5;
 
 snr_target = 0.7;
 
-f0_to_ignore = 1 / (length(pat) * grid_ioi);
+response_f0 = 1 / (length(pat) * grid_ioi);
 
 %%
 
@@ -92,7 +92,7 @@ freq_to_fit = freq(min_freq_idx : max_freq_idx);
 
 % ignore all harmonics of f0 up to nyquist frequency
 nyq = fs/2; 
-freq_to_ignore = [f0_to_ignore : f0_to_ignore : nyq]'; 
+freq_to_ignore = [response_f0 : response_f0 : nyq]'; 
 freq_to_ignore_idx = dsearchn(freq, freq_to_ignore); 
 
 % for 1/f fitting, replace harmonics of f0 with mean of the bins around
@@ -238,7 +238,7 @@ max_freq = 9;
 
 nyq = fs/2; 
 freq = [0 : hN-1]' / N * fs; 
-freq_to_ignore = [f0_to_ignore : f0_to_ignore : nyq]'; 
+freq_to_ignore = [response_f0 : response_f0 : nyq]'; 
 freq_to_ignore_idx = dsearchn(freq, freq_to_ignore); 
 
 

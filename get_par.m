@@ -70,7 +70,7 @@ n_rep = 50;
 
 ap_fit_method = 'irasa'; 
 
-f0_to_ignore = 1/2.4; 
+response_f0 = 1/2.4; 
 
 only_use_f0_harmonics = true; 
 

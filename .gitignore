@@ -1,3 +1,4 @@
+
 .DS_Store
 
 output
@@ -8,6 +9,7 @@ figures
 
 # bak files
 ~*
+*.bak
 
 # Windows default autosave extension
 *.asv
