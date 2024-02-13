@@ -84,7 +84,8 @@ end
 
 target_z = [-0.5, 0, 0.5]; 
 
-n_pat_per_z = 3; 
+% just take the pattern with closest z-score to the desired one
+n_pat_per_z = 1; 
 
 pat_idx_acf = []; 
 pat_idx_fft = []; 
