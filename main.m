@@ -183,60 +183,6 @@ end
 
 %%
 
-
-par = get_par(); 
-
-% frequencies of interst
-par.max_freq = 5; 
-par.max_freq_plot = 5.1; 
-par.f0_to_excl = 5; 
-[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
-                                                par.max_freq, ...
-                                                'f0_to_excl', par.f0_to_excl);
-
-% lags of interest 
-par.max_lag = 2.4; 
-
-par.lags_meter_rel = [0.8, 1.6]; 
-par.lags_meter_unrel = [0.6, 1.0, 1.4, 1.8]; 
-
-
-sel_name = 'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-false_keepBand-false'; 
-par.data_path = fullfile(par.data_path, sel_name); 
-par.fig_path = par.data_path; 
-mkdir(par.data_path); 
-
-par.only_use_f0_harmonics = false; 
-par.ap_band_around_harmonics = [1, 1]; 
-
-run_mains
-
-
-sel_name = 'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-false'; 
-par.data_path = fullfile(par.data_path, sel_name); 
-par.fig_path = par.data_path; 
-mkdir(par.data_path); 
-
-par.only_use_f0_harmonics = true; 
-par.ap_band_around_harmonics = [1, 1]; 
-
-run_mains
-
-
-sel_name = 'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-true'; 
-par.data_path = fullfile(par.data_path, sel_name); 
-par.fig_path = par.data_path; 
-mkdir(par.data_path); 
-
-par.only_use_f0_harmonics = true; 
-par.ap_band_around_harmonics = [2, 5]; 
-
-run_mains
-
-
-
-%% 
-
 % 
 % par = get_par(); 
 % 
@@ -249,22 +195,13 @@ run_mains
 %                                                 'f0_to_excl', par.f0_to_excl);
 % 
 % % lags of interest 
-% par.max_lag = par.trial_dur / 2; 
+% par.max_lag = 2.4; 
 % 
-% par.lag_base_incl_meter_rel = [0.8]; 
-% par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
+% par.lags_meter_rel = [0.8, 1.6]; 
+% par.lags_meter_unrel = [0.6, 1.0, 1.4, 1.8]; 
 % 
-% par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
-% par.lag_base_excl_meter_unrel = [0.4]; 
 % 
-% [par.lags_meter_rel, par.lags_meter_unrel] = get_meter_lags(...
-%             par.max_lag, ...
-%             par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
-%             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
-%             );
-%         
-% 
-% sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-false_keepBand-false'; 
+% sel_name = 'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-false_keepBand-false'; 
 % par.data_path = fullfile(par.data_path, sel_name); 
 % par.fig_path = par.data_path; 
 % mkdir(par.data_path); 
@@ -275,7 +212,7 @@ run_mains
 % run_mains
 % 
 % 
-% sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-false'; 
+% sel_name = 'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-false'; 
 % par.data_path = fullfile(par.data_path, sel_name); 
 % par.fig_path = par.data_path; 
 % mkdir(par.data_path); 
@@ -286,7 +223,7 @@ run_mains
 % run_mains
 % 
 % 
-% sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-true'; 
+% sel_name = 'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-true'; 
 % par.data_path = fullfile(par.data_path, sel_name); 
 % par.fig_path = par.data_path; 
 % mkdir(par.data_path); 
@@ -295,6 +232,71 @@ run_mains
 % par.ap_band_around_harmonics = [2, 5]; 
 % 
 % run_mains
+% 
+
+
+%% 
+
+
+par = get_par(); 
+
+data_path = par.data_path; 
+
+% frequencies of interst
+par.max_freq = 5; 
+par.max_freq_plot = 5.1; 
+par.f0_to_excl = 5; 
+[par.freq_meter_rel, par.freq_meter_unrel, par.frex] = get_meter_freq(...
+                                                par.max_freq, ...
+                                                'f0_to_excl', par.f0_to_excl);
+
+% lags of interest 
+par.max_lag = par.trial_dur / 2; 
+
+par.lag_base_incl_meter_rel = [0.8]; 
+par.lag_base_excl_meter_rel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [2.4]
+
+par.lag_base_incl_meter_unrel = [0.6, 1.0, 1.4]; % [0.6, 1.0, 1.4]   [0.2]
+par.lag_base_excl_meter_unrel = [0.4]; 
+
+[par.lags_meter_rel, par.lags_meter_unrel] = get_meter_lags(...
+            par.max_lag, ...
+            par.lag_base_incl_meter_rel, par.lag_base_excl_meter_rel, ...
+            par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
+            );
+        
+
+sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-false_keepBand-false'; 
+par.data_path = fullfile(data_path, sel_name); 
+par.fig_path = par.data_path; 
+mkdir(par.data_path); 
+
+par.only_use_f0_harmonics = false; 
+par.ap_band_around_harmonics = [1, 1]; 
+
+run_mains
+
+
+sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-false'; 
+par.data_path = fullfile(data_path, sel_name); 
+par.fig_path = par.data_path; 
+mkdir(par.data_path); 
+
+par.only_use_f0_harmonics = true; 
+par.ap_band_around_harmonics = [1, 1]; 
+
+run_mains
+
+
+sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-true'; 
+par.data_path = fullfile(data_path, sel_name); 
+par.fig_path = par.data_path; 
+mkdir(par.data_path); 
+
+par.only_use_f0_harmonics = true; 
+par.ap_band_around_harmonics = [2, 5]; 
+
+run_mains
 
 
 
