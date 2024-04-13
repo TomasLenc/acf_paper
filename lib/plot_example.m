@@ -19,6 +19,7 @@ addParameter(parser, 'plot_xticks', true);
 addParameter(parser, 'plot_xlabels', true); 
 addParameter(parser, 'plot_features', true); 
 addParameter(parser, 'fontsize', 12); 
+addParameter(parser, 'linew_acf', []); 
 addParameter(parser, 'prec', 1000); 
 
 
@@ -38,11 +39,19 @@ max_t = parser.Results.max_t;
 min_lag = parser.Results.min_lag; 
 max_lag = parser.Results.max_lag; 
 max_freq = parser.Results.max_freq; 
+linew_acf = parser.Results.linew_acf; 
 fontsize = parser.Results.fontsize; 
 normalize_acf_for_plotting = parser.Results.normalize_acf_for_plotting; 
 
 time_col = parser.Results.time_col; 
 
+if isempty(linew_acf)
+    if max_lag > 10
+        linew_acf = 0.8;
+    else
+        linew_acf = 2;
+    end
+end
 
 %%
                   
@@ -149,12 +158,6 @@ end
 
 % plot ACF
 ax = pnl(3, 1).select(); 
-
-if max_lag > 10
-    linew_acf = 0.8;
-else
-    linew_acf = 2;
-end
 
 features = struct;
 if plot_features
