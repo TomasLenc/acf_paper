@@ -81,10 +81,6 @@ ap_band_around_harmonics = [1, 1];
 
 %% lags of interest
 
-% make sure acf_tools are added because we'll need the get_lag_harmonics
-% function from there...
-addpath(genpath(acf_tools_path)); 
-
 % autocorrelation lags (in seconds) that are considered meter-related and
 % meter-unrelated
 min_lag = 0;
