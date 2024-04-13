@@ -26,6 +26,10 @@ This report puts all the simulation and analysis results together!
 # load matlab parameters 
 par_matlab <- drop(R.matlab::readMat(file.path(data_path, 'ir-square_ir.mat'), fixNames=FALSE)$par)
 
+only_use_f0_harmonics <- ifelse('true', 'false', par_matlab$only_use_f0_harmonics)
+keep_band <- ifelse('true', 'false', par_matlab$ap_band_around_harmonics[2] > 1)
+
+
 ```
 
 
@@ -67,6 +71,46 @@ knitr::include_graphics(fname)
 
 
 
+
+```{r}
+
+fname <- 'ir-rand_ir.csv'
+df_ir <- read.csv(file.path(data_path, fname))
+
+df_ir_long <- pivot_longer(df_ir,
+                           !sample, 
+                           names_to='method',
+                           values_to='value')
+
+df_ir_long$method <- factor(df_ir_long$method, 
+                            levels=c('zscore', 'ratio', 'contrast', 'r'))
+
+df_ir_long$value <- round(df_ir_long$value, 9)
+
+p <- ggplot(df_ir_long, aes(x=0, y=value, group=method)) + 
+    # geom_half_violin(side='l', scale='width',
+    #              fill='grey60', color=NA, alpha=1, trim=T) + 
+    # geom_half_point(side='r', alpha=0.1, color='black') + 
+    geom_point(position=position_jitter(height=0, width=0.1), alpha=0.1) + 
+    facet_wrap(~ method, scales='free_y', nrow=1) + 
+    xlim(c(-0.5, 0.5)) + 
+    theme_cowplot() + 
+    theme(
+        axis.line.x = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.text.y = element_text(size=fontsize), 
+        axis.title = element_text(size=fontsize), 
+        axis.title.x = element_blank(),
+        strip.background = element_blank(), 
+        strip.text = element_text(size=fontsize, face='bold')
+    ) 
+
+save_fig(file.path(data_path, fname), p, width=5, height=3)
+p
+
+```
+
 <br><br><br><br>  
 
 
@@ -74,13 +118,6 @@ knitr::include_graphics(fname)
 # Effect of noise  
 
 <br> 
-
-
-
-```{r, fig.align="center"}
-fname <- file.path(data_path, 'ir-square_noise-eeg_apFitMethod-irasa_onlyHarm-true_snr.svg')
-knitr::include_graphics(fname)
-```
 
 
 Noise is bad because it distorts the shape of the FFT or ACF, creating a bias in the estimated 
@@ -196,11 +233,11 @@ df$z_meter_orig[!mask_fft] <- df$z_meter_acf_orig[!mask_fft]
 # p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(2, 11))
 
 # pick a pattern with high positive true zscore
-p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=c(8, 18))
-p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=c(8, 18))
+p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=c(18))
+p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=c(8))
 # pick a pattern with low negative true zscore
-p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=c(1, 10))
-p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(1, 10))
+p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=c(10))
+p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(1))
 
 # extract a legend that is laid out horizontally
 legend <- get_legend(p_fft_high_z + 
@@ -789,7 +826,7 @@ names(cols_individual) <- names(cols)
 
 Analysis performed on a frontal cluster of channels to get better SNR.   
 
-```{r}
+```{r, fig.width=2.3, fig.height=1.5}
 p <- plot_feat_ind_lowhigh(df_eeg_ind, 
               col_name_eeg='z_meter_fft_subtr',
               col_name_coch='z_meter_fft_sound')
@@ -858,7 +895,7 @@ Noise-subtracted acf was computed and averaged across **frontocentral** channels
 
 The zscore at meter-related lags was computed from the channel-averaged ACF, separately for each participant and condition.  
 
-```{r}
+```{r, fig.width=2.3, fig.height=1.5}
 p <- plot_feat_ind_lowhigh(df_eeg_ind, 
               col_name_eeg='z_meter_acf_subtr',
               col_name_coch='z_meter_acf_sound')
