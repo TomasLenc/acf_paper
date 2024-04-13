@@ -1,4 +1,6 @@
 
+main_ir_rand(par);
+
 par.ir_type = 'erp'; 
 par.ir = get_ir(par.ir_type, par.fs); 
 
