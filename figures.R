@@ -146,18 +146,19 @@ plot_subtr_effect <- function(df, pats, method) {
                             measurevar='z_meter', 
                             groupvars=c('selected_for', 'method', 'snr', 'pat', 'subtr'))
     pd_summary <- position_dodge(0.5)
+    pd_point <- position_jitterdodge(dodge.width=0.3, jitter.width=0.1)
     cols <- c('no'='#2b7557', 'yes'='#711885')
     ggplot(filter(df, selected_for=={{method}} & method=={{method}}), aes(snr, z_meter, color=subtr)) +
         geom_hline(yintercept = 0, color='#000000') + 
         geom_hline(aes(yintercept=z_meter_orig), color='#5e5e5e', linetype='dotted', linewidth=1) + 
-        geom_point(alpha=0.05, position=position_jitter(height=0, width=0.1)) + 
+        geom_point(alpha=0.05, position=pd_point) + 
         geom_point(data=filter(df_summary, selected_for=={{method}} & method=={{method}}), 
                    size=2, position=pd_summary) + 
         geom_errorbar(data=filter(df_summary, selected_for=={{method}} & method=={{method}}), 
                       aes(ymin=z_meter-ci, ymax=z_meter+ci), position=pd_summary, width=0, linewidth=1) + 
         scale_color_manual(name='subtracted', values=cols) + 
         scale_x_discrete(labels=round(as.numeric(levels(df$snr)), 2)) + 
-        scale_y_continuous(limits=c(-1, 1)) + 
+        scale_y_continuous(limits=c(-1.2, 1.2)) +
         theme_cowplot()
 }
 
