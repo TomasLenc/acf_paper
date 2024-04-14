@@ -1,22 +1,19 @@
 % This script shows that a periodically recurring signal will have FFT peaks at
-% recurrence rate and harmonics. 
+% recurrence rate and harmonics. See Figure 1 in the paper. 
 
 clear 
 
 par = get_par(); 
 
-addpath(genpath('lib'))
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
-
 %% simulate
 
 fs = 1000; 
 
-pat = [1 1 1 1 1 1 1 1 1 1 1] % [1 1 1 0 1 1 1 0 1 1 0 0], % [1 0 1 1 1 1 0 1 1 1 0 0]
-    
+pat = [1 1 1 1 1 1 1 1 1 1 1]; 
+
 grid_ioi = 0.2; 
 
+% bool flag - if true, noise is added to the signal 
 do_noise = true; 
 
 %% 
@@ -99,7 +96,7 @@ plot_acf(ax, acf, lags, 'prec', 1e12, ...
     'lags_meter_rel', [grid_ioi : grid_ioi : t(end)/2], ...
     'opacity_lagz', 0.3)
 
-ax.YLim = [-0.0012, 0.003]; 
+ax.YLim = [-0.5, 1]; 
 
 
 pnl.margin = [2, 10, 0, 5]; 
@@ -115,9 +112,11 @@ else
     str_append = ''; 
 end
 
-fname = sprintf('/datadisk/projects_backed_up/autocorrelation/figures/general/explain_fft_periodic_recurrence%s', str_append); 
+fpath = fullfile(par.fig_path, 'general', 'explain_fft_periodic_recurrence'); 
 
-print(fname, '-dsvg', '-painters', f);  
-print(fname, '-dpng', '-painters', f);  
+fname = sprintf('explain_fft_periodic_recurrence%s', str_append); 
+
+print(fullfile(fpath, fname), '-dsvg', '-painters', f);  
+print(fullfile(fpath, fname), '-dpng', '-painters', f);  
 
 close(f)

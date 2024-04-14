@@ -1,19 +1,14 @@
 % This script shows that a periodically recurring signal will have FFT peaks at
-% recurrence rate and harmonics. 
+% recurrence rate and harmonics. See Figure S6 in the paper. 
 
 clear 
 
 par = get_par(); 
 
-addpath(genpath('lib'))
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
-
 %% simulate
 
 fs = 1000; 
-
-    
+ 
 grid_ioi = 0.2; 
 
 ir = get_ir('square', fs); 
@@ -141,7 +136,7 @@ pnl.marginright = 1;
 
 %%
 
-fpath = '/datadisk/projects_backed_up/autocorrelation/figures/general/explain_beat_subdiv'; 
+fpath = fullfile(par.fig_path, 'general', 'explain_beat_subdiv'); 
 if ~isdir(fpath)
     mkdir(fpath)
 end

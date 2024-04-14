@@ -1,6 +1,6 @@
-addpath(genpath('/datadisk/projects_git_dl/rnb_tools/src'));
-addpath(genpath('/datadisk/projects_git_dl/acf_tools/src'));
-addpath(genpath('lib'))
+% Generates plots for Figure 8 in the paper, showing the two steps of noise
+% correction (1: 1/f-estimation and subtraction, 2: zeroing-out noise
+% frequency bins)
 
 par = get_par;
 
@@ -398,8 +398,7 @@ pnl(4).margintop = 15;
 
 
 
-
-save_fig(f, 'explain_ap_fit');  
+save_fig(f, fullfile(par.fig_path, 'general', 'explain_ap_fit', 'explain_ap_fit'));  
 
 
 %%
@@ -439,7 +438,8 @@ ax.ZLabel.String = 'imag';
 ax.YTick = [];
 ax.ZTick = [];
 
-save_fig(f, 'explain_ap_fit_complex_spectra_ap_vectors');  
+save_fig(f, fullfile(par.fig_path, 'general', 'explain_ap_fit', ...
+    'explain_ap_fit_complex_spectra_ap_vectors'));  
 
 
 %%
@@ -515,9 +515,9 @@ ax.ZLabel.String = 'imag';
 ax.YTick = [];
 ax.ZTick = [];
 
-save_fig(f, 'explain_ap_fit_complex_spectra');  
 
-
+save_fig(f, fullfile(par.fig_path, 'general', 'explain_ap_fit', ...
+    'explain_ap_fit_complex_spectra'));  
 
 
 %%

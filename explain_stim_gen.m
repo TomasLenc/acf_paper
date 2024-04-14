@@ -1,13 +1,10 @@
 % This script illustrates generation of stimuli with realistic ERP kernel and
-% gradually increasing periodic emphasis. 
+% gradually increasing periodic emphasis. Corresponds to Figure S1 in the
+% paper. 
 
 clear 
 
 par = get_par(); 
-
-addpath(genpath('lib'))
-addpath(genpath(par.acf_tools_path)); 
-addpath(genpath(par.rnb_tools_path)); 
 
 %% simulate
 
@@ -22,8 +19,6 @@ ir_type = 'erp2';
 emph_levels = logspace(log10(0.1), log10(10), 5); 
 emph_levels = [0, emph_levels]; 
     
-% emph_levels = linspace(0, 8, 6); 
-
 n_cond = length(emph_levels); 
 
 % colors

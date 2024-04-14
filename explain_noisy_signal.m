@@ -1,14 +1,22 @@
+% This is just a convenience script (run after `main.m` is done) to plot
+% some noisy signals in the time domain.
 
 clear
 
-load /datadisk/projects_backed_up/autocorrelation/data/maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4/irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectZscoreACFvsFFT.mat
+par = get_par(); 
+
+fpath = fullfile(par.data_path, ...
+    'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-false'); 
+
+load(fullfile(fpath, ...
+    'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectZscoreACFvsFFT.mat')); 
 
 
 
 %%
 
 n_pat = 2; 
-pat_sel = [8, 1]; % 1 is low z, 8 is high z
+pat_sel = [6, 4]; % 1 is low z, 8 is high z
 
 
 f = figure('color', 'white', 'Position', [522 750 339 83]);
@@ -32,13 +40,9 @@ noise = prepare_eeg_noise(1, par.trial_dur);
 
 for i_plt=1:n_pat
     
-    
     i_pat = pat_sel(i_plt); 
     
-    
     t = data_to_plot(i_pat).t; 
-    
-    
     
     ax = pnl(i_plt, 1).select(); 
 
@@ -61,7 +65,16 @@ end
 
 %%
 
-fname = '/datadisk/projects_backed_up/autocorrelation/figures/general/explain_ap_fit/noiseEffectZscore_examples'; 
+par = get_par(); 
 
-print(fname, '-dsvg', '-painters', f);  
-print(fname, '-dpng', '-painters', f);  
+fpath = fullfile(par.fig_path, 'general', 'noisy_signal_examples'); 
+fname = 'noiseEffectZscore_examples'; 
+
+mkdir(fpath); 
+
+print(fullfile(fpath, fname), '-dsvg', '-painters', f);  
+print(fullfile(fpath, fname), '-dpng', '-painters', f);  
+
+
+
+

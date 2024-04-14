@@ -1,4 +1,4 @@
-function f = explain_nonrep_seq(par)
+function f = plot_nonrep_seq(par)
 
 par.n_cycles = 1; 
 

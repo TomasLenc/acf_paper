@@ -62,7 +62,7 @@ for i_sel=1:length(only_use_f0_harmonics)
     % plot example of nonrepeating sequence 
     res = load(fullfile(par.data_path, 'ir-square_ir.mat')); 
     res.par.max_lag = 12; 
-    f = explain_nonrep_seq(res.par); 
+    f = plot_nonrep_seq(res.par); 
     save_fig(f, fullfile(par.data_path, 'ir-square_nonrep.svg'));
     
     close all

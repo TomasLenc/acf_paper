@@ -1,3 +1,9 @@
+% This script generates plots needed for Figure S2 in the paper, showing
+% that the magnitude at the frequency corresponding to the rate of the fast
+% isochronous grid underlying the temporal scructure of the rhyrhmic signal
+% is not sensitive to the self-similarity at the rate of the to-be-measured
+% beat.
+
 clear
 
 par = get_par(); 
@@ -152,10 +158,11 @@ ax.YAxis.Visible = 'off';
 
 %%
 
-fname = '/datadisk/projects_backed_up/autocorrelation/figures/general/explain_5Hz/explain_5Hz'; 
+fpath = fullfile(par.fig_path, 'explain_5Hz'); 
+fname = 'explain_5Hz'; 
 
-print(fname, '-dsvg', '-painters', f);  
-print(fname, '-dpng', '-painters', f);  
+print(fullfile(fpath, fname), '-dsvg', '-painters', f);  
+print(fullfile(fpath, fname), '-dpng', '-painters', f);  
 
 %%
 

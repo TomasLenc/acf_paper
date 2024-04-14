@@ -1,3 +1,6 @@
+% Script that generates plots necesary to explain the zSNR subtraction
+% procedure (see Figure S4 in the paper). 
+
 clear 
 
 par = get_par; 
@@ -61,9 +64,6 @@ ax.XLim = [-6, 6];
 ax.Visible = 'off'; 
 
 
-
-
-
 ax = pnl(2, 2).select(); 
 
 mX_subtr = subtract_noise_bins(mX, 2, 5); 
@@ -79,7 +79,10 @@ ax.Visible = 'off';
 
 %%
 
-fname = sprintf('/datadisk/projects_backed_up/autocorrelation/figures/general/explain_z_snr/explain_z_snr'); 
+fpath = fullfile(par.fig_path, 'general', 'explain_z_snr'); 
+fname = 'explain_z_snr'; 
 
-print(fname, '-dsvg', '-painters', f);  
-print(fname, '-dpng', '-painters', f);  
+mkdir(fpath); 
+
+print(fullfile(fpath, fname), '-dsvg', '-painters', f);  
+print(fullfile(fpath, fname), '-dpng', '-painters', f);  

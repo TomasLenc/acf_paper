@@ -1,8 +1,9 @@
-% testing sensitivity of ACF to shift and scale of the input signal
+% Plots to demontrate sensitivity of ACF to shift and offset of the input
+% signal (see Figure 6 in the paper)
+
 clear
 
 par = get_par(); 
-
 
 % make clean signal for the whole trial 
 [x_clean, t] = get_s(...
