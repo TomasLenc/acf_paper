@@ -65,8 +65,10 @@ knitr::include_graphics(fname)
 
 
 ```{r, fig.align="center"}
-fname <- file.path(data_path, 'ir-square_apFitMethod-irasa_onlyHarm-true_jitter.svg')
-knitr::include_graphics(fname)
+fname = list.files(path=data_path, 
+           pattern='ir-square_apFitMethod-irasa_onlyHarm-.*_jitter.svg')
+
+knitr::include_graphics(file.path(data_path, fname))
 ```
 
 
@@ -136,7 +138,8 @@ To address this issue, there are ways to account for the noise and minimize the 
 
 ```{r}
 
-fname <- 'ir-square_noise-eeg_apFitMethod-irasa_onlyHarm-true_onlyNoise.csv'
+fname = list.files(path=data_path, 
+           pattern='ir-square_noise-eeg_apFitMethod-irasa_onlyHarm-.*_onlyNoise.csv')
 
 df_only_noise <- read.csv(file.path(data_path, fname))
 
@@ -195,7 +198,8 @@ rid of the influence of noise - we can only suppress it to greater/lesser degree
 
 ```{r}
 
-fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectZscoreACFvsFFT.csv'
+fname = list.files(path=data_path, 
+           pattern='irType-square_apFitMethod-irasa_onlyHarm-.*_noiseEffectZscoreACFvsFFT.csv')
 
 df_noise_effect_z <- read.csv(file.path(data_path, fname))
 
@@ -233,10 +237,10 @@ df$z_meter_orig[!mask_fft] <- df$z_meter_acf_orig[!mask_fft]
 # p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(2, 11))
 
 # pick a pattern with high positive true zscore
-p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=c(18))
-p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=c(8))
+p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=6)
+p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=3)
 # pick a pattern with low negative true zscore
-p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=c(10))
+p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=c(4))
 p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(1))
 
 # extract a legend that is laid out horizontally
@@ -287,7 +291,9 @@ value of meter zscore in he ground truth signal).
 ```{r}
 
 # load simulated data
-fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
+fname = list.files(path=data_path, 
+           pattern='irType-square_apFitMethod-irasa_onlyHarm-.*_noiseEffectDistACFvsFFT.csv')
+
 df <- read.csv(file.path(data_path, fname))
 
 p <- plot_dist_to_truth(df, 
@@ -319,43 +325,16 @@ Let's save the output into png files.
 
 ```{r}
 
-# FFT
-
-fname <- 'irType-square_apFitMethod-irasa_onlyHarm-true_noiseEffectDistACFvsFFT.csv'
-df <- read.csv(file.path(data_path, fname))
-
-fname_eeg <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
-df_eeg_ind <- read.csv(file.path(data_path, fname_eeg))
-p <- plot_dist_to_truth_density(df, 
-                                y_var_name='r_fft_subtr',
-                                df_eeg_z_snr=df_eeg_ind)
-fname_fig <- tools::file_path_sans_ext(fname)
-fname_fig_elems <- unlist(str_split(fname_fig, '_'))
-fname_fig_elems[length(fname_fig_elems)] <- 'exp-lowhigh_noiseEffectDistFFT'
-fname_fig <- paste(fname_fig_elems, collapse='_')
-save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
-
-fname_eeg <- 'exp-infant_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
-df_eeg_ind <- read.csv(file.path(data_path, fname_eeg))
-p <- plot_dist_to_truth_density(df, 
-                                y_var_name='r_fft_subtr',
-                                df_eeg_z_snr=df_eeg_ind)
-fname_fig <- tools::file_path_sans_ext(fname)
-fname_fig_elems <- unlist(str_split(fname_fig, '_'))
-fname_fig_elems[length(fname_fig_elems)] <- 'exp-infant_noiseEffectDistFFT'
-fname_fig <- paste(fname_fig_elems, collapse='_')
-save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
-
-
-
-
 # ACF
 
 fname <- 'irType-square_apFitMethod-irasa_noiseEffectDistAllVsOnlyHarm.csv'
 df <- read.csv(file.path(data_path, fname))
 
-fname_eeg <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
+# plot raw ACF with average log zSNR across all subjects in the lowhigh dataset (adults)
+fname_eeg = list.files(path=data_path, 
+           pattern='exp-lowhigh_apFitMethod-irasa_onlyHarm-.*_roi-front_eegIndividual.csv')
 df_eeg_ind <- read.csv(file.path(data_path, fname_eeg))
+
 p <- plot_dist_to_truth_density(filter(df, method=='raw'), 
                                 y_var_name='r',
                                 df_eeg_z_snr=df_eeg_ind)
@@ -365,11 +344,12 @@ fname_fig_elems[length(fname_fig_elems)] <- 'method-raw_exp-lowhigh_noiseEffectD
 fname_fig <- paste(fname_fig_elems, collapse='_')
 save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
 
-
-fname_eeg <- 'exp-infant_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
+# plot raw ACF with average log zSNR across all subjects in the infant dataset
+fname_eeg = list.files(path=data_path, 
+           pattern='exp-infant_apFitMethod-irasa_onlyHarm-.*_roi-front_eegIndividual.csv')
 df_eeg_ind <- read.csv(file.path(data_path, fname_eeg))
-p <- plot_dist_to_truth_density(filter(df, method=='raw'),  
-                                y_var_name='r',
+
+p <- plot_dist_to_truth_density(filter(df, method=='raw'), y_var_name='r',
                                 df_eeg_z_snr=df_eeg_ind)
 fname_fig <- tools::file_path_sans_ext(fname)
 fname_fig_elems <- unlist(str_split(fname_fig, '_'))
@@ -377,17 +357,16 @@ fname_fig_elems[length(fname_fig_elems)] <- 'method-raw_exp-infant_noiseEffectDi
 fname_fig <- paste(fname_fig_elems, collapse='_')
 save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
 
-
-p <- plot_dist_to_truth_density(filter(df, method=='subtr'), 
-                                y_var_name='r')
+# plot 1/f-subtracted ACF 
+p <- plot_dist_to_truth_density(filter(df, method=='subtr'), y_var_name='r')
 fname_fig <- tools::file_path_sans_ext(fname)
 fname_fig_elems <- unlist(str_split(fname_fig, '_'))
 fname_fig_elems[length(fname_fig_elems)] <- 'method-subtr'
 fname_fig <- paste(fname_fig_elems, collapse='_')
 save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
 
-p <- plot_dist_to_truth_density(filter(df, method=='subtr_only_harm'), 
-                                y_var_name='r')
+# plot 1/f-subtracted and noise zeroed-out ACF 
+p <- plot_dist_to_truth_density(filter(df, method=='subtr_only_harm'), y_var_name='r')
 fname_fig <- tools::file_path_sans_ext(fname)
 fname_fig_elems <- unlist(str_split(fname_fig, '_'))
 fname_fig_elems[length(fname_fig_elems)] <- 'method-subtrOnlyHarm'
@@ -569,8 +548,8 @@ Let's test how the method works on real data now.
 rhythms <- c('unsyncopated', 'syncopated')
 tones <- c('L', 'H')
 
-fname_lowhigh <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
-# fname_lowhigh <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_roi-all_eegIndividual.csv'
+fname_lowhigh = list.files(path=data_path, 
+           pattern='exp-lowhigh_apFitMethod-irasa_onlyHarm-.*_roi-front_eegIndividual.csv')
 
 df_eeg_ind <- read.csv(file.path(data_path, fname_lowhigh))
 
@@ -764,7 +743,8 @@ p
 
 
 ```{r}
-fname_lowhigh <- 'exp-lowhigh_apFitMethod-irasa_onlyHarm-true_tapIndividual.csv'
+fname_lowhigh = list.files(path=data_path, 
+           pattern='exp-lowhigh_apFitMethod-irasa_onlyHarm-.*_tapIndividual.csv')
 
 df_tap_ind <- read.csv(file.path(data_path, fname_lowhigh))
 
@@ -807,7 +787,8 @@ p
 rhythms <- c('unsync', 'sync')
 tones <- c('low', 'high')
 
-fname_lowhigh <- 'exp-infant_apFitMethod-irasa_onlyHarm-true_roi-front_eegIndividual.csv'
+fname_lowhigh = list.files(path=data_path, 
+           pattern='exp-infant_apFitMethod-irasa_onlyHarm-.*_roi-front_eegIndividual.csv')
 
 df_eeg_ind <- read.csv(file.path(data_path, fname_lowhigh))
 
