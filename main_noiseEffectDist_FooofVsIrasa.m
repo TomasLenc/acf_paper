@@ -1,4 +1,4 @@
-function main_fooof_irasa(par, varargin)
+function main_noiseEffectDist_FooofVsIrasa(par, varargin)
 % Simulate signals with a range of noise. Test how much the noise distorts the
 % ACF estaimates obtained with eiher fooof or irasa method to correct for the
 % 1/f. The whole ground truth autocorrelation function is correlated with the
