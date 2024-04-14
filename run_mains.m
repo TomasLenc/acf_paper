@@ -78,11 +78,6 @@ main_only_noise(par,...
     'prepared_noise', noise_all_samples); 
 
 
-%% cochlear model 
-
-main_coch(par);
-
-
 %% real EEG and tapping data 
 
 main_lowhigh_eeg(par); 

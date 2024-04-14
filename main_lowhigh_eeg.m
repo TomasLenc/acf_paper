@@ -8,8 +8,6 @@ tones = {'L', 'H'};
 
 n_rhythms = 2; 
 
-rm_id = [1,4,6,11,14];
-
 par.trial_dur = 50.4;  
 
 par.roi_name = 'front'; 
@@ -48,8 +46,7 @@ for i_rhythm=1:n_rhythms
         %% load data
 
         fname = fullfile(load_path, 'preprocessed', ...
-            sprintf('avgRef_timeAvg_mergedParticipants %s_%s(19).lw6', ...
-                    tone, rhythm));
+            sprintf('%s_%s.lw6', tone, rhythm));
 
         [header, data] = CLW_load(fname); 
         
@@ -59,12 +56,6 @@ for i_rhythm=1:n_rhythms
         if strcmp(par.ref_name, 'all')
             par.ref_chans = {header.chanlocs.labels}; 
         end
-
-        % remove bad subjects 
-        [header, data] = RLW_arrange_epochs(header, data, ...
-                                    setdiff([1:header.datasize(1)], rm_id)); 
-
-        n_sub = header.datasize(1); 
 
         % reference
         [header, data] = RLW_rereference(header, data,...

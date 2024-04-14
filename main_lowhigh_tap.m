@@ -8,14 +8,13 @@ tones = {'L', 'H'};
 
 n_rhythms = 2; 
 
-rm_id = [1,4,6,11,14];
-
-keep_id = setdiff([1:19], rm_id); 
-
 par.trial_dur = 57.6;  
 
 N = round(44100 * par.trial_dur); 
 
+d = dir(fullfile(load_path, 'tapping', '*.mat')); 
+subjects = sort(cellfun(@(x) str2num(x{1}), ...
+                        regexp({d.name}, '^\d+', 'match'))); 
 
 %% allocate table
 
@@ -34,9 +33,9 @@ data_to_plot = [];
 
 c = 1; 
 
-for i_sub=1:length(keep_id)
+for i_sub=1:length(subjects)
     
-    sub = keep_id(i_sub); 
+    sub = subjects(i_sub); 
 
     % load data
     d = dir(fullfile(load_path, 'tapping', ...
