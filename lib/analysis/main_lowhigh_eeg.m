@@ -45,7 +45,7 @@ for i_rhythm=1:n_rhythms
 
         %% load data
 
-        fname = fullfile(load_path, 'preprocessed', ...
+        fname = fullfile(load_path, 'eeg', ...
             sprintf('%s_%s.lw6', tone, rhythm));
 
         [header, data] = CLW_load(fname); 
@@ -81,13 +81,6 @@ for i_rhythm=1:n_rhythms
                                             
         offset = 0; 
 
-%         % if is unsyncopated, shift the ERP by 3 events (it's okay)
-%         if strcmpi(rhythm_id, 'unsyncopated')
-%             offset = 3 * 0.2; 
-%         else
-%             offset = 0; 
-%         end
-
         [header, data] = RLW_segmentation(header, data, {'trig'}, ...
                             'x_start', 0+offset, 'x_duration', par.trial_dur); 
 
@@ -106,7 +99,8 @@ for i_rhythm=1:n_rhythms
 
         %% load stimulus
 
-        fname = fullfile(load_path, 'Slaney_128coch_meddis_timeDomain_meanAcrossCF'); 
+        fname = fullfile(load_path, 'cochlear_model', ...
+                         'Slaney_128coch_meddis_timeDomain_meanAcrossCF'); 
 
         coch_output = load(fname); % variables: freq, res_all, rowNames
 
@@ -122,14 +116,6 @@ for i_rhythm=1:n_rhythms
         % low-pass filter for nicer acf plot 
         [b,a] = butter(2, 30/(fs_coch/2), 'low'); 
         coch = filtfilt(b, a, coch); 
-
-    %     % cut off the edges to remove filter artifacts 
-    %     idx_start = round(2.4 * fs_coch); 
-    %     N = round((par.trial_dur - 2 * 2.4) * fs_coch); 
-    %     coch = coch(idx_start+1 : idx_start+N); 
-    %     
-    %     % ensure integer number of cycles 
-    %     assert(mod(length(coch) / fs_coch, 2.4) == 0); 
 
         % ensure eeg and coch have the same duration 
         assert(length(coch) / fs_coch - length(data) / fs < 1e-4)

@@ -4,9 +4,6 @@ rm(list=ls())
 source('lib/R/config.R')
 
 data_dirs <- c(
-    # 'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-false_keepBand-false',
-    # 'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-false',
-    # 'maxlag-2.4_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-true',
     'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-false_keepBand-false',
     'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-false',
     'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-true'
@@ -30,8 +27,3 @@ for (i_data_dir in c(1:length(data_dirs))) {
 
     
 }
-
-# run selection-independent reports
-results_fname <- sprintf('report_sel_comparisons')
-rmarkdown::render(sprintf('lib/R/report_sel_comparisons.Rmd'),
-                  output_file=sprintf('%s/data/%s.html', experiment_path, results_fname))

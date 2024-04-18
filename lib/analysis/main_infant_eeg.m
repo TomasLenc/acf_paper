@@ -77,7 +77,7 @@ for i_rhythm=1:n_rhythms
             
             fprintf('preprocessing: %s\n', fname); 
             
-            d = dir(fullfile(load_path, 'derivatives', 'preprocessed_AB', fname)); 
+            d = dir(fullfile(load_path, 'eeg', fname)); 
             
             [header, data] =  CLW_load(fullfile(d.folder, d.name)); 
 
@@ -159,7 +159,8 @@ for i_rhythm=1:n_rhythms
 
         %% load stimulus
 
-        fname = fullfile(load_path, 'Slaney_128coch_meddis_timeDomain_meanAcrossCF.mat'); 
+        fname = fullfile(load_path, 'cochlear_model', ...
+                         'Slaney_128coch_meddis_timeDomain_meanAcrossCF.mat'); 
 
         coch_output = load(fname); % variables: freq, res_all, rowNames
 

@@ -20,7 +20,7 @@ source('utils.R')
 ```
 
 
-This report puts all the simulation and analysis results together! 
+This report compiles all simulations and analyses for the paper "Measuring self-similarity in empirical signals to understand musical beat perception".  
 
 ```{r}
 # load matlab parameters 
@@ -28,7 +28,6 @@ par_matlab <- drop(R.matlab::readMat(file.path(data_path, 'ir-square_ir.mat'), f
 
 only_use_f0_harmonics <- ifelse('true', 'false', par_matlab$only_use_f0_harmonics)
 keep_band <- ifelse('true', 'false', par_matlab$ap_band_around_harmonics[2] > 1)
-
 
 ```
 
@@ -50,19 +49,25 @@ Lags of interest for ACF were selected as follows:
 
 <br>  
 
+# Simulations 
 
+<br><br>
 
-```{r, fig.align="center"}
-fname <- file.path(data_path, 'ir-square_ir.svg')
-knitr::include_graphics(fname)
-```
+## Sensitivity 
 
+The figure below show the sensitivity of the magnitude spectrum based and autocorrelation based analysis to periodic 
+recurrence at the beat rate, which was manipulated by changing the magnitude of unitary responses at different positions
+within a long simulated sequence.  
 
 ```{r, fig.align="center"}
 fname <- file.path(data_path, 'ir-square_emph.svg')
 knitr::include_graphics(fname)
 ```
 
+<br>  <br>  
+
+The figure below shows the sensitivity to decreasing periodic recurrence as a function of increasing jitter (this can be
+thought of as manipulating phase stability of a periodic signal).  
 
 ```{r, fig.align="center"}
 fname = list.files(path=data_path, 
@@ -71,8 +76,25 @@ fname = list.files(path=data_path,
 knitr::include_graphics(file.path(data_path, fname))
 ```
 
+<br><br><br>
+
+## Specificity
+
+The figure below shows how magnitude spectrum and autocorrelation based methods behave when the periodic recurrence is 
+fixed and the shape of the unnitary event is changing.  
 
 
+```{r, fig.align="center"}
+fname <- file.path(data_path, 'ir-square_ir.svg')
+knitr::include_graphics(fname)
+```
+
+<br><br>
+
+Below is the result of simulating many signals with identical arrangement of unitary events in time, and changing the 
+shape of the unitary response randomly across simulated sequences.  
+
+Only the z-scored acf is invariant.  
 
 ```{r}
 
@@ -116,23 +138,21 @@ p
 <br><br><br><br>  
 
 
-
-# Effect of noise  
+## Effect of noise  
 
 <br> 
 
 
-Noise is bad because it distorts the shape of the FFT or ACF, creating a bias in the estimated 
-meter zscore. 
+Noise is bad because it distorts the shape of the magnitude DFT or ACF, creating a bias in the estimated zscore. 
 
-This can be easily demonstrated by applying the estiamation method to pure noise without any signal. 
+This can be easily demonstrated by applying the estimation method to pure noise without any signal. 
 
-When we repeat this simulation many times, we see that simply applying the frequency-tagging or 
-periodicity-tagging method leads to, on average, non-zero meter zscore. 
+When we repeat this simulation many times, we see that simply applying the magnitude spectrum-based or autocorrelation-based 
+method leads to, on average, non-zero beat-related zscore. 
 
 To address this issue, there are ways to account for the noise and minimize the bias:   
 
-* FFT -> subtracting neighboring bins in the magnitude spectrum.  
+* DFT -> subtracting neighboring bins in the magnitude spectrum.  
 * ACF -> estimating the 1/f noise and subtracting this estimate from the spectrum before computing the ACF.  
 
 
@@ -188,10 +208,13 @@ p
 
 <br><br>
 
-## Zscore: pulled to zero by noise
+### Zscore: pulled to zero by noise
 
-This is problematic, since systematically different magnitude of noise across conditions can lead to 
-spurious statistical differences in the estimated meter zscores. 
+After making sure that noise pulls the estimated beat z-score to zero rather than some non-zero value, we still have a 
+problem when applying freq-tagging in real experimental situations. 
+
+Namely, the issue is that systematically different magnitude of noise across conditions can lead to spurious statistical 
+differences in the estimated beat zscores. 
 
 We have to minimize the effect of noise as much as possible (in reality there is no way to simply get 
 rid of the influence of noise - we can only suppress it to greater/lesser degree).  
@@ -229,16 +252,10 @@ df$z_meter_orig <- rep(NA, 1, nrow(df))
 df$z_meter_orig[mask_fft] <- df$z_meter_fft_orig[mask_fft]
 df$z_meter_orig[!mask_fft] <- df$z_meter_acf_orig[!mask_fft]
 
-# # confirm that it works with different patterns too
-# p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=c(7, 17))
-# p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=c(7, 17))
-# 
-# p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=c(2, 11))
-# p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(2, 11))
-
 # pick a pattern with high positive true zscore
 p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=6)
 p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=3)
+
 # pick a pattern with low negative true zscore
 p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=c(4))
 p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(1))
@@ -265,67 +282,40 @@ p
 
 
 In the analysis above, we have picked a pattern that yielded a high (or low) meter zscore separately
-for the FFT and for the ACF. This is because it turns out quite difficult to find a pattern that 
-yields very similar zscore (in absolute terms) between the FFT and ACF. 
+for the DFT and for the ACF. This is because it turns out quite difficult to find a pattern that 
+yields very similar zscore (**in absolute terms**) between the FFT and ACF. 
 
-The zscores yielded by the two methods are still higly correlated though, but the absolute scale of 
-meter zscores obtained from the $ method is smaller. 
-
-Nevertheless, the next question is: which is more sensitive to noise, FFT or ACF?  
+The zscores yielded by the two methods are still **higly correlated** though, but the absolute scale of 
+meter zscores obtained with the two methods differs. 
 
 
 <br><br>
 
-## Noise: FFT vs. ACF
+Rather than looking at beat-related z-score, we can assess the effect of noise by looking at the individual values across 
+all freqs/lags of interest (i.e. together, beat-related and unrelated).  
 
-
-A better way than looking at meter zscores (which are sensitive to the selection of frequencies/lags 
-of interest as meter-related), we can look at the values across all freqs/lags of interest.  
-
-simply assess the distance from the ground truth
-
-This way, we can use the exact same patterns for the FFT and ACF (no need to worry about the actual 
-value of meter zscore in he ground truth signal).
-
-
-```{r}
-
-# load simulated data
-fname = list.files(path=data_path, 
-           pattern='irType-square_apFitMethod-irasa_onlyHarm-.*_noiseEffectDistACFvsFFT.csv')
-
-df <- read.csv(file.path(data_path, fname))
-
-p <- plot_dist_to_truth(df, 
-                        df_eeg_z_snr=NULL)
-
-save_fig(file.path(data_path, fname), p, width=5, height=3)
-p
-
-```
-
+Using simulations, we can simply assess the how different the estimated values (i.e. magnitudes in case of DFT, or 
+autocorrelation values in case of ACF) are from the known clean signal, when we add some known level of noise.  
 
 Let's focus only on the ACF. 
 
-We can plot the same ground-truth correlation data after binning the observed SNR and estimating 
-distribution density within each bin interval.   
+We can plot the ground-truth correlation after binning the observed zSNR and estimating distribution density within each 
+bin interval.   
 
-We will place the log SNR slices such that one of them is exactly centered at the log z_snr observed 
-in the EEG dataset (either lowhigh or infant).  
-
-This way we can get a better idea where we are in therm of surface EEG data quality and what we can 
-expect in terms of reconstructing the ground truth ACF values.  
-
-Of course, keep in mind that this simulation is done with a square impulse response kernel and resting-state
-EEG noise from a different dataset than lowhigh. That means the shape of the noise, as well as the 
-unitary response will be different between the simulated data and lowhigh eeg, making the z_snr values
-estimated from the first 11 harmonics harder to directly compare.  
-
-Let's save the output into png files. 
+Let's save the output directly to files. 
 
 ```{r}
 
-# ACF
+# We can place the log zSNR slices such that one of them is exactly centered at the log z_snr observed 
+# in the EEG dataset (either lowhigh or infant).  
+# 
+# This way we can get a better idea where we are in term of surface EEG data quality and what we can 
+# expect in terms of reconstructing the ground truth ACF values.  
+# 
+# Of course, keep in mind that this simulation is done with a square impulse response kernel and resting-state
+# EEG noise from a different dataset than lowhigh or infant. That means the shape of the noise, as well as the 
+# unitary response will be different between the simulated data and lowhigh/infant eeg, making the z_snr values
+# estimated from the first N harmonics harder to directly compare.  
 
 fname <- 'irType-square_apFitMethod-irasa_noiseEffectDistAllVsOnlyHarm.csv'
 df <- read.csv(file.path(data_path, fname))
@@ -344,6 +334,7 @@ fname_fig_elems[length(fname_fig_elems)] <- 'method-raw_exp-lowhigh_noiseEffectD
 fname_fig <- paste(fname_fig_elems, collapse='_')
 save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
 
+
 # plot raw ACF with average log zSNR across all subjects in the infant dataset
 fname_eeg = list.files(path=data_path, 
            pattern='exp-infant_apFitMethod-irasa_onlyHarm-.*_roi-front_eegIndividual.csv')
@@ -357,6 +348,32 @@ fname_fig_elems[length(fname_fig_elems)] <- 'method-raw_exp-infant_noiseEffectDi
 fname_fig <- paste(fname_fig_elems, collapse='_')
 save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
 
+```
+
+
+<br><br>
+
+Let's plot how it looks when we take raw ACF.  
+
+```{r}
+# let's also plot it using the exact same zSNR bin boundaries so we can assemble the figure
+
+# plot raw ACF 
+p <- plot_dist_to_truth_density(filter(df, method=='raw'), y_var_name='r')
+fname_fig <- tools::file_path_sans_ext(fname)
+fname_fig_elems <- unlist(str_split(fname_fig, '_'))
+fname_fig_elems[length(fname_fig_elems)] <- 'method-raw'
+fname_fig <- paste(fname_fig_elems, collapse='_')
+save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
+p
+```
+
+<br><br>
+
+Let's plot how it looks when we take 1/f-subtracted ACF.  
+
+```{r}
+
 # plot 1/f-subtracted ACF 
 p <- plot_dist_to_truth_density(filter(df, method=='subtr'), y_var_name='r')
 fname_fig <- tools::file_path_sans_ext(fname)
@@ -364,6 +381,15 @@ fname_fig_elems <- unlist(str_split(fname_fig, '_'))
 fname_fig_elems[length(fname_fig_elems)] <- 'method-subtr'
 fname_fig <- paste(fname_fig_elems, collapse='_')
 save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
+p
+```
+
+
+<br><br>
+
+Let's plot how it looks when we take 1/-subtracted and noise zeroed-out ACF.  
+
+```{r}
 
 # plot 1/f-subtracted and noise zeroed-out ACF 
 p <- plot_dist_to_truth_density(filter(df, method=='subtr_only_harm'), y_var_name='r')
@@ -372,100 +398,8 @@ fname_fig_elems <- unlist(str_split(fname_fig, '_'))
 fname_fig_elems[length(fname_fig_elems)] <- 'method-subtrOnlyHarm'
 fname_fig <- paste(fname_fig_elems, collapse='_')
 save_fig(file.path(data_path, fname_fig), p, width=5, height=3)
-
-```
-
-
-
-
-<br><br>
-
-## Noise: raw, subtr, only harmonics
-
-
-```{r}
-
-fname <- 'irType-square_apFitMethod-irasa_noiseEffectDistAllVsOnlyHarm.csv'
-
-df <- read.csv(file.path(data_path, fname))
-
-# convert to factors
-df$pat <- factor(df$pat)
-df$method <- factor(df$method, levels=c('raw', 'subtr', 'subtr_only_harm'))
-
-# fix negative values before taking log 
-df <- filter(df, z_snr > 0)
-
-# # fisher-transform the correlation coefficients
-df$z <- r_to_z(df$r)
-
-# fit sigmoids
-df_raw <- filter(df, method=='raw')
-m_raw <- fit_sigm(log10(df_raw$z_snr), df_raw$r,
-                  init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=2)
-                  )
-
-df_subtr <- filter(df, method=='subtr')
-m_subtr <- fit_sigm(log10(df_subtr$z_snr), df_subtr$r, 
-                    init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=2)
-                    )
-
-df_subtr_only_harm <- filter(df, method=='subtr_only_harm')
-m_subtr_only_harm <- fit_sigm(log10(df_subtr_only_harm$z_snr), df_subtr_only_harm$r, 
-                              # init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=3)
-                              init_params=list('min_'=0, 'max_'=1, 'x50_'=1.4, 'slope_'=2)
-                              )
-
-cols <- c('raw'='#711885', 
-          'subtr'='#d18624', 
-          'subtr_only_harm'='#2b7557')
-
-# plot 
-p <- ggplot() +
-    geom_point(data=df_raw, aes(log10(z_snr), r), 
-               color=lighten(cols['raw'], 0.2), alpha=0.2) + 
-    geom_point(data=df_subtr, aes(log10(z_snr), r), 
-               color=lighten(cols['subtr'], 0.2), alpha=0.2) + 
-    geom_point(data=df_subtr_only_harm, aes(log10(z_snr), r), 
-               color=lighten(cols['subtr_only_harm'], 0.2), alpha=0.2) + 
-    geom_function(fun=sigm, args=coef(m_raw), aes(color='raw'), linewidth=2) +
-    geom_function(fun=sigm, args=coef(m_subtr), aes(color='subtr'), linewidth=2) +
-    geom_function(fun=sigm, args=coef(m_subtr_only_harm), aes(color='subtr_only_harm'), linewidth=2) +
-    geom_hline(yintercept = 0, color='#000000') + 
-    scale_color_manual(name='method', values=cols) + 
-    scale_y_continuous(limits=c(-1, 1), breaks=c(-1, 0, 1)) + 
-    ylab('r with ground truth') + 
-    theme_cowplot() +
-    scale_x_reverse() 
-
-save_fig(file.path(data_path, fname), p, width=7, height=4)
 p
-
 ```
-
-
-And here are the parameter estimates for the model fitted to the raw ACF:  
-
-<br> 
-
-
-```{r}
-knitr::kable(render_sigmoid_fit(m_raw))
-```
-
-To the noise-subtracted ACF:  
-
-```{r}
-knitr::kable(render_sigmoid_fit(m_subtr))
-```
-
-And to the noise-subtracted ACF after only pattern harmonics were taken:  
-
-```{r}
-knitr::kable(render_sigmoid_fit(m_subtr_only_harm))
-```
-
-
 
 
 
@@ -473,9 +407,7 @@ knitr::kable(render_sigmoid_fit(m_subtr_only_harm))
 <br><br><br>
 
 
-## Noise: band width
-
-
+### Noise: band width
 
 
 ```{r, fig.height=15, fig.width=5}
@@ -564,18 +496,6 @@ names(cols_individual) <- names(cols)
 
 ```
 
-
-```{r}
-
-# some functions we'll reuse
-
-# df <- df_eeg_ind
-# col_name_eeg='z_meter_acf_subtr'
-# col_name_coch='z_meter_acf_sound'
-
-
-
-```
 
 ### FFT
 

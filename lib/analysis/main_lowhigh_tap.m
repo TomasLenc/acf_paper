@@ -6,15 +6,9 @@ load_path = fullfile(par.eeg_path, 'lowhigh');
 rhythms = {'unsyncopated', 'syncopated'}; 
 tones = {'L', 'H'}; 
 
-n_rhythms = 2; 
-
 par.trial_dur = 57.6;  
 
-N = round(44100 * par.trial_dur); 
-
 d = dir(fullfile(load_path, 'tapping', '*.mat')); 
-subjects = sort(cellfun(@(x) str2num(x{1}), ...
-                        regexp({d.name}, '^\d+', 'match'))); 
 
 %% allocate table
 
@@ -33,46 +27,41 @@ data_to_plot = [];
 
 c = 1; 
 
-for i_sub=1:length(subjects)
-    
-    sub = subjects(i_sub); 
+for i_rhythm=1:2
 
-    % load data
-    d = dir(fullfile(load_path, 'tapping', ...
-        sprintf('%d_*.mat', sub))); 
+    for i_tone=1:2
 
-    load(fullfile(d.folder, d.name)); 
+        rhythm = rhythms{i_rhythm};
+        tone = tones{i_tone}; 
+        
+        % load data
+        fname = sprintf('%s_%s.mat', tones{i_tone}, rhythms{i_rhythm}); 
 
-    assert(strcmp(res.subjectID, num2str(sub)));
+        res = load(fullfile(load_path, 'tapping', fname)); 
 
-    for i_rhythm=1:n_rhythms
-
-        for i_tone=1:2
-
-            rhythm = rhythms{i_rhythm};
-            tone = tones{i_tone}; 
-
-            fprintf('processing sub-%02d rhythm: %s-%s\n', sub, tone, rhythm);
-
-            cond_mask = ~cellfun(@isempty, ...
-                strfind(res.blockOrder, sprintf('%s_%s', tone, rhythm))); 
+        fs = res.fs; 
+        N = round(fs * par.trial_dur); 
+        
+        for i_sub=1:size(res.data, 1)
             
-            data1 = res.data.block(cond_mask).trial(1).tapData(1, :); 
-            data2 = res.data.block(cond_mask).trial(2).tapData(1, :); 
+            sub = i_sub; 
+            
+            fprintf('processing sub-%02d rhythm: %s-%s\n', sub, tone, rhythm);
             
             % filter
-            [b,a] = butter(2, 30/(44100/2), 'low'); 
-            data1 = filtfilt(b, a, data1); 
-            data2 = filtfilt(b, a, data2); 
+            [b,a] = butter(2, 30/(fs/2), 'low'); 
+            data1 = filtfilt(b, a, res.data{i_sub, 1}); 
+            data2 = filtfilt(b, a, res.data{i_sub, 2}); 
             
             % merge
-            data = [data1(1:N); data2(1:N)]; 
+            data = [ensure_row(data1(1:N)); ...
+                    ensure_row(data2(1:N))]; 
 
             % downsample by factor of 100
             data = data(:, 1 : 100 : end); 
 
-            fs = 44100 / 100; 
-            t = [0 : size(data, 2) - 1] / fs; 
+            fs_ds = fs / 100; 
+            t = [0 : size(data, 2) - 1] / fs_ds; 
 
             % make sure we don't have lags longer than half trial duration!
             par.lags_meter_rel = ...
@@ -89,7 +78,7 @@ for i_sub=1:length(subjects)
             % -------
 
             % withuout aperiodic subtraction    
-            [acf, lags, ~, mX, freq] = get_acf(data, fs);    
+            [acf, lags, ~, mX, freq] = get_acf(data, fs_ds);    
 
             mX_subtracted = subtract_noise_bins(mX, par.noise_bins(1),  par.noise_bins(2)); 
 
@@ -98,7 +87,7 @@ for i_sub=1:length(subjects)
 
             parfor i_trial=1:size(data, 1)
                 [acf_subtracted(i_trial, :)] = ...
-                                    get_acf(data(i_trial, :), fs, ...
+                                    get_acf(data(i_trial, :), fs_ds, ...
                                            'rm_ap', true, ...
                                            'ap_fit_method', par.ap_fit_method, ...
                                            'response_f0', par.response_f0, ...
