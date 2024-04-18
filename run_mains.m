@@ -40,29 +40,18 @@ par.ir_type = 'square';
 par.ir = get_ir(par.ir_type, par.fs); 
 
 % analyse effect of noise on z-score at beat-rel freqs/lags
-main_noiseEffectZscore_ACFvsFFT(par, ...
+main_noise_zscore(par, ...
     'prepared_noise', noise_all_samples);
 
 % analyse effect of noise on distance from ground truth (prepare data for
 % comparison of FFT and ACF sensitivity to noise level)
-main_noiseEffectDist_ACFvsFFT(par, ...
+main_noise_dist(par, ...
     'prepared_noise', noise_all_samples);
-
-% analyse effect of noise on distance from ground truth (compare the
-% efect of noise with/without zeroing-out step in the ACF cleaning
-% procedure)
-main_noiseEffectDist_allVsOnlyHarm(par, ...
-    'prepared_noise', noise_all_samples); 
 
 % analyse effect of noise on distance from ground truth (effect of leaving
 % a narrow band around each response frequency during the zero-out noise
 % correction step)
-main_noiseEffectDist_band(par, ...
-    'prepared_noise', noise_all_samples); 
-
-% analyse effect of noise on distance from ground truth (compare the
-% performance of FOOOF vs. IRASA in correcting for 1/f)
-main_noiseEffectDist_FooofVsIrasa(par,...
+main_noise_dist_band(par, ...
     'prepared_noise', noise_all_samples); 
 
 

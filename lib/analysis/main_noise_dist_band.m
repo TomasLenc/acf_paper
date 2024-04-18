@@ -1,4 +1,4 @@
-function main_noiseEffectDist_peakVsBand(par, varargin)
+function main_noise_dist_band(par, varargin)
 % 
 
 parser = inputParser; 

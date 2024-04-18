@@ -1,4 +1,4 @@
-function main_noiseEffectDist_ACFvsFFT(par, varargin)
+function main_noise_dist(par, varargin)
 
 parser = inputParser; 
 

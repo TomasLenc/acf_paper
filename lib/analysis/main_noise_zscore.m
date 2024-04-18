@@ -1,4 +1,4 @@
-function main_noiseEffectZscore_ACFvsFFT(par, varargin)
+function main_noise_zscore(par, varargin)
 % This code first finds generates patterns separately for FFT and ACF, such
 % that their resulting meter zscore (under the selected impulse response and
 % frex/lags of interest) is near pre-defined values. Then it simulates how the
