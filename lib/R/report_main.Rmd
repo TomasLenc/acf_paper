@@ -222,7 +222,7 @@ rid of the influence of noise - we can only suppress it to greater/lesser degree
 ```{r}
 
 fname = list.files(path=data_path, 
-           pattern='irType-square_apFitMethod-irasa_onlyHarm-.*_noiseEffectZscoreACFvsFFT.csv')
+           pattern='irType-square_apFitMethod-irasa_onlyHarm-.*_noiseEffectZscore.csv')
 
 df_noise_effect_z <- read.csv(file.path(data_path, fname))
 
@@ -252,13 +252,11 @@ df$z_meter_orig <- rep(NA, 1, nrow(df))
 df$z_meter_orig[mask_fft] <- df$z_meter_fft_orig[mask_fft]
 df$z_meter_orig[!mask_fft] <- df$z_meter_acf_orig[!mask_fft]
 
-# pick a pattern with high positive true zscore
-p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=6)
-p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=3)
+p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=1)
+p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=2)
 
-# pick a pattern with low negative true zscore
-p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=c(4))
-p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=c(1))
+p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=3)
+p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=4)
 
 # extract a legend that is laid out horizontally
 legend <- get_legend(p_fft_high_z + 
@@ -317,7 +315,7 @@ Let's save the output directly to files.
 # unitary response will be different between the simulated data and lowhigh/infant eeg, making the z_snr values
 # estimated from the first N harmonics harder to directly compare.  
 
-fname <- 'irType-square_apFitMethod-irasa_noiseEffectDistAllVsOnlyHarm.csv'
+fname <- 'irType-square_apFitMethod-irasa_noiseEffectDistCorrection.csv'
 df <- read.csv(file.path(data_path, fname))
 
 # plot raw ACF with average log zSNR across all subjects in the lowhigh dataset (adults)
