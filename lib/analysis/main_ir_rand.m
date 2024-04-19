@@ -2,7 +2,7 @@ function main_ir_rand(par)
 % Simulates the effect of impulse response shape on different ways to
 % calculate pominence of ACF at beat-related lags. 
 
-n_cond = 100; 
+n_rep = 100; 
 
 %%
 
@@ -15,7 +15,10 @@ tbl = cell2table(cell(0, length(col_names)), 'VariableNames', col_names);
 
 %%
 
-for i_cond=1:n_cond
+for i_rep=1:n_rep
+    
+    scale = 10 * rand(); 
+    offset = 100 * (rand-0.5); 
     
     ir = randn(1, floor(par.fs * par.grid_ioi)); 
     
@@ -27,9 +30,12 @@ for i_cond=1:n_cond
                     'n_cycles', par.n_cycles, ...
                     'ir', ir ...
                     );
+               
+    % shift and scale the whole signal 
+    x = offset + scale * x; 
 
     % get acf withuout aperiodic subtraction    
-    [acf, lags, ~, mX, freq] = get_acf(x, par.fs);    
+    [acf, lags, ~, mX, freq] = get_acf(x, par.fs);   
                                                                           
     % get features
     feat_acf = get_acf_features(acf, lags, ...
@@ -43,9 +49,9 @@ for i_cond=1:n_cond
     end    
     r = r / length(par.lags_meter_rel); 
     
-    
+    % add to table
     new_row = [...
-        {i_cond}, ...
+        {i_rep}, ...
         {feat_acf.z_meter_rel}, ...
         {feat_acf.ratio_meter_rel}, ...
         {feat_acf.contrast_meter_rel}, ...
