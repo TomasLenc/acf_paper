@@ -1,6 +1,11 @@
 Code that runs simulations for the paper: 
 "**Measuring self-similarity in empirical signals to understand musical beat perception**"
 
+<br> 
+
+## Requirements
+
+
 Dependencies: 
 * MATLAB >= 2018a
 * R >= 4.3.2
@@ -11,18 +16,11 @@ Dependencies:
 The code was tested with Ubuntu 20.04 and macOS 13.6. 
 
 
+<br>
 
-<br> 
+The analyses depend on several publicly available datasets:  
 
-## Requirements
-
-
-The analyses depend on several publicly available datasets. 
-
-
-<br> 
-
-**A test-retest resting and cognitive state EEG dataset**
+* **A test-retest resting and cognitive state EEG dataset**
 
 The data is available on [openneuro](https://openneuro.org/datasets/ds004148) (number ds004148).  
 
@@ -42,7 +40,7 @@ datalad unlock sub-*/ses-session1/eeg/sub-*_ses-session1_task-eyesopen*
 
 <br> 
 
-**InfantRhythm dataset** 
+* **InfantRhythm dataset** 
 
 Available on [OSF](https://osf.io/9wf5u). Download raw data and run the analysis code to get the preprocessed data. You should see a folder in `derivatives/preprocessed_AB`. Copy it to the project directory. 
 
@@ -50,7 +48,7 @@ Available on [OSF](https://osf.io/9wf5u). Download raw data and run the analysis
 
 <br> 
 
-**Lowhigh dataset**
+* **Lowhigh dataset**
 
 The data can be downloaded from OSF (:exclamation: :exclamation: :exclamation:). 
 
@@ -68,43 +66,61 @@ The variable `experiment_path` should point to the project directory that has th
 
 ```
 .
-├── data
-└── eeg
+└── data
     ├── infant
-    │   ├── Slaney_128coch_meddis_timeDomain_meanAcrossCF.mat
-    │   └── derivatives
-    │       └── preprocessed_AB
-    │           ├── AB high sync P001.lw6
-    │           ├── AB high sync P001.mat
-    │           ├── AB high sync P002.lw6
-    │           ├── AB high sync P002.mat
-    │           ├── ...
-    │           
+    │   ├── cochlear_model
+    │   │   └── Slaney_128coch_meddis_timeDomain_meanAcrossCF.mat
+    │   └── eeg
+    │       ├── AB high sync P001.lw6
+    │       ├── AB high sync P001.mat
+    │       ├── AB high sync P002.lw6
+    │       ├── AB high sync P002.mat
+    │       ├── AB high sync P003.lw6
+    │       ├── AB high sync P003.mat
+    │       ├── AB high sync P004.lw6
+    │       ├── AB high sync P004.mat
+    │       ├── AB high sync P005.lw6
+    │		...
     ├── lowhigh
-    │   ├── Slaney_128coch_meddis_timeDomain_meanAcrossCF.mat
-    │   ├── preprocessed
+    │   ├── cochlear_model
+    │   │   └── Slaney_128coch_meddis_timeDomain_meanAcrossCF.mat
+    │   ├── eeg
     │   │   ├── H_syncopated.lw6
     │   │   ├── H_syncopated.mat
-    │   │   ├── ...
-    │   │   
+    │   │   ├── H_unsyncopated.lw6
+    │   │   ├── H_unsyncopated.mat
+    │   │   ├── L_syncopated.lw6
+    │   │   ├── L_syncopated.mat
+    │   │   ├── L_unsyncopated.lw6
+    │   │   └── L_unsyncopated.mat
     │   └── tapping
-    │       ├── 10_5.5.2017.1728.mat
-    │       ├── 12_5.24.2017.1628.mat
-    │       ├── ...
-    │       
+    │       ├── H_syncopated.mat
+    │       ├── H_unsyncopated.mat
+    │       ├── L_syncopated.mat
+    │       └── L_unsyncopated.mat
     └── resting_eeg
         └── ds004148
             ├── CHANGES
             ├── README
             ├── dataset_description.json
             ├── derivatives
+            │   ├── README
+            │   ├── code
+            │   ├── figures
+            │   ├── five-states_events.json
+            │   └── preprocessed data
             ├── participants.json
             ├── participants.tsv
             ├── sub-01
+            │   ├── ses-session1
+            │   ├── ses-session2
+            │   └── ses-session3
             ├── sub-02
-            ├── sub-03
-            ├── sub-04
-     
+            │   ├── ses-session1
+            │   ├── ses-session2
+            │   └── ses-session3
+            ...
+
 ```
 
 <br> 
