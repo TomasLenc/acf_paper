@@ -58,8 +58,7 @@ main_snr_vs_nlags(par,...
 
 
 
-%% max lag = half trial duration 
-
+%% freq/lag selection 
 
 par = get_par(); 
 
@@ -88,17 +87,7 @@ par.lag_base_excl_meter_unrel = [0.4];
             par.lag_base_incl_meter_unrel, par.lag_base_excl_meter_unrel ...
             );
         
-
-sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-false_keepBand-false'; 
-par.data_path = fullfile(data_path, sel_name); 
-par.fig_path = par.data_path; 
-mkdir(par.data_path); 
-
-par.only_use_f0_harmonics = false; 
-par.ap_band_around_harmonics = [1, 1]; 
-
-run_mains
-
+%% main analysis 
 
 sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-false'; 
 par.data_path = fullfile(data_path, sel_name); 
@@ -110,7 +99,27 @@ par.ap_band_around_harmonics = [1, 1];
 
 run_mains
 
+%% control analyses 
 
+% Let's run all the analyses with only 1/f-subtraction, but without
+% zeroing-out noise bins. That is, we'll only do the first step of noise
+% correction. 
+sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-false_keepBand-false'; 
+par.data_path = fullfile(data_path, sel_name); 
+par.fig_path = par.data_path; 
+mkdir(par.data_path); 
+
+par.only_use_f0_harmonics = false; 
+par.ap_band_around_harmonics = [1, 1]; 
+
+run_mains
+
+
+% Let's run all the analyses but keep small band of frequencies around each
+% response frequency bin during step 2 of noise correction (i.e. we won't
+% drastically zero-out all frequency bins that don't contain signal, but
+% gradually taper off the suppression on both sides of each response
+% frequency bin). 
 sel_name = 'maxlag-halfTrial_meterRel-0.8_meterUnrel-0.6_1.0_1.4_ignore-0.4_zeroOut-true_keepBand-true'; 
 par.data_path = fullfile(data_path, sel_name); 
 par.fig_path = par.data_path; 
