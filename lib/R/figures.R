@@ -158,7 +158,7 @@ plot_subtr_effect <- function(df, pats, method) {
                       aes(ymin=z_meter-ci, ymax=z_meter+ci), position=pd_summary, width=0, linewidth=1) + 
         scale_color_manual(name='subtracted', values=cols) + 
         scale_x_discrete(labels=round(as.numeric(levels(df$snr)), 2)) + 
-        scale_y_continuous(limits=c(-1.2, 1.2)) +
+        scale_y_continuous(limits=c(-1.6, 1.6)) +
         theme_cowplot()
 }
 
