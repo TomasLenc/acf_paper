@@ -230,11 +230,12 @@ df_noise_effect_z <- read.csv(file.path(data_path, fname))
 df_noise_effect_z$pat <- factor(df_noise_effect_z$pat)
 df_noise_effect_z$selected_for <- factor(df_noise_effect_z$selected_for,
                                          levels=(c('fft', 'acf')))
-
+df_noise_effect_z$z_tag <- factor(df_noise_effect_z$z_tag,
+                                         levels=(c('low', 'high')))
 # convert to long format so that we can use the method and/or whether noise was subtracted as an
 # independent variable 
 df <- pivot_longer(df_noise_effect_z,
-                   !c(pat, selected_for, snr, sample, z_snr, z_meter_fft_orig, z_meter_acf_orig), 
+                   !c(pat, selected_for, z_tag, snr, sample, z_snr, z_meter_fft_orig, z_meter_acf_orig), 
                    names_to='var_name',
                    values_to='z_meter')
 
@@ -252,11 +253,20 @@ df$z_meter_orig <- rep(NA, 1, nrow(df))
 df$z_meter_orig[mask_fft] <- df$z_meter_fft_orig[mask_fft]
 df$z_meter_orig[!mask_fft] <- df$z_meter_acf_orig[!mask_fft]
 
-p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=1)
-p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=2)
 
-p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=3)
-p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=4)
+# plot
+pats <- unique(filter(df, selected_for=='acf' & z_tag=='low')$pat)
+p_acf_low_z <- plot_subtr_effect(df, method='acf', pats=pats)
+
+pats <- unique(filter(df, selected_for=='acf' & z_tag=='high')$pat)
+p_acf_high_z <- plot_subtr_effect(df, method='acf', pats=pats)
+
+
+pats <- unique(filter(df, selected_for=='fft' & z_tag=='low')$pat)
+p_fft_low_z <- plot_subtr_effect(df, method='fft', pats=pats)
+
+pats <- unique(filter(df, selected_for=='fft' & z_tag=='high')$pat)
+p_fft_high_z <- plot_subtr_effect(df, method='fft', pats=pats)
 
 # extract a legend that is laid out horizontally
 legend <- get_legend(p_fft_high_z + 

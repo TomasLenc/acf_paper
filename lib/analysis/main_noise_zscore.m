@@ -82,7 +82,7 @@ end
 % ylim([minlim, maxlim])
 
 
-target_z = [-0.5, 0.5]; 
+target_z = [-0.8, 0.8]; 
 
 % just take the pattern with closest z-score to the desired one
 n_pat_per_z = 1; 
@@ -97,8 +97,8 @@ for i=1:length(target_z)
     pat_idx_fft = [pat_idx_fft; idx(1:n_pat_per_z)]; 
 end
 
-z_acf_all_good_pats(pat_idx_acf)
-z_fft_all_good_pats(pat_idx_fft)
+% z_acf_all_good_pats(pat_idx_acf)
+% z_fft_all_good_pats(pat_idx_fft)
 
 %%
 
@@ -106,7 +106,16 @@ n_rep = par.n_rep;
 
 par.all_pats = all_good_pats([pat_idx_acf, pat_idx_fft], :); 
 
+par.all_pats_z_acf = z_acf_all_good_pats([pat_idx_acf, pat_idx_fft], :); 
 
+par.all_pats_z_fft = z_fft_all_good_pats([pat_idx_acf, pat_idx_fft], :); 
+
+par.all_pats_sel_for = [repmat({'acf'}, 1, length(pat_idx_acf)), ...
+                        repmat({'fft'}, 1, length(pat_idx_fft))]; 
+
+par.all_pats_z_tag = {'low', 'high', 'low', 'high'}; 
+
+                    
 %% prepare noise
 if size(noise, 1) < n_rep
     error('you requested %d samples but provided only noise for %s...', ...
@@ -118,7 +127,7 @@ end
 %%
 
 col_names = {
-    'pat', 'selected_for', 'snr', 'sample', ...
+    'pat', 'selected_for', 'z_tag', 'snr', 'sample', ...
     'z_meter_fft_raw', 'z_meter_acf_raw', ...
     'z_meter_fft_subtr', 'z_meter_acf_subtr', ...
     'z_meter_fft_orig', 'z_meter_acf_orig', ...
@@ -214,6 +223,7 @@ for i_pat=1:size(par.all_pats, 1)
         rows = [...
             repmat({i_pat}, n_rep, 1), ...
             repmat({selected_for}, n_rep, 1), ...
+            repmat(par.all_pats_z_tag(i_pat), n_rep, 1), ...
             repmat({snr}, n_rep, 1), ...
             num2cell([1:n_rep]'), ...
             num2cell(feat_fft.z_meter_rel), ...
