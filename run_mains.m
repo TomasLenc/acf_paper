@@ -43,16 +43,17 @@ par.ir = get_ir(par.ir_type, par.fs);
 main_noise_zscore(par, ...
     'prepared_noise', noise_all_samples);
 
-% analyse effect of noise on distance from ground truth (prepare data for
-% comparison of FFT and ACF sensitivity to noise level)
-main_noise_dist(par, ...
-    'prepared_noise', noise_all_samples);
+% analyse effect of noise on distance from ground truth (raw,
+% 1/f-subtracted, only-response-harmonics ACF) 
+main_noise_dist_correction_steps(par, ...
+    'prepared_noise', noise_all_samples); 
 
 % analyse effect of noise on distance from ground truth (effect of leaving
 % a narrow band around each response frequency during the zero-out noise
 % correction step)
 main_noise_dist_band(par, ...
     'prepared_noise', noise_all_samples); 
+
 
 
 %% pure noise

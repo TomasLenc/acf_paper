@@ -35,13 +35,15 @@ addpath(genpath(rnb_tools_path));
 addpath(genpath(lw_path)); 
 addpath(genpath('lib'));
 
-fig_path = fullfile(experiment_path, 'figures'); 
-data_path = fullfile(experiment_path, 'data'); 
-coch_data_path = fullfile(experiment_path, 'eeg', 'coch'); 
-eeg_path = fullfile(experiment_path, 'eeg'); 
+data_path = fullfile(experiment_path, 'results'); 
+eeg_path = fullfile(experiment_path, 'data'); 
 resting_eeg_path = fullfile(eeg_path, 'resting_eeg', 'ds004148'); 
 
-%% 
+if ~isdir(data_path)
+    mkdir(data_path)
+end
+
+%%
 
 fs = 200; 
 

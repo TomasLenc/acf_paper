@@ -82,7 +82,7 @@ end
 % ylim([minlim, maxlim])
 
 
-target_z = [-0.5, 0, 0.5]; 
+target_z = [-0.5, 0.5]; 
 
 % just take the pattern with closest z-score to the desired one
 n_pat_per_z = 1; 
@@ -240,7 +240,7 @@ end
 %%
 
 % save table
-fname = sprintf('irType-%s_apFitMethod-%s_onlyHarm-%s_noiseEffectZscoreACFvsFFT', ...
+fname = sprintf('irType-%s_apFitMethod-%s_onlyHarm-%s_noiseEffectZscore', ...
                 par.ir_type, ...
                 par.ap_fit_method, ...
                 jsonencode(par.only_use_f0_harmonics)); 
