@@ -10,21 +10,36 @@ par = get_par();
 
 n_noise_samples = 500;
 
-% genarate noies
-if strcmp(par.noise_type, 'eeg')
+fname_noise = fullfile(par.data_path, ...
+                       sprintf('n-%d_noise.mat', n_noise_samples)); 
 
-    noise_all_samples = prepare_eeg_noise(n_noise_samples, par.trial_dur);    
 
-elseif strcmp(par.noise_type, 'fractal')
+if ~exist(fname_noise)
+    
+    % genarate noise
+    if strcmp(par.noise_type, 'eeg')
 
-    noise_all_samples = get_colored_noise2(...
-        [n_noise_samples, round(par.trial_dur*par.fs)], ...
-        par.fs, par.noise_exponent); 
+        noise_all_samples = prepare_eeg_noise(n_noise_samples, par.trial_dur);    
+
+    elseif strcmp(par.noise_type, 'fractal')
+
+        noise_all_samples = get_colored_noise2(...
+            [n_noise_samples, round(par.trial_dur*par.fs)], ...
+            par.fs, par.noise_exponent); 
+
+    else
+
+        error('noise type "%s" not implemented', par.noise_type);
+
+    end
+
+    % save noise to disk so we do'nt have to keep re-builting it every time
+    save(fname_noise, 'noise_all_samples', 'n_noise_samples'); 
 
 else
     
-    error('noise type "%s" not implemented', par.noise_type);
-
+    load(fname_noise)
+    
 end
 
 
