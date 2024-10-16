@@ -111,6 +111,13 @@ posthoc_ttest_low_vs_high <- function(df, var_name_eeg){
 ttest_0 <- function(df, var_name){
     vals_eeg <- df %>% pull(.data[[var_name]])
     res <- t.test(vals_eeg, mu=0, alternative='greater')
-    data.frame(t=res$statistic, p=res$p.value)
+    data.frame(t=res$statistic, df=res$parameter, p=res$p.value)
 }
 
+
+ttest_coch <- function(df, var_name_eeg, var_name_coch){
+    vals_eeg <- df %>% pull(.data[[var_name_eeg]])
+    val_coch <- unique(df %>% pull(.data[[var_name_coch]]))
+    res <- t.test(vals_eeg, mu=val_coch, alternative='greater')
+    data.frame(t=res$statistic, df=res$parameter, p=res$p.value)
+}

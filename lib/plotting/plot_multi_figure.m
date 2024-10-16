@@ -136,7 +136,10 @@ prec = 1e2;
 
 ytick_at_means = false;
 
-pnl(1).pack('h', max(min_n_pack_feat_pnl, length(feat_to_plot))); 
+y_lims = []; 
+
+% pnl(1).pack('h', max(min_n_pack_feat_pnl, length(feat_to_plot))); 
+pnl(1).pack('h', 7); 
 
 for i_feat=1:length(feat_to_plot)
     
@@ -200,11 +203,10 @@ for i_feat=1:length(feat_to_plot)
                       'colors', colors, ...
                       'plot_legend', true, ...
                       varargin_for_points{:}); 
-                      
     ax.YLim = [min(min(floor(tbl{:, feat_to_plot{i_feat}}*prec)/prec), Inf), ...
                max(max(ceil(tbl{:, feat_to_plot{i_feat}}*prec)/prec), -Inf), ...
                ];
-    
+   
     ax.YTick = ax.YLim; 
        
     pnl(1, i_feat).ylabel(sprintf('%s', feat_label)); 

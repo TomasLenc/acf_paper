@@ -279,7 +279,8 @@ plot_dist_to_truth_density <- function(df, y_var_name, z_snr_var_name='z_snr',
 
 
 plot_feat_ind_lowhigh <- function(df, 
-                          col_name_eeg='z_meter_fft_subtr', col_name_coch='z_meter_fft_sound'){
+                          col_name_eeg='z_meter_fft_subtr', col_name_coch='z_meter_fft_sound',
+                          y_lims=c(-NA, +NA)){
     
     df$x <- as.numeric(df$tone)
     df$x_coch_start <- df$x-0.3
@@ -291,6 +292,12 @@ plot_feat_ind_lowhigh <- function(df,
     
     pd <- position_dodge(0.0)
     
+    if (any(is.na(y_lims))){
+        y_ticks <- c(-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5)
+    } else {
+        y_ticks <- sort(append(y_lims,0))
+    }
+  
     p <- ggplot(df, aes(x, .data[[col_name_eeg]], color=tone)) + 
         geom_segment(data=df[df$subject==df$subject[1],],
                      inherit.aes=FALSE,
@@ -301,7 +308,7 @@ plot_feat_ind_lowhigh <- function(df,
         scale_color_manual(name='tone', values=cols) +
         scale_x_continuous(breaks=c(1:length(levels(df$tone))), 
                            labels=levels(df$tone)) +  
-        scale_y_continuous(breaks=c(-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5)) +
+        scale_y_continuous(breaks=y_ticks, limits=y_lims) +
         new_scale_color() + new_scale_fill() +
         geom_line(aes(group=paste(subject, rhythm)), color='grey80', position=pd) + 
         geom_point(aes(fill=tone, color=tone, group=paste(subject, rhythm)), size=2, shape=21, position=pd) +

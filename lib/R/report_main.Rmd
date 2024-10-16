@@ -512,7 +512,8 @@ Analysis performed on a frontal cluster of channels to get better SNR.
 ```{r, fig.width=2.3, fig.height=1.5}
 p <- plot_feat_ind_lowhigh(df_eeg_ind, 
               col_name_eeg='z_meter_fft_subtr',
-              col_name_coch='z_meter_fft_sound')
+              col_name_coch='z_meter_fft_sound', 
+              y_lims=c(-1.6, 1.6))
 
 fname <- sprintf('%s_FFT', tools::file_path_sans_ext(fname_lowhigh))
 save_fig(file.path(data_path, fname), p, width=2.3, height=1.4)
@@ -566,9 +567,21 @@ df_posthoc <- df_eeg_ind %>%
 
 df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 
-(df_posthoc)
+knitr::kable(df_posthoc)
 ```
 
+
+T-test against cochlear model (fdr corrected): 
+```{r}
+
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm, tone) %>% 
+    group_modify(~ttest_coch(.x, var_name_eeg='z_meter_fft_subtr', var_name_coch='z_meter_fft_sound'))
+
+df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
+
+knitr::kable(df_posthoc)
+```
 
 
 <br><br><br> 
@@ -582,7 +595,8 @@ The zscore at meter-related lags was computed from the channel-averaged ACF, sep
 ```{r, fig.width=2.3, fig.height=1.5}
 p <- plot_feat_ind_lowhigh(df_eeg_ind, 
               col_name_eeg='z_meter_acf_subtr',
-              col_name_coch='z_meter_acf_sound')
+              col_name_coch='z_meter_acf_sound', 
+              y_lims=c(-1.6, 1.6))
 
 fname <- sprintf('%s_ACF', tools::file_path_sans_ext(fname_lowhigh))
 save_fig(file.path(data_path, fname), p, width=2.3, height=1.4)
@@ -640,6 +654,18 @@ df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 knitr::kable(df_posthoc)
 ```
 
+
+T-test against cochlear model (fdr corrected): 
+```{r}
+
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm, tone) %>% 
+    group_modify(~ttest_coch(.x, var_name_eeg='z_meter_acf_subtr', var_name_coch='z_meter_acf_sound'))
+
+df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
+
+knitr::kable(df_posthoc)
+```
 
 ### Correlation FFT~ACF
 
@@ -738,7 +764,8 @@ Analysis performed on a frontal cluster of channels to get better SNR.
 ```{r, fig.width=2.3, fig.height=1.5}
 p <- plot_feat_ind_lowhigh(df_eeg_ind, 
               col_name_eeg='z_meter_fft_subtr',
-              col_name_coch='z_meter_fft_sound')
+              col_name_coch='z_meter_fft_sound', 
+              y_lims=c(-1.6, 1.6))
 
 fname <- sprintf('%s_FFT', tools::file_path_sans_ext(fname_lowhigh))
 save_fig(file.path(data_path, fname), p, width=2.3, height=1.4)
@@ -795,6 +822,18 @@ knitr::kable(df_posthoc)
 ```
 
 
+T-test against cochlear model (fdr corrected): 
+```{r}
+
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm, tone) %>% 
+    group_modify(~ttest_coch(.x, var_name_eeg='z_meter_fft_subtr', var_name_coch='z_meter_fft_sound'))
+
+df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
+
+knitr::kable(df_posthoc)
+```
+
 
 <br><br><br> 
 
@@ -807,7 +846,8 @@ The zscore at meter-related lags was computed from the channel-averaged ACF, sep
 ```{r, fig.width=2.3, fig.height=1.5}
 p <- plot_feat_ind_lowhigh(df_eeg_ind, 
               col_name_eeg='z_meter_acf_subtr',
-              col_name_coch='z_meter_acf_sound')
+              col_name_coch='z_meter_acf_sound', 
+              y_lims=c(-1.6, 1.6))
 
 fname <- sprintf('%s_ACF', tools::file_path_sans_ext(fname_lowhigh))
 save_fig(file.path(data_path, fname), p, width=2.3, height=1.4)
@@ -860,6 +900,19 @@ T-test against 0 (fdr corrected):
 df_posthoc <- df_eeg_ind %>% 
     group_by(rhythm, tone) %>% 
     group_modify(~ttest_0(.x, var_name='z_meter_acf_subtr'))
+
+df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
+
+knitr::kable(df_posthoc)
+```
+
+
+T-test against cochlear model (fdr corrected): 
+```{r}
+
+df_posthoc <- df_eeg_ind %>% 
+    group_by(rhythm, tone) %>% 
+    group_modify(~ttest_coch(.x, var_name_eeg='z_meter_acf_subtr', var_name_coch='z_meter_acf_sound'))
 
 df_posthoc$p <- p.adjust(df_posthoc$p, method='fdr')
 
